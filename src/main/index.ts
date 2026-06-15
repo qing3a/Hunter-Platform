@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getDb } from './db';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +43,7 @@ function registerPingIpc(): void {
 }
 
 app.whenReady().then(() => {
+  getDb();
   registerPingIpc();
   createWindow();
 
