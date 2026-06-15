@@ -1,6 +1,8 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 
-const api = {} as const;
+const api = {
+  ping: (): Promise<string> => ipcRenderer.invoke('ping'),
+} as const;
 
 contextBridge.exposeInMainWorld('api', api);
 

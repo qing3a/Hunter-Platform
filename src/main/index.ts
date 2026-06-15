@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,8 +37,14 @@ function createWindow(): void {
   }
 }
 
+function registerPingIpc(): void {
+  ipcMain.handle('ping', () => 'pong');
+}
+
 app.whenReady().then(() => {
+  registerPingIpc();
   createWindow();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
