@@ -11,6 +11,8 @@ import { createHeadhunterRouter } from './routes/headhunter.js';
 import { createEmployerRouter } from './routes/employer.js';
 import { createCandidateRouter } from './routes/candidate.js';
 import { createWebhookWorker } from './modules/webhook/worker.js';
+import { metricsMiddleware } from './modules/metrics/middleware.js';
+import { getRegistry } from './modules/metrics/registry.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -20,6 +22,17 @@ import type { DB } from './db/connection.js';
 export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Express {
   const app = express();
   app.use(express.json({ limit: '4kb' }));
+
+  // Metrics: HTTP request duration + count (M5)
+  app.use(metricsMiddleware);
+  app.get('/metrics', async (_req, res) => {
+    const text = await getRegistry().metrics();
+    res.type('text/plain; version=0.0.4').send(text);
+  });
+  app.get('/v1/metrics', async (_req, res) => {
+    const text = await getRegistry().metrics();
+    res.type('text/plain; version=0.0.4').send(text);
+  });
 
   // Routes
   app.get('/v1/health', (_req, res) => {
