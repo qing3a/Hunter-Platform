@@ -78,5 +78,43 @@ export function createEmployerHandler(db: DB) {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers');
       return jobs.listByEmployer(user.id, opts);
     },
+
+    browseTalent(user: User, filters: { industry?: string; title_level?: string; min_years?: number; max_years?: number; skills?: string[] }): AnonymizedCandidate[] {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can browse talent');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.browse_talent);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      const all = db.prepare(
+        'SELECT * FROM candidates_anonymized WHERE is_public_pool = 1 ORDER BY created_at DESC LIMIT 100'
+      ).all() as any[];
+
+      return all
+        .filter(c => {
+          if (filters.industry && c.industry !== filters.industry) return false;
+          if (filters.title_level && c.title_level !== filters.title_level) return false;
+          if (filters.min_years != null && (c.years_experience ?? 0) < filters.min_years) return false;
+          if (filters.max_years != null && (c.years_experience ?? 0) > filters.max_years) return false;
+          if (filters.skills && filters.skills.length > 0) {
+            const candSkills: string[] = JSON.parse(c.skills_json ?? '[]');
+            if (!filters.skills.some(s => candSkills.includes(s))) return false;
+          }
+          return true;
+        })
+        .map(c => ({
+          id: c.id,
+          anonymized_id: c.id,
+          industry: c.industry,
+          title_level: c.title_level,
+          years_experience: c.years_experience,
+          salary_range: c.salary_range,
+          education_tier: c.education_tier,
+          skills: JSON.parse(c.skills_json ?? '[]'),
+        }));
+    },
   };
 }
