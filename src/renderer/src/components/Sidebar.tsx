@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type PageName = 'dashboard' | 'users' | 'candidates' | 'audit' | 'webhooks' | 'rateLimit' | 'config';
+export type PageName = 'dashboard' | 'users' | 'candidates' | 'audit' | 'webhooks' | 'rateLimit' | 'billing' | 'adminLog' | 'config';
 
 export const PAGE_TITLES: Record<PageName, string> = {
   dashboard: '仪表盘',
@@ -9,10 +9,12 @@ export const PAGE_TITLES: Record<PageName, string> = {
   audit: '审计日志',
   webhooks: 'Webhook 管理',
   rateLimit: '限流管理',
+  billing: '佣金账单',
+  adminLog: '管理员操作',
   config: '配置中心',
 };
 
-export const PAGE_ORDER: PageName[] = ['dashboard', 'users', 'candidates', 'audit', 'webhooks', 'rateLimit', 'config'];
+export const PAGE_ORDER: PageName[] = ['dashboard', 'users', 'candidates', 'audit', 'webhooks', 'rateLimit', 'billing', 'adminLog', 'config'];
 
 interface Props {
   current: PageName;

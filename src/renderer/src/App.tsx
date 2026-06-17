@@ -7,6 +7,8 @@ import AuditLog from './pages/AuditLog';
 import WebhookManagement from './pages/WebhookManagement';
 import RateLimitManagement from './pages/RateLimitManagement';
 import ConfigCenter from './pages/ConfigCenter';
+import CommissionBilling from './pages/CommissionBilling';
+import AdminActionsLog from './pages/AdminActionsLog';
 import './styles/admin.css';
 
 const PAGES: Record<PageName, () => JSX.Element> = {
@@ -16,6 +18,8 @@ const PAGES: Record<PageName, () => JSX.Element> = {
   audit: AuditLog,
   webhooks: WebhookManagement,
   rateLimit: RateLimitManagement,
+  billing: CommissionBilling,
+  adminLog: AdminActionsLog,
   config: ConfigCenter,
 };
 

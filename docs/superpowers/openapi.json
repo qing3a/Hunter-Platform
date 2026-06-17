@@ -1,0 +1,592 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Hunter Platform API",
+    "version": "1.0.0",
+    "description": "猎头中介 API 平台。详细见 skill.md。"
+  },
+  "servers": [
+    {
+      "url": "https://api.hunter-platform.com/v1",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_type": {
+            "type": "string",
+            "enum": [
+              "candidate",
+              "headhunter",
+              "employer"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "agent_endpoint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quota_per_day": {
+            "type": "integer"
+          },
+          "quota_used": {
+            "type": "integer"
+          },
+          "reputation": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended",
+              "deleted"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AnonymizedCandidate": {
+        "type": "object",
+        "properties": {
+          "industry": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title_level": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "years_experience": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "salary_range": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "education_tier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Placement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "candidate_user_id": {
+            "type": "string"
+          },
+          "primary_headhunter_id": {
+            "type": "string"
+          },
+          "referrer_headhunter_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "annual_salary": {
+            "type": "integer"
+          },
+          "platform_fee": {
+            "type": "integer"
+          },
+          "primary_share": {
+            "type": "integer"
+          },
+          "referrer_share": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_payment",
+              "paid",
+              "cancelled"
+            ]
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ],
+  "paths": {
+    "/v1/auth/register": {
+      "post": {
+        "summary": "注册用户",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "user_type",
+                  "name"
+                ],
+                "properties": {
+                  "user_type": {
+                    "type": "string",
+                    "enum": [
+                      "candidate",
+                      "headhunter",
+                      "employer"
+                    ]
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "contact": {
+                    "type": "string"
+                  },
+                  "agent_endpoint": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user_id": {
+                          "type": "string"
+                        },
+                        "api_key": {
+                          "type": "string"
+                        },
+                        "quota_per_day": {
+                          "type": "integer"
+                        },
+                        "user_type": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}/status": {
+      "get": {
+        "summary": "查询用户状态",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/headhunter/candidates": {
+      "post": {
+        "summary": "上传候选人（自动脱敏）",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "anonymized_id": {
+                      "type": "string"
+                    },
+                    "preview": {
+                      "$ref": "#/components/schemas/AnonymizedCandidate"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "我的候选人列表",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/headhunter/recommendations": {
+      "post": {
+        "summary": "推荐给雇主",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "我的推荐列表",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/headhunter/candidates/{id}/publish-to-pool": {
+      "post": {
+        "summary": "发布到公开池",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/headhunter/recommendations/{id}/withdraw": {
+      "post": {
+        "summary": "撤回推荐",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/employer/jobs": {
+      "post": {
+        "summary": "创建职位",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "summary": "我的职位列表",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/employer/talent": {
+      "get": {
+        "summary": "浏览脱敏人才池",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/employer/recommendations/{id}/express-interest": {
+      "post": {
+        "summary": "表达兴趣",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/employer/recommendations/{id}/unlock-contact": {
+      "post": {
+        "summary": "解锁联系方式",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/employer/placements": {
+      "post": {
+        "summary": "创建入职记录（自动计算佣金）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "anonymized_candidate_id",
+                  "job_id",
+                  "annual_salary"
+                ],
+                "properties": {
+                  "anonymized_candidate_id": {
+                    "type": "string"
+                  },
+                  "job_id": {
+                    "type": "string"
+                  },
+                  "annual_salary": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Placement"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "我的入职记录列表",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/candidate/opportunities": {
+      "get": {
+        "summary": "查看匹配机会",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/candidate/recommendations/{id}/approve-unlock": {
+      "post": {
+        "summary": "授权解锁",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/candidate/recommendations/{id}/reject-unlock": {
+      "post": {
+        "summary": "拒绝解锁",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/candidate/export-my-data": {
+      "get": {
+        "summary": "GDPR 数据导出（GDPR Article 20）",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/candidate/delete-my-data": {
+      "post": {
+        "summary": "GDPR 撤回（GDPR Article 17）",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/skill.md": {
+      "get": {
+        "summary": "skill.md 集成文档",
+        "responses": {
+          "200": {
+            "description": "Markdown"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "健康检查",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  }
+}

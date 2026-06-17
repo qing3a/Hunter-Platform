@@ -29,6 +29,15 @@ interface AdminApi {
     get(): Promise<any>;
     set(key: string, value: any): Promise<any>;
   };
+  placements: {
+    list(filter: { status?: string }): Promise<any>;
+    markPaid(placement_id: string): Promise<any>;
+    cancel(placement_id: string): Promise<any>;
+    summary(): Promise<any>;
+  };
+  adminLog: {
+    list(filter: { admin_id?: string; target_type?: string; target_id?: string; limit?: number }): Promise<any>;
+  };
 }
 
 interface ConvoApi {

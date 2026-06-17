@@ -8,6 +8,8 @@ import { createAuditIpc } from './audit.js';
 import { createWebhooksIpc } from './webhooks.js';
 import { createRateLimitIpc } from './rate-limit.js';
 import { createConfigIpc } from './config.js';
+import { createPlacementsIpc } from './placements.js';
+import { createAdminLogIpc } from './admin-log.js';
 
 let registered = false;
 
@@ -27,6 +29,8 @@ export function registerAdminIpc(): void {
   const webhooks = createWebhooksIpc(db);
   const rateLimit = createRateLimitIpc(db);
   const config = createConfigIpc();
+  const placements = createPlacementsIpc(db);
+  const adminLog = createAdminLogIpc(db);
 
   ipcMain.handle('admin:ping', () => 'admin pong');
 
@@ -50,6 +54,13 @@ export function registerAdminIpc(): void {
 
   ipcMain.handle('admin:config:get', () => config.get());
   ipcMain.handle('admin:config:set', (_e, args) => config.set(args.key, args.value));
+
+  ipcMain.handle('admin:placements:list', (_e, filter) => placements.list(filter ?? {}));
+  ipcMain.handle('admin:placements:markPaid', (_e, args) => placements.markPaid('admin', args.placement_id));
+  ipcMain.handle('admin:placements:cancel', (_e, args) => placements.cancel('admin', args.placement_id));
+  ipcMain.handle('admin:placements:summary', () => placements.summary());
+
+  ipcMain.handle('admin:adminLog:list', (_e, filter) => adminLog.list(filter ?? {}));
 }
 
 /**

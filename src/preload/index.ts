@@ -51,6 +51,19 @@ const api = {
       set: (key: string, value: any): Promise<any> =>
         ipcRenderer.invoke('admin:config:set', { key, value }),
     },
+    placements: {
+      list: (filter: { status?: string }): Promise<any> =>
+        ipcRenderer.invoke('admin:placements:list', filter),
+      markPaid: (placement_id: string): Promise<any> =>
+        ipcRenderer.invoke('admin:placements:markPaid', { placement_id }),
+      cancel: (placement_id: string): Promise<any> =>
+        ipcRenderer.invoke('admin:placements:cancel', { placement_id }),
+      summary: (): Promise<any> => ipcRenderer.invoke('admin:placements:summary'),
+    },
+    adminLog: {
+      list: (filter: { admin_id?: string; target_type?: string; target_id?: string; limit?: number }): Promise<any> =>
+        ipcRenderer.invoke('admin:adminLog:list', filter),
+    },
   },
 } as const;
 

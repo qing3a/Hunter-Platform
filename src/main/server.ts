@@ -40,10 +40,21 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     res.redirect(301, '/v1/skill.md');
   });
 
+  // OpenAPI 3.0 spec (public)
+  const openapiPath = path.join(process.cwd(), 'docs/superpowers/openapi.json');
+  app.get('/v1/openapi.json', (_req, res) => {
+    try {
+      const content = fs.readFileSync(openapiPath, 'utf8');
+      res.type('application/json').send(content);
+    } catch {
+      res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'openapi.json not found' } });
+    }
+  });
+
   app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
   app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/candidate', createCandidateRouter(db));
+  app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
