@@ -34,9 +34,10 @@ describe('migrations', () => {
     const { runMigrations } = await import('../../src/main/db/migrations');
     const db = openDb(testDb);
     runMigrations(db);
+    const migsFirst = db.prepare('SELECT * FROM schema_migrations').all() as { version: number }[];
     runMigrations(db);  // 第二次不应报错
     const migs = db.prepare('SELECT * FROM schema_migrations').all();
-    expect(migs.length).toBe(1);
+    expect(migs.length).toBe(migsFirst.length);  // 第二次不增加
     db.close();
   });
 });
