@@ -12,11 +12,32 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Detect whether we're running as a standalone API server (tsx) vs.
  * embedded inside an Electron main process.
  *
- * - `tsx src/main/index.ts` -> standalone API only (no window)
- * - `electron .` / electron-vite dev -> hybrid (API + BrowserWindow)
+ * - `tsx src/main/index.ts` / `node out/main/index.js` → standalone API
+ * - `electron .` / electron-vite dev → hybrid (API + BrowserWindow)
  */
 export function shouldStartApiStandalone(): boolean {
   return !process.versions.electron;
+}
+
+/**
+ * Test environment guard. Returns true if we should NOT fire side effects.
+ *
+ * Why this exists: the previous implementation compared `import.meta.url` to
+ * `process.argv[1]` to detect "is this the entry point?" — a comparison
+ * that is fragile in compiled CJS output (electron-vite build artifact)
+ * because of URL encoding vs native path format mismatches. For example:
+ *
+ *   import.meta.url  = file:///D:/dev/hunter-platform/out/main/index.js
+ *   process.argv[1] = D:\dev\hunter-platform\out\main\index.js
+ *   // (also vitest worker paths are completely different)
+ *
+ * The robust approach: check explicit environment signals set by vitest
+ * or by manual test runs, rather than guessing entry-point status.
+ */
+function isTestEnv(): boolean {
+  return process.env.VITEST === 'true'
+      || process.env.VITEST_WORKER_ID !== undefined
+      || process.env.NODE_ENV === 'test';
 }
 
 let apiServer: http.Server | null = null;
@@ -63,13 +84,18 @@ function registerPingIpc(): void {
 }
 
 /**
- * Single entry point — called once on module load.
- * Pulled out so test imports of this module (for `shouldStartApiStandalone`)
- * don't accidentally fire side effects.
+ * Main entry point. Always exported for testability, but the
+ * bottom-of-file IIFE that calls it has a test-env guard so side
+ * effects (binding a port, opening a window) only happen at runtime.
  */
 export async function main(): Promise<void> {
+  // Test-env guard: don't fire side effects (port bind, window open)
+  // when this module is imported by vitest. Tests that need main()'s
+  // behavior should call it explicitly.
+  if (isTestEnv()) return;
+
   if (shouldStartApiStandalone()) {
-    // Mode A: tsx CLI — API only
+    // Mode A: tsx CLI / `node out/main/index.js` — API only
     apiServer = await startApiServer();
     console.log('API server running standalone (no Electron)');
   } else {
@@ -88,22 +114,16 @@ export async function main(): Promise<void> {
   }
 }
 
-// Only fire main() if this module is the actual entry point (not a test import).
-// We compare process.argv[1] against this module's file path; if argv[1] is
-// something else (vitest worker, etc.) we skip.
-import { fileURLToPath as _toPath } from 'node:url';
-function isEntryPoint(): boolean {
-  if (!process.argv[1]) return false;
-  try {
-    return _toPath(import.meta.url) === _toPath(new URL(process.argv[1], 'file://'));
-  } catch {
-    return false;
-  }
-}
-if (isEntryPoint()) {
-  void main().catch((err) => {
-    console.error('main() failed:', err);
-    if (process.versions.electron) app.quit();
-    else process.exit(1);
-  });
-}
+// Always call main() on module load. isTestEnv() inside the guard above
+// prevents side effects when this module is imported by vitest.
+//
+// This replaces the previous isEntryPoint() check that compared
+// import.meta.url to process.argv[1] — a comparison that breaks in
+// compiled CJS output because the two paths use different formats
+// (file:// URL vs native path, with different separators and possibly
+// different encodings).
+void main().catch((err) => {
+  console.error('main() failed:', err);
+  if (process.versions.electron) app.quit();
+  else process.exit(1);
+});
