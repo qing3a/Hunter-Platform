@@ -2,18 +2,28 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createCandidateHandler } from '../modules/candidate/handler.js';
+import { createCandidateExport } from '../modules/candidate/export.js';
 import { Errors } from '../errors.js';
 import type { User } from '../../shared/types.js';
 
-export function createCandidateRouter(db: DB): Router {
+export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createCandidateHandler(db);
+  const exporter = createCandidateExport(db, encryptionKey);
   router.use(authMiddleware(db));
 
   router.get('/opportunities', (req, res, next) => {
     try {
       const list = handler.viewOpportunities((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
       res.json({ ok: true, data: list });
+    } catch (e) { next(e); }
+  });
+
+  router.get('/export-my-data', (req, res, next) => {
+    try {
+      const data = exporter.exportMyData((req as typeof req & { user?: User }).user!);
+      res.setHeader('Content-Disposition', 'attachment; filename="my-data.json"');
+      res.json({ ok: true, data });
     } catch (e) { next(e); }
   });
 

@@ -43,7 +43,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
   app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/candidate', createCandidateRouter(db));
+  app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
