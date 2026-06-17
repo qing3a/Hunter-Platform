@@ -116,5 +116,76 @@ export function createEmployerHandler(db: DB) {
           skills: JSON.parse(c.skills_json ?? '[]'),
         }));
     },
+
+    expressInterest(
+      user: User,
+      input: { recommendation_id: string },
+      ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string } = { encryptionKey: Buffer.alloc(32) },
+    ): void {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can express interest');
+
+      const limits = RATE_LIMIT_BURSTS.employer;
+      const rlResult = rl.check(user.id, [
+        { windowSeconds: 1, limit: limits.second },
+        { windowSeconds: 60, limit: limits.minute },
+        { windowSeconds: 3600, limit: limits.hour },
+      ]);
+      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.express_interest);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      // node:sqlite doesn't have db.transaction(); use explicit BEGIN/COMMIT
+      // (consistent with M1 pattern in src/main/db/migrations.ts).
+      db.exec('BEGIN');
+      try {
+        const rec = recommendations.findById(input.recommendation_id);
+        if (!rec) throw Errors.notFound('Recommendation not found');
+        if (rec.employer_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
+
+        try {
+          assertTransition(rec.status, 'employer_interested');
+        } catch (e) {
+          throw Errors.invalidState(`Invalid state: cannot express interest from status ${rec.status}`);
+        }
+
+        recommendations.updateStatus(rec.id, 'employer_interested');
+
+        auditLog.insert({
+          recommendation_id: rec.id, actor_user_id: user.id, action: 'express_interest',
+          ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
+        });
+
+        const candidateAnon = candidatesAnon.findById(rec.anonymized_candidate_id);
+        if (!candidateAnon) throw new Error('Anonymized candidate not found');
+
+        const priv = db.prepare('SELECT candidate_user_id FROM candidates_private WHERE id = ?').get(candidateAnon.source_private_id) as { candidate_user_id: string } | undefined;
+        if (!priv) throw new Error('Candidate user not found');
+
+        const payload = {
+          recommendation_id: rec.id,
+          anonymized_candidate_id: rec.anonymized_candidate_id,
+          employer_id: user.id,
+          job_id: rec.job_id,
+          requested_at: new Date().toISOString(),
+        };
+        const payloadEnc = encrypt(ctx.encryptionKey, JSON.stringify(payload));
+
+        webhooks.enqueue({
+          target_user_id: priv.candidate_user_id,
+          event_type: 'notify_unlock_request',
+          payload_enc: payloadEnc,
+          contains_pii: 0,
+        });
+        db.exec('COMMIT');
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+    },
   };
 }
