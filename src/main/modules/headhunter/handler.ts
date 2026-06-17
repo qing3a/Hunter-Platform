@@ -3,13 +3,15 @@ import { randomUUID } from 'node:crypto';
 import { createCandidatesPrivateRepo } from '../../db/repositories/candidates-private.js';
 import { createCandidatesAnonymizedRepo } from '../../db/repositories/candidates-anonymized.js';
 import { createUsersRepo } from '../../db/repositories/users.js';
+import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
+import { createJobsRepo } from '../../db/repositories/jobs.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { createRateLimit } from '../rate-limit/bucket.js';
 import { encrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { desensitize } from '../desensitize/engine.js';
 import { QUOTA_COSTS, RATE_LIMIT_BURSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
-import type { User, AnonymizedCandidate } from '../../../shared/types.js';
+import type { User, AnonymizedCandidate, Recommendation } from '../../../shared/types.js';
 
 export interface UploadCandidateInput {
   candidate_user_id: string;
@@ -111,6 +113,88 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
         zeroMemory(phoneBuf);
         zeroMemory(emailBuf);
       }
+    },
+
+    recommendCandidate(user: User, input: { anonymized_candidate_id: string; job_id: string; commission_split?: { hunter: number; referrer: number }; referrer_headhunter_id?: string }): Recommendation {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can recommend');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.recommend_candidate);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      const anon = db.prepare('SELECT source_headhunter_id FROM candidates_anonymized WHERE id = ?').get(input.anonymized_candidate_id) as { source_headhunter_id: string } | undefined;
+      if (!anon) throw Errors.notFound('Candidate not found');
+      if (anon.source_headhunter_id !== user.id) throw Errors.forbidden('Forbidden: not your candidate');
+
+      const jobs = createJobsRepo(db);
+      const job = jobs.findById(input.job_id);
+      if (!job) throw Errors.notFound('Job not found');
+      if (job.status !== 'open') throw Errors.invalidParams('Job is not open');
+
+      const recs = createRecommendationsRepo(db);
+      const existing = recs.findByCandidateAndJob(input.anonymized_candidate_id, input.job_id);
+      if (existing) throw Errors.duplicateRequest('Already recommended this candidate for this job');
+
+      const now = new Date().toISOString();
+      const rec: Recommendation = {
+        id: `rec_${randomUUID().slice(0, 12)}`,
+        headhunter_id: user.id,
+        employer_id: job.employer_id,
+        anonymized_candidate_id: input.anonymized_candidate_id,
+        job_id: input.job_id,
+        status: 'pending',
+        commission_split_json: input.commission_split ? JSON.stringify(input.commission_split) : null,
+        referrer_headhunter_id: input.referrer_headhunter_id ?? null,
+        created_at: now,
+        updated_at: now,
+      };
+      recs.insert(rec);
+      return rec;
+    },
+
+    withdrawRecommendation(user: User, input: { recommendation_id: string }): void {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can withdraw');
+      const recs = createRecommendationsRepo(db);
+      const rec = recs.findById(input.recommendation_id);
+      if (!rec) throw Errors.notFound('Recommendation not found');
+      if (rec.headhunter_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
+      if (rec.status !== 'pending') throw Errors.invalidState('Can only withdraw pending recommendations');
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.withdraw_recommendation);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+      recs.updateStatus(rec.id, 'withdrawn');
+    },
+
+    publishToPool(user: User, input: { anonymized_candidate_id: string }): void {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can publish');
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.publish_to_pool);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+      const anon = db.prepare('SELECT source_headhunter_id FROM candidates_anonymized WHERE id = ?').get(input.anonymized_candidate_id) as { source_headhunter_id: string } | undefined;
+      if (!anon) throw Errors.notFound('Candidate not found');
+      if (anon.source_headhunter_id !== user.id) throw Errors.forbidden('Forbidden: not your candidate');
+      db.prepare("UPDATE candidates_anonymized SET is_public_pool = 1, updated_at = ? WHERE id = ?").run(new Date().toISOString(), input.anonymized_candidate_id);
+    },
+
+    listMyRecommendations(user: User, opts: { status?: any } = {}): Recommendation[] {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can list recommendations');
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.list_recommendations);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+      const recs = createRecommendationsRepo(db);
+      return recs.listByHeadhunter(user.id, opts);
     },
   };
 }
