@@ -10,6 +10,7 @@ import { createAuthRouter } from './routes/auth.js';
 import { createHeadhunterRouter } from './routes/headhunter.js';
 import { createEmployerRouter } from './routes/employer.js';
 import { createCandidateRouter } from './routes/candidate.js';
+import { createUsersRouter } from './routes/users.js';
 import { createWebhookWorker } from './modules/webhook/worker.js';
 import { metricsMiddleware } from './modules/metrics/middleware.js';
 import { getRegistry } from './modules/metrics/registry.js';
@@ -70,6 +71,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/users', createUsersRouter(db));
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

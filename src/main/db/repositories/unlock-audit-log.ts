@@ -25,6 +25,16 @@ export function createUnlockAuditLogRepo(db: DB) {
   const listByActorStmt = db.prepare(
     'SELECT * FROM unlock_audit_log WHERE actor_user_id = ? ORDER BY created_at DESC'
   );
+  const listByCandidateStmt = db.prepare(`
+    SELECT al.*
+    FROM unlock_audit_log al
+    JOIN recommendations r ON r.id = al.recommendation_id
+    JOIN candidates_anonymized a ON a.id = r.anonymized_candidate_id
+    JOIN candidates_private p ON p.id = a.source_private_id
+    WHERE p.candidate_user_id = ?
+    ORDER BY al.created_at DESC
+    LIMIT ? OFFSET ?
+  `);
 
   return {
     insert(input: { recommendation_id: string; actor_user_id: string; action: UnlockAuditAction; ip_address: string | null; user_agent: string | null }): void {
@@ -38,6 +48,14 @@ export function createUnlockAuditLogRepo(db: DB) {
     },
     listByActor(actorId: string): UnlockAuditEntry[] {
       return listByActorStmt.all(actorId) as unknown as UnlockAuditEntry[];
+    },
+    /**
+     * Returns all audit entries that target this candidate's records
+     * (across all their uploads). Joins: audit_log → recommendations →
+     * anonymized → private.
+     */
+    listByCandidate(candidateUserId: string, opts: { limit?: number; offset?: number } = {}): UnlockAuditEntry[] {
+      return listByCandidateStmt.all(candidateUserId, opts.limit ?? 50, opts.offset ?? 0) as unknown as UnlockAuditEntry[];
     },
   };
 }
