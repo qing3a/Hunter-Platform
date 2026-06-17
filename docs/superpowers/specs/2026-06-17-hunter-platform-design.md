@@ -49,6 +49,22 @@
 - 行业招聘周期 / 季节性系统
 - 候选人评分 / 信誉系统（v1 用最简信誉字段）
 
+### 1.5 规模目标
+
+**设计目标：~100-500 并发用户，平均 100-200 quota/天**
+
+推算：
+- 日均 API 请求：10K-100K 次
+- 峰值 RPS：~10-100（按 1M/天 ÷ 86400 × 10 峰值系数）
+- Webhook 投递：~1K-5K 次/天
+- 数据库写入：~1K-10K 次/小时峰值
+
+**架构选型在此规模下**：
+- ✅ 单进程 Node.js + Express 完全足够
+- ✅ SQLite + WAL 可支撑（写入 ~1K/sec 上限）
+- ✅ 单机部署起步，**预留 PostgreSQL 迁移路径**（不在 v1 实施）
+- ❌ 不需要集群 / 微服务 / Redis（避免过度设计）
+
 ---
 
 ## 2. 架构总览
@@ -87,14 +103,28 @@
 │  │  users, candidates_private, candidates_anonymized │  │
 │  │  jobs, recommendations, unlocks, placements,      │  │
 │  │  unlock_audit_log, action_history,                │  │
-│  │  admin_action_log, schema_migrations              │  │
+│  │  admin_action_log, schema_migrations,             │
+│  │  webhook_delivery_queue, rate_limit_buckets       │  │
 │  └──────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  加密模块 (AES-256-GCM)                           │  │
 │  │  - 密钥从环境变量加载 (PLATFORM_ENCRYPTION_KEY)   │  │
 │  │  - PII 字段加密后存储                              │  │
 │  │  - 内存中处理后立即清零                            │  │
-│  └──────────────────────────────────────────────────┘  │
+│  └──────────────────────────────────────────────────┘
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Webhook Worker (后台进程)                        │  │
+│  │  - 轮询 webhook_delivery_queue                    │  │
+│  │  - HMAC 签名投递                                  │  │
+│  │  - 3 次重试 + 指数退避                            │  │
+│  │  - 失败入 dead_letter_queue                       │  │
+│  └──────────────────────────────────────────────────┘
+│  ┌──────────────────────────────────────────────────┐  │
+│  │  Cron Jobs (后台)                                 │  │
+│  │  - 每日 0 点: 配额重置                            │  │
+│  │  - 每小时: 清理过期 rate_limit_buckets 桶          │  │
+│  │  - 每月: 审计日志归档                              │  │
+│  └──────────────────────────────────────────────────┘
 └─────────────────────────────────────────────────────────┘
         │
         ↓
@@ -141,7 +171,8 @@ type ErrorCode =
   | 'FORBIDDEN'                 // 权限不足（如雇主尝试读 PII）
   | 'NOT_FOUND'                 // 资源不存在
   | 'INVALID_PARAMS'            // 参数校验失败
-  | 'INSUFFICIENT_QUOTA'        // 配额耗尽
+  | 'INSUFFICIENT_QUOTA'        // 每日配额耗尽
+  | 'RATE_LIMITED'              // 突发限流（1s/1min/1h 桶触发）
   | 'INVALID_STATE'             // 状态机非法（如未授权就解锁）
   | 'DUPLICATE_REQUEST'         // 幂等键重复
   | 'INTERNAL_ERROR';           // 兜底
@@ -375,6 +406,66 @@ CREATE TABLE schema_migrations (
   description   TEXT NOT NULL,
   applied_at    TEXT NOT NULL
 );
+
+-- ============================================================
+-- Webhook 投递队列（异步推送事件到用户 agent_endpoint）
+-- ============================================================
+CREATE TABLE webhook_delivery_queue (
+  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+  target_user_id      TEXT NOT NULL REFERENCES users(id),
+  event_type          TEXT NOT NULL,            -- "notify_unlock_request" / "deliver_contact" / ...
+  payload_json        TEXT NOT NULL,            -- 完整 payload（deliver_contact 含 PII，DB 内已加密无关）
+  status              TEXT NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending', 'in_flight', 'success', 'failed', 'dead_letter')),
+  attempt_count       INTEGER NOT NULL DEFAULT 0,
+  max_attempts        INTEGER NOT NULL DEFAULT 3,
+  next_retry_at       TEXT,                     -- 指数退避后的下次投递时间
+  last_error          TEXT,
+  delivered_at        TEXT,
+  created_at          TEXT NOT NULL,
+  updated_at          TEXT NOT NULL
+);
+
+-- Worker 轮询的高频索引：(status='pending', next_retry_at IS NULL OR next_retry_at <= now)
+CREATE INDEX idx_webhook_pending ON webhook_delivery_queue(status, next_retry_at);
+CREATE INDEX idx_webhook_target_user ON webhook_delivery_queue(target_user_id, created_at);
+
+-- ============================================================
+-- 限流桶（per-user 滑动/固定窗口计数，防止突发）
+-- ============================================================
+CREATE TABLE rate_limit_buckets (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id         TEXT NOT NULL REFERENCES users(id),
+  window_start    TEXT NOT NULL,            -- 当前窗口开始时间（ISO 8601）
+  window_seconds  INTEGER NOT NULL,         -- 桶大小（v1 固定 1 秒 + 1 分钟 + 1 小时 三层）
+  request_count   INTEGER NOT NULL DEFAULT 0,
+  expires_at      TEXT NOT NULL,            -- 桶过期时间，cron 清理
+  UNIQUE(user_id, window_start, window_seconds)
+);
+
+CREATE INDEX idx_rate_limit_user ON rate_limit_buckets(user_id, window_start);
+CREATE INDEX idx_rate_limit_expires ON rate_limit_buckets(expires_at);
+
+-- ============================================================
+-- 关键查询的复合索引（基于几百人规模的高频查询）
+-- ============================================================
+
+-- list_my_jobs: 雇主查自己的职位列表
+CREATE INDEX idx_jobs_employer_status ON jobs(employer_id, status, created_at DESC);
+
+-- browse_talent: 公开池按行业/职级/创建时间过滤
+CREATE INDEX idx_candidates_anon_pool_created ON candidates_anonymized(is_public_pool, created_at DESC);
+CREATE INDEX idx_candidates_anon_pool_industry ON candidates_anonymized(is_public_pool, industry, created_at DESC);
+CREATE INDEX idx_candidates_anon_pool_level ON candidates_anonymized(is_public_pool, title_level, created_at DESC);
+
+-- list_my_recommendations: 猎头查自己的推荐（含 status 过滤）
+CREATE INDEX idx_recommendations_headhunter_status ON recommendations(headhunter_id, status, created_at DESC);
+
+-- 雇主查收到的推荐
+CREATE INDEX idx_recommendations_employer_status ON recommendations(employer_id, status, created_at DESC);
+
+-- 候选人查与自己相关的机会
+CREATE INDEX idx_recommendations_candidate ON recommendations(anonymized_candidate_id, status);
 ```
 
 ### 3.2 加密字段说明
@@ -400,7 +491,14 @@ base64(iv || authTag || ciphertext)
 - **Base URL**: `https://api.hunter-platform.com/v1`（开发环境 `http://localhost:3000/v1`）
 - **认证**: `Authorization: Bearer <api_key>` Header
 - **幂等性**: 写操作接受 `Idempotency-Key` Header（UUIDv4），24 小时内同 key 重复请求返回首次响应
-- **限流**: 每次请求扣 `quota_used`，归零返回 `INSUFFICIENT_QUOTA`
+- **限流（两层）**:
+  - **每日配额**: 每次请求扣 `quota_used`，归零返回 `INSUFFICIENT_QUOTA`（HTTP 429）
+  - **秒/分钟突发**: 防止单用户突发打满数据库，三层桶（1s/1min/1h）记录在 `rate_limit_buckets`，超限返回 `RATE_LIMITED`（HTTP 429）
+- **响应头（限流信息）**:
+  - `X-RateLimit-Limit-Second`: 100
+  - `X-RateLimit-Remaining-Second`: 87
+  - `X-Quota-Used`: 42
+  - `X-Quota-Reset-At`: 2026-06-18T00:00:00Z
 - **响应**: JSON，所有响应包含 `ok: boolean` 字段
 
 ### 4.2 通用响应结构
@@ -604,9 +702,27 @@ skill.md 内容包含：
 7. Webhook 回调规范（agent_endpoint）
 8. 客户端集成代码示例（Python / Node.js / cURL）
 
-### 5.2 Webhook 回调协议
+### 5.2 Webhook 回调协议（异步投递）
 
-平台调用用户 `agent_endpoint` 的事件类型：
+**关键设计：所有 webhook 投递都是异步的**，通过 `webhook_delivery_queue` 表 + 后台 Worker 进程解耦，避免阻塞主 API 请求线程。
+
+**触发流程**：
+```
+API handler 触发事件
+    ↓
+INSERT INTO webhook_delivery_queue (status='pending', next_retry_at=NULL)
+    ↓
+立即返回 API 响应给调用方（不等待 webhook 投递）
+    ↓
+后台 Worker 每秒轮询 (status='pending' AND next_retry_at <= now)
+    ↓
+HMAC 签名 + POST 到目标 agent_endpoint
+    ↓
+成功 → status='success'
+失败 → attempt_count++; 指数退避（1s, 4s, 16s）; 3 次后 status='dead_letter'
+```
+
+**事件类型**:
 
 | Event | 触发时机 | Payload |
 |-------|---------|---------|
@@ -619,7 +735,19 @@ skill.md 内容包含：
 **Webhook 安全**:
 - 平台签名：`X-Hunter-Signature: sha256=<hmac(body, secret)>`
 - 用户 Agent 必须验证签名
-- 用户返回 2xx 视为成功，3 次重试后放弃
+- 用户返回 2xx 视为成功，**3 次重试后入 dead_letter**（管理员后台可手动重投）
+- 投递超时：5 秒/次
+- 重试退避：第 1 次失败等 1s，第 2 次失败等 4s，第 3 次失败等 16s
+
+**Worker 实现要点**:
+- 进程内 setInterval，每 1s 拉一批（最多 10 条）
+- 用 `SELECT ... FOR UPDATE` 或事务保证同一任务不被两个 worker 抢
+- v1 单 worker 进程即可（100-500 用户量投递速率 < 10/s）
+- v2 拆多 worker 用 `task_id % worker_count` 路由
+
+**管理后台可见性**:
+- 列出最近 7 天的 webhook 投递记录
+- 支持按 status 过滤、查看 payload、手动重投 dead_letter
 
 ### 5.3 客户端集成示例（Node.js）
 
@@ -851,7 +979,7 @@ async function handleUnlockContact(recId: string) {
 
 ## 8. 配额与限流
 
-### 8.1 配额模型
+### 8.1 配额模型（每日总量）
 
 | 角色 | 默认 `quota_per_day` | 说明 |
 |------|---------------------|------|
@@ -866,7 +994,38 @@ async function handleUnlockContact(recId: string) {
 - 每日 UTC 0 点自动重置（`quota_used = 0, quota_reset_at = next UTC midnight`）
 - 平台可在管理后台手动调整某用户配额
 
-### 8.3 配额表（action 消耗）
+### 8.3 突发限流（防单用户打满 DB）
+
+三层滑动/固定窗口，按角色差异化：
+
+| 角色 | 1 秒 | 1 分钟 | 1 小时 |
+|------|------|--------|--------|
+| candidate | 10 | 50 | 200 |
+| headhunter | 20 | 100 | 500 |
+| employer | 30 | 200 | 800 |
+
+**实现**:
+- `rate_limit_buckets` 表按 `(user_id, window_start, window_seconds)` 唯一索引
+- 请求进来时 `INSERT ... ON CONFLICT DO UPDATE SET request_count = request_count + 1`
+- 检查 `request_count <= limit`，超限返回 `RATE_LIMITED` (HTTP 429)
+- Cron 每小时清理 `expires_at < now` 的桶
+
+**为什么需要两层**:
+- 每日配额防止"滥发"，但允许用户在一天内均匀使用
+- 突发限流防止"刷库"，一个用户突发 1K req/sec 也不会让 SQLite 卡死
+- 几百人规模下，这种简单方案够用
+
+### 8.4 配额与限流的执行顺序
+
+```
+1. Auth (验 API Key)        → 401 if invalid
+2. Burst limit (1s/min/hr)  → 429 RATE_LIMITED if exceeded
+3. Daily quota (quota_used) → 429 INSUFFICIENT_QUOTA if exceeded
+4. 业务逻辑执行
+5. 写 action_history
+```
+
+### 8.5 配额表（action 消耗）
 
 见 §4.3 各端点表格的"配额消耗"列。
 
@@ -911,10 +1070,12 @@ candidate_bonus = 0                    (v1 不做)
 
 ### 10.1 页面结构
 
-- **仪表盘**：用户数、活跃度、placement 数、当日解锁次数
-- **用户管理**：列出三角色用户，可查看/暂停/恢复/调整配额
+- **仪表盘**：用户数、活跃度、placement 数、当日解锁次数、webhook 队列长度、限流触发次数
+- **用户管理**：列出三角色用户，可查看/暂停/恢复/调整配额/手动重置限流桶
 - **候选人审核**：列出 candidates_anonymized，可下架违规条目
-- **审计日志**：展示 `unlock_audit_log` 与 `action_history`
+- **审计日志**：展示 `unlock_audit_log` 与 `action_history`，按用户/时间过滤
+- **Webhook 管理**：列出 `webhook_delivery_queue` 全部记录，支持按 status 过滤、手动重投 dead_letter、查看 payload
+- **限流管理**：查看 `rate_limit_buckets` 当前桶状态、单用户清空
 - **佣金账单**：列出 `placements`，标记 paid/pending
 - **配置中心**：编辑 `config/desensitization.json` 与 `config/commission.json`
 
@@ -924,6 +1085,15 @@ candidate_bonus = 0                    (v1 不做)
 - 通过 IPC 与主进程通信
 - 启动时要求输入管理员密码（从环境变量 `ADMIN_PASSWORD_HASH` 校验）
 - 每次操作记录管理后台操作日志到 `admin_action_log` 表
+
+### 10.3 扩展路径
+
+v1 单管理员够用（几百人规模下平台运营工作量小）。当出现以下情况时迁移到 Web 后台：
+- 多个管理员协作
+- 管理员需要从异地访问
+- 需要在管理后台提供更多实时数据
+
+迁移成本：低。React 组件可复用，IPC 抽象替换为 HTTP API 即可。
 
 ---
 
@@ -993,6 +1163,18 @@ candidate_bonus = 0                    (v1 不做)
 - OpenAPI 文档生成
 - 端到端测试
 
+### Milestone 5：异步化 + 限流 + 压测 (1 周)
+- Webhook Worker 进程 + 死信队列
+- `webhook_delivery_queue` 表 + 投递逻辑
+- `rate_limit_buckets` 三层限流
+- cron jobs（配额重置、桶清理、审计归档）
+- 性能测试：用 k6 模拟 500 用户 / 100 RPS，验证 SQLite 写入不卡死
+- 负载测试场景：
+  - 500 用户同时 browse_talent，p99 < 200ms
+  - 50 并发 upload_candidate，p99 < 1s
+  - 100 webhook/分钟投递，p99 < 2s
+  - rate_limit 在 1s 桶触发后正确返回 429
+
 ---
 
 ## 13. 风险与缓解
@@ -1003,8 +1185,11 @@ candidate_bonus = 0                    (v1 不做)
 | 脱敏映射表不全 | 中 | 中 | 配置热加载；定期人工审核未识别值；降级为"未分类" |
 | 雇主 Agent 不可达 | 中 | 中 | Webhook 3 次重试 + 死信队列；管理后台手动补推 |
 | 候选人撤回授权 | 中 | 中 | `unlocked` 状态后仍可调 `revoke`；记录原因 |
-| SQLite 并发瓶颈 | 中 | 中 | WAL 模式 + 写入串行化；监控 |
-| 单一猎头垄断市场 | 低 | 中 | 排行榜曝光度 + 信誉分机制 |
+| SQLite 写入瓶颈 | 中 | 中 | WAL 模式 + 写入串行化 + 监控；>1000 用户时迁移 PostgreSQL |
+| 单一用户突发打满 DB | 中 | 高 | 三层限流（1s/1min/1h）阻挡突发；管理后台可单用户降级 |
+| Webhook 队列堆积 | 低 | 中 | 监控队列长度；超过阈值告警；自动扩容 Worker（v2） |
+| 死信队列无人处理 | 中 | 低 | 管理后台每日显示死信条目；高亮显示 7 天前未处理项 |
+| Convo Electron 管理后台不可多人用 | 中 | 低 | v1 单管理员够用；>3 管理员时迁移到 Web 后台 |
 
 ---
 
@@ -1019,6 +1204,73 @@ candidate_bonus = 0                    (v1 不做)
 
 ---
 
+## 15. 性能与扩展（基于几百人规模）
+
+### 15.1 容量规划
+
+| 指标 | 目标值 | 余量 |
+|------|--------|------|
+| 注册用户数 | 500 | v1 SQLite 可支撑 |
+| 每日活跃用户 (DAU) | 300 | 60% 活跃率 |
+| 每日 API 请求 | 100K | 平均 1.2 req/s，峰值 100 req/s |
+| 候选人总数 | 10K | 公开池 < 5K |
+| 推荐记录总数 | 50K | 含历史 |
+| Webhook 投递 | 5K/天 | 峰值 ~10/min |
+| 加密 PII 字段 | 10K 条 | AES-GCM 性能无压力 |
+
+### 15.2 性能目标
+
+| 端点类型 | p50 | p99 | 说明 |
+|---------|-----|-----|------|
+| GET 查询类（status, browse, list） | < 50ms | < 200ms | 走索引，热数据在 SQLite 页缓存 |
+| POST 写类（create_job, recommend, upload） | < 100ms | < 500ms | 加密 + 写库 |
+| 加密/解密操作 | < 5ms | < 20ms | AES-GCM 单字段 |
+| Webhook 投递（出 API 后） | < 1s | < 5s | 队列里等待 + 投递 |
+
+### 15.3 关键性能保障
+
+1. **SQLite WAL 模式**：读写不互斥，读取性能提升 3-5x
+2. **连接池**：better-sqlite3 同步 API 天然串行化，避免连接竞争
+3. **复合索引**：覆盖所有 list / browse 类高频查询
+4. **加密异步化**：仅在 unlock_contact 流程中解密，避免在 list 查询中触发
+5. **限流前置**：突发限流在 auth 后立即生效，避免恶意请求打到 DB
+
+### 15.4 监控指标（v1 最低要求）
+
+通过 `prom-client` 暴露 `/metrics`：
+
+| 指标 | 类型 | 用途 |
+|------|------|------|
+| `http_requests_total{route, status}` | counter | QPS + 错误率 |
+| `http_request_duration_seconds{route}` | histogram | p50/p99 |
+| `quota_used{user_type}` | gauge | 配额使用率 |
+| `webhook_queue_pending_count` | gauge | 队列堆积告警 |
+| `webhook_dead_letter_count` | gauge | 投递失败告警 |
+| `db_write_duration_seconds` | histogram | SQLite 写入延迟 |
+| `crypto_decrypt_duration_seconds` | histogram | 解密性能 |
+
+### 15.5 何时升级
+
+| 信号 | 行动 |
+|------|------|
+| DAU > 800 | 监控加密 + 限流是否生效；考虑读写分离 |
+| RPS 持续 > 200 | 评估 cluster 模式（Node.js cluster module 启用多 worker） |
+| SQLite 写入 p99 > 100ms | 迁移到 PostgreSQL（schema 已设计为可移植） |
+| 死信队列 > 100/天 | 增加 Worker 数 + 告警用户 |
+| 候选人 > 50K | 公开池加归档表（按行业/时间分区） |
+
+### 15.6 升级路径（v2 预留，不在 v1 实施）
+
+| 升级点 | 触发条件 | 实施成本 |
+|--------|---------|---------|
+| Node.js cluster mode | CPU 单核跑满 | 低（修改启动脚本） |
+| PostgreSQL 迁移 | SQLite 写入瓶颈 | 中（schema 已兼容，DB 层抽象） |
+| 多 Worker 进程 | Webhook 队列堆积 | 低（已抽象 worker） |
+| Redis 缓存热门 talent pool | browse_talent p99 升高 | 中（缓存层抽象） |
+| Web 管理后台 | 多个管理员 | 中（沿用 React 组件） |
+
+---
+
 ## 附录 A：完整 API 错误码
 
 | Code | HTTP | 含义 |
@@ -1028,7 +1280,8 @@ candidate_bonus = 0                    (v1 不做)
 | `NOT_FOUND` | 404 | 资源不存在 |
 | `INVALID_PARAMS` | 400 | 参数校验失败 |
 | `INVALID_STATE` | 409 | 状态机非法转换 |
-| `INSUFFICIENT_QUOTA` | 429 | 配额耗尽 |
+| `INSUFFICIENT_QUOTA` | 429 | 每日配额耗尽 |
+| `RATE_LIMITED` | 429 | 突发限流（1s/1min/1h 桶触发） |
 | `DUPLICATE_REQUEST` | 409 | 幂等键重复 |
 | `INTERNAL_ERROR` | 500 | 兜底 |
 
