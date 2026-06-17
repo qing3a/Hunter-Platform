@@ -3,6 +3,7 @@ import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
+import { createCommissionHandler } from '../modules/commission/handler.js';
 import { Errors } from '../errors.js';
 import type { User } from '../../shared/types.js';
 
@@ -25,10 +26,34 @@ const UnlockContactSchema = z.object({
   recommendation_id: z.string().min(1),
 });
 
+const CreatePlacementSchema = z.object({
+  anonymized_candidate_id: z.string().min(1),
+  job_id: z.string().min(1),
+  annual_salary: z.number().int().positive(),
+});
+
 export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createEmployerHandler(db);
   router.use(authMiddleware(db));
+
+  const commissionHandler = createCommissionHandler(db);
+
+  router.post('/placements', (req, res, next) => {
+    try {
+      const parsed = CreatePlacementSchema.safeParse(req.body);
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const placement = commissionHandler.createPlacement((req as typeof req & { user?: User }).user!, parsed.data);
+      res.json({ ok: true, data: placement });
+    } catch (e) { next(e); }
+  });
+
+  router.get('/placements', (req, res, next) => {
+    try {
+      const list = commissionHandler.listPlacements((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
+      res.json({ ok: true, data: list });
+    } catch (e) { next(e); }
+  });
 
   router.post('/jobs', (req, res, next) => {
     try {
