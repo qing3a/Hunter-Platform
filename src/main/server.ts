@@ -1,4 +1,5 @@
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+import http from 'node:http';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
@@ -7,12 +8,14 @@ import { createAuthRouter } from './routes/auth.js';
 import { createHeadhunterRouter } from './routes/headhunter.js';
 import { createEmployerRouter } from './routes/employer.js';
 import { createCandidateRouter } from './routes/candidate.js';
+import { createWebhookWorker } from './modules/webhook/worker.js';
+import type { DB } from './db/connection.js';
 
-export function createApp(): Express {
-  const env = loadEnv();
-  const db = openDb(env.DATABASE_PATH);
-  runMigrations(db);
-
+/**
+ * Build the Express app from an already-opened DB + env.
+ * Shared by createApp() and startApiServer().
+ */
+export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Express {
   const app = express();
   app.use(express.json({ limit: '4kb' }));
 
@@ -40,4 +43,49 @@ export function createApp(): Express {
   });
 
   return app;
+}
+
+/**
+ * Convenience for tests (supertest) — opens its own DB.
+ */
+export function createApp(): Express {
+  const env = loadEnv();
+  const db = openDb(env.DATABASE_PATH);
+  runMigrations(db);
+  return createAppFromDb(db, env);
+}
+
+/**
+ * Background webhook worker — polls every 5s.
+ */
+function startWebhookWorkerBackground(db: DB, env: ReturnType<typeof loadEnv>): void {
+  const worker = createWebhookWorker(db);
+  const tick = () => {
+    worker.processBatch(env.PLATFORM_ENCRYPTION_KEY, { hmacSecret: env.WEBHOOK_HMAC_SECRET })
+      .catch((err) => console.error('Webhook worker error:', err));
+  };
+  setInterval(tick, 5_000);
+  // Fire one quickly so dev mode isn't waiting 5s on first boot
+  setTimeout(tick, 500).unref();
+}
+
+/**
+ * Standalone API server — used by:
+ * - `pnpm api:dev` (tsx src/main/index.ts → shouldStartApiStandalone() === true)
+ * - Electron main (hybrid mode: API + BrowserWindow)
+ */
+export async function startApiServer(opts: { port?: number } = {}): Promise<http.Server> {
+  const env = loadEnv();
+  const db = openDb(env.DATABASE_PATH);
+  runMigrations(db);
+
+  const app = createAppFromDb(db, env);
+  startWebhookWorkerBackground(db, env);
+
+  return new Promise((resolve) => {
+    const server = app.listen(opts.port ?? env.PORT, () => {
+      console.log(`Hunter platform API listening on port ${opts.port ?? env.PORT}`);
+      resolve(server);
+    });
+  });
 }
