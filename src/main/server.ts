@@ -13,6 +13,8 @@ import { createCandidateRouter } from './routes/candidate.js';
 import { createWebhookWorker } from './modules/webhook/worker.js';
 import { metricsMiddleware } from './modules/metrics/middleware.js';
 import { getRegistry } from './modules/metrics/registry.js';
+import { startMetricsRefresh, stopMetricsRefresh } from './modules/metrics/refresh.js';
+import { startScheduler, stopScheduler } from './modules/cron/scheduler.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -121,10 +123,17 @@ export async function startApiServer(opts: { port?: number } = {}): Promise<http
 
   const app = createAppFromDb(db, env);
   startWebhookWorkerBackground(db, env);
+  startMetricsRefresh(10_000, db);
+  startScheduler(db);
 
   return new Promise((resolve) => {
     const server = app.listen(opts.port ?? env.PORT, () => {
       console.log(`Hunter platform API listening on port ${opts.port ?? env.PORT}`);
+      // Graceful shutdown — stops background loops
+      server.on('close', () => {
+        stopMetricsRefresh();
+        stopScheduler();
+      });
       resolve(server);
     });
   });

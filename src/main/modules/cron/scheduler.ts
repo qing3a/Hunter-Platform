@@ -1,8 +1,8 @@
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { getDb } from '../../db.js';
 import type { DB } from '../../db/connection.js';
 
-type ScheduledJob = { name: string; task: cron.ScheduledTask };
+type ScheduledJob = { name: string; task: ScheduledTask };
 
 const jobs: ScheduledJob[] = [];
 
