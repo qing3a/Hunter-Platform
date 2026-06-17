@@ -1,5 +1,7 @@
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
@@ -22,6 +24,20 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // Routes
   app.get('/v1/health', (_req, res) => {
     res.json({ ok: true, data: { status: 'healthy', timestamp: new Date().toISOString() } });
+  });
+
+  // skill.md (public)
+  const skillPath = path.join(process.cwd(), 'docs/superpowers/skill.md');
+  app.get('/v1/skill.md', (_req, res) => {
+    try {
+      const content = fs.readFileSync(skillPath, 'utf8');
+      res.type('text/markdown').send(content);
+    } catch {
+      res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'skill.md not found' } });
+    }
+  });
+  app.get('/skill.md', (_req, res) => {
+    res.redirect(301, '/v1/skill.md');
   });
 
   app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
