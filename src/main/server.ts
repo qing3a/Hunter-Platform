@@ -4,6 +4,7 @@ import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
 import { ApiError } from './errors.js';
 import { createAuthRouter } from './routes/auth.js';
+import { createHeadhunterRouter } from './routes/headhunter.js';
 
 export function createApp(): Express {
   const env = loadEnv();
@@ -19,6 +20,7 @@ export function createApp(): Express {
   });
 
   app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
+  app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
