@@ -260,4 +260,51 @@ curl -X POST https://api.hunter-platform.com/v1/employer/recommendations/rec_xxx
 - ✅ 服务端脱敏 + AES-256-GCM 加密
 - ✅ 每日配额 + 三层限流
 - ✅ 管理后台（Electron 桌面应用）
+
+## 9. 监控指标（v1 新增）
+
+平台暴露 Prometheus 格式指标在 `GET /metrics` 和 `GET /v1/metrics`：
+
+| 指标 | 类型 | 标签 |
+|------|------|------|
+| `hunter_http_requests_total` | counter | route, method, status |
+| `hunter_http_request_duration_seconds` | histogram | route, method, status |
+| `hunter_quota_used` | gauge | user_type |
+| `hunter_webhook_queue_pending_count` | gauge | — |
+| `hunter_webhook_dead_letter_count` | gauge | — |
+| `hunter_db_write_duration_seconds` | histogram | operation |
+| `hunter_crypto_decrypt_duration_seconds` | histogram | — |
+
+外加 `process_*` 和 `nodejs_*` 默认 Node.js 指标。`/metrics` 端点本身不被记录以避免自递归。
+
+## 10. 加密密钥轮换（v1 新增）
+
+加密 payload 格式：`v1:<base64(iv||tag||ciphertext)>`。`v1:` 前缀让 decrypt 能区分版本，未来按版本号选不同密钥解密。
+
+环境变量（向后兼容）：
+- **单 key**（默认）：`PLATFORM_ENCRYPTION_KEY=<base64 32 字节>`
+- **多 key**（轮换）：`PLATFORM_ENCRYPTION_KEYS=v1:<b64>,v2:<b64>`（**最新 key 用于加密**）
+
+```bash
+# 启动时配置
+export PLATFORM_ENCRYPTION_KEYS="v1:$(openssl rand -base64 32),v2:$(openssl rand -base64 32)"
+```
+
+⚠️ 旧格式（无 `v1:` 前缀）会在 M5 之后被解密逻辑拒绝。如有遗留数据需先迁移（v1: prefix 后重新加密）。
+
+## 11. Cron Jobs（v1 新增）
+
+服务启动时自动注册 3 个 cron job（UTC 时间）：
+
+| 任务 | 表达式 | 行为 |
+|------|--------|------|
+| `quota-reset` | `0 0 * * *`（每日 UTC 0） | 重置所有 active user 的 `quota_used = 0` |
+| `rate-limit-cleanup` | `0 * * * *`（每小时） | 删除 `expires_at < now` 的 rate_limit_buckets |
+| `audit-archive` | `0 0 1 * *`（每月 1 号） | 删除 90 天前的 action_history（M5 v1 简单删除；v2 应归档到 S3） |
+
+优雅关闭：HTTP server `close` 事件触发 `stopMetricsRefresh()` + `stopScheduler()`。
+
+## 12. 压测（v1 新增）
+
+k6 脚本在 `tests/load/`，覆盖 spec §15.2 全部场景。详见 [`tests/load/README.md`](../load/README.md)。
 - ⏳ v2：加密密钥轮换、跨猎头推荐细分、多语言、完整 GDPR 导出
