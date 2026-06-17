@@ -1,12 +1,55 @@
 import { ipcMain } from 'electron';
 import type { IpcMainInvokeEvent } from 'electron';
+import { getDb } from '../db.js';
+import { makeDashboardIpc } from './dashboard.js';
+import { createUsersIpc } from './users.js';
+import { createCandidatesIpc } from './candidates.js';
+import { createAuditIpc } from './audit.js';
+import { createWebhooksIpc } from './webhooks.js';
+import { createRateLimitIpc } from './rate-limit.js';
+import { createConfigIpc } from './config.js';
+
+let registered = false;
 
 /**
- * Placeholder — full IPC handlers wired in subsequent M3.B tasks.
- * Lives here so `src/main/index.ts` can import it without errors.
+ * Wire all admin IPC channels to their handlers.
+ * Idempotent — safe to call multiple times (only first call wires handlers).
  */
 export function registerAdminIpc(): void {
+  if (registered) return;
+  registered = true;
+
+  const db = getDb();
+  const dashboard = makeDashboardIpc(db);
+  const users = createUsersIpc(db);
+  const candidates = createCandidatesIpc(db);
+  const audit = createAuditIpc(db);
+  const webhooks = createWebhooksIpc(db);
+  const rateLimit = createRateLimitIpc(db);
+  const config = createConfigIpc();
+
   ipcMain.handle('admin:ping', () => 'admin pong');
+
+  ipcMain.handle('admin:dashboard:getStats', () => dashboard.getStats());
+
+  ipcMain.handle('admin:users:list', (_e, filter) => users.list(filter ?? {}));
+  ipcMain.handle('admin:users:suspend', (_e, args) => users.suspend(args.user_id, args.reason));
+  ipcMain.handle('admin:users:unsuspend', (_e, args) => users.unsuspend(args.user_id));
+  ipcMain.handle('admin:users:adjustQuota', (_e, args) => users.adjustQuota(args.user_id, args.new_quota));
+
+  ipcMain.handle('admin:candidates:list', (_e, filter) => candidates.list(filter ?? {}));
+  ipcMain.handle('admin:candidates:removeFromPool', (_e, args) => candidates.removeFromPool(args.anonymized_id));
+
+  ipcMain.handle('admin:audit:list', (_e, filter) => audit.list(filter ?? {}));
+
+  ipcMain.handle('admin:webhooks:listDeadLetter', (_e, args) => webhooks.listDeadLetter(args?.limit ?? 50));
+  ipcMain.handle('admin:webhooks:retry', (_e, args) => webhooks.retry(args.delivery_id));
+
+  ipcMain.handle('admin:rateLimit:listBuckets', (_e, args) => rateLimit.listBuckets(args?.user_id));
+  ipcMain.handle('admin:rateLimit:clearForUser', (_e, args) => rateLimit.clearForUser(args.user_id));
+
+  ipcMain.handle('admin:config:get', () => config.get());
+  ipcMain.handle('admin:config:set', (_e, args) => config.set(args.key, args.value));
 }
 
 /**
