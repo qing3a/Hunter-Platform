@@ -346,8 +346,10 @@ CREATE TABLE action_history (
   action_type     TEXT NOT NULL,            -- "upload_candidate", "express_interest" 等
   target_type     TEXT,                     -- "candidate", "job", "recommendation"
   target_id       TEXT,
-  request_json    TEXT,                     -- 入参
-  response_json   TEXT,                     -- 出参
+  -- ⚠️ 安全：只存脱敏后的 request/response 摘要，不存 PII
+  --     完整 PII 调试请求走 unlock_audit_log（已受控）或 admin 后台"原始数据查看"（需管理员密码二次验证）
+  request_summary_json  TEXT,               -- {"field_count": 8, "skills": 4, "industry": "互联网"} 等
+  response_summary_json TEXT,               -- {"anonymized_id": "cand_anon_xxx"} 等
   status          TEXT NOT NULL CHECK (status IN ('success', 'error')),
   error_code      TEXT,
   duration_ms     INTEGER,
@@ -382,6 +384,9 @@ CREATE INDEX idx_placements_job ON placements(job_id);
 CREATE INDEX idx_placements_candidate ON placements(candidate_user_id);
 CREATE INDEX idx_placements_primary_headhunter ON placements(primary_headhunter_id);
 
+-- 一个 recommendation 只能创建一个 placement（防止重复扣佣金）
+CREATE UNIQUE INDEX idx_placements_recommendation_unique ON placements(anonymized_candidate_id, job_id, primary_headhunter_id);
+
 -- ============================================================
 -- 管理后台操作日志
 -- ============================================================
@@ -414,7 +419,10 @@ CREATE TABLE webhook_delivery_queue (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   target_user_id      TEXT NOT NULL REFERENCES users(id),
   event_type          TEXT NOT NULL,            -- "notify_unlock_request" / "deliver_contact" / ...
-  payload_json        TEXT NOT NULL,            -- 完整 payload（deliver_contact 含 PII，DB 内已加密无关）
+  -- ⚠️ 加密存储：含 PII 的事件（deliver_contact）payload 整体 AES-256-GCM 加密
+  --    不含 PII 的事件可明文（但为统一处理，强制加密）
+  payload_enc         TEXT NOT NULL,            -- base64(iv||tag||ciphertext)，同 §3.2 格式
+  contains_pii        INTEGER NOT NULL DEFAULT 0,  -- 标记，admin 后台脱敏显示用
   status              TEXT NOT NULL DEFAULT 'pending'
                       CHECK (status IN ('pending', 'in_flight', 'success', 'failed', 'dead_letter')),
   attempt_count       INTEGER NOT NULL DEFAULT 0,
@@ -435,7 +443,11 @@ CREATE INDEX idx_webhook_target_user ON webhook_delivery_queue(target_user_id, c
 -- ============================================================
 CREATE TABLE rate_limit_buckets (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id         TEXT NOT NULL REFERENCES users(id),
+  -- user_id 字段含义：
+  --   - 真实用户：填 users.id
+  --   - 未认证请求（注册/健康检查）：填 "ip:1.2.3.4" 形式
+  --   - 这种复用让 IP 限流和用户限流共用一套 cron 清理逻辑
+  user_id         TEXT NOT NULL,
   window_start    TEXT NOT NULL,            -- 当前窗口开始时间（ISO 8601）
   window_seconds  INTEGER NOT NULL,         -- 桶大小（v1 固定 1 秒 + 1 分钟 + 1 小时 三层）
   request_count   INTEGER NOT NULL DEFAULT 0,
@@ -445,6 +457,22 @@ CREATE TABLE rate_limit_buckets (
 
 CREATE INDEX idx_rate_limit_user ON rate_limit_buckets(user_id, window_start);
 CREATE INDEX idx_rate_limit_expires ON rate_limit_buckets(expires_at);
+
+-- ============================================================
+-- 幂等键存储（同 key + 不同 body 报错，相同返回首次响应）
+-- ============================================================
+CREATE TABLE idempotency_keys (
+  key             TEXT PRIMARY KEY,         -- 客户端 UUIDv4
+  user_id         TEXT NOT NULL REFERENCES users(id),
+  request_hash    TEXT NOT NULL,            -- SHA256(raw_body)，同 key 不同 body → DUPLICATE_REQUEST
+  response_json   TEXT NOT NULL,            -- 首次执行的完整响应（脱敏后，不含 PII）
+  status_code     INTEGER NOT NULL,         -- 首次执行的 HTTP 状态码
+  expires_at      TEXT NOT NULL,            -- 创建时间 + 24h
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX idx_idempotency_user ON idempotency_keys(user_id, created_at);
+CREATE INDEX idx_idempotency_expires ON idempotency_keys(expires_at);
 
 -- ============================================================
 -- 关键查询的复合索引（基于几百人规模的高频查询）
@@ -490,7 +518,11 @@ base64(iv || authTag || ciphertext)
 - **协议**: HTTP/1.1 + JSON
 - **Base URL**: `https://api.hunter-platform.com/v1`（开发环境 `http://localhost:3000/v1`）
 - **认证**: `Authorization: Bearer <api_key>` Header
-- **幂等性**: 写操作接受 `Idempotency-Key` Header（UUIDv4），24 小时内同 key 重复请求返回首次响应
+- **幂等性**: 写操作接受 `Idempotency-Key` Header（UUIDv4）
+  - 同 key + 同 body：24 小时内重复请求直接返回首次响应（含 status_code）
+  - 同 key + 不同 body：返回 `DUPLICATE_REQUEST` (HTTP 409)
+  - 存储在 `idempotency_keys` 表，cron 清理 `expires_at < now`
+  - **仅缓存脱敏后的响应**（含 PII 的响应不写入此表）
 - **限流（两层）**:
   - **每日配额**: 每次请求扣 `quota_used`，归零返回 `INSUFFICIENT_QUOTA`（HTTP 429）
   - **秒/分钟突发**: 防止单用户突发打满数据库，三层桶（1s/1min/1h）记录在 `rate_limit_buckets`，超限返回 `RATE_LIMITED`（HTTP 429）
@@ -560,7 +592,7 @@ type Paginated<T> = {
 | GET | `/candidate/access_log` | 查询谁访问过我的数据 | 1 |
 | POST | `/recommendations/{id}/approve_unlock` | 授权解锁联系方式 | 3 |
 | POST | `/recommendations/{id}/reject_unlock` | 拒绝解锁 | 1 |
-| POST | `/candidate/delete_my_data` | GDPR 撤回（删除所有数据） | 1 |
+| POST | `/candidate/delete_my_data` | GDPR 撤回（删除所有数据，受状态机约束） | 1 |
 
 #### 4.3.5 市场与配置
 
@@ -600,6 +632,19 @@ type Paginated<T> = {
 ```
 
 **重要**: `api_key` **只返回一次**，丢失需通过 `POST /auth/rotate_key` 轮换。平台只存 hash。
+
+**Register 端点专属保护**（防脚本批量注册）：
+
+| 保护层 | 规则 |
+|--------|------|
+| **IP 限流（无需 API Key）** | 同 IP 1h 内最多 5 次注册。超限返回 `RATE_LIMITED` (HTTP 429)。用单独 IP 桶表（不入 `rate_limit_buckets`，避免污染用户维度） |
+| **同 contact 限流** | 同 `email/phone` 24h 内只能注册 1 次。重复返回 `DUPLICATE_REQUEST` (HTTP 409)（不是 `INVALID_PARAMS`，避免邮箱枚举攻击） |
+| **agent_endpoint 校验** | `https://` 开头（生产环境强制）；可 DNS 解析 + 可达性 HEAD 请求（异步，失败不阻塞注册） |
+| **必填字段** | `name`、`contact`、`user_type`。`agent_endpoint` 可选（不提供则收不到 webhook） |
+| **请求体大小** | `Content-Length <= 4KB`（防滥用） |
+| **写审计** | 每次 register 写 `action_history`（含 IP、user_agent） |
+
+**为何不强制邮箱验证**：v1 接受自报邮箱，verification 放 v2。`contact` 字段仅平台运营参考，不暴露给其他用户。
 
 #### 4.4.2 POST /headhunter/candidates
 
@@ -912,7 +957,19 @@ export function zeroMemory(buf: Buffer | string): void {
   - candidate_approved   → unlocked / rejected_candidate
   - unlocked             → placed
   - rejected_employer / rejected_candidate / withdrawn / placed 均为终态
-```
+
+**delete_my_data 与 unlock 状态机的交互规则**（防 GDPR 冲突）：
+
+| 候选人当前状态 | 调 delete_my_data 行为 |
+|---------------|----------------------|
+| 无 active recommendation | ✅ 直接硬删除 PII + 软删除用户 |
+| pending / employer_interested | ✅ 软删除用户（status='deleted'），相关 recommendation 自动 rejected_candidate |
+| candidate_approved | ❌ 拒绝删除，返回 `INVALID_STATE`。提示用户"等待解锁完成或先调 reject_unlock" |
+| unlocked | ⚠️ 部分删除：保留脱敏 `candidates_anonymized` + audit trail，硬删除 `candidates_private` PII，标记 user `status='deleted'`。已发出的联系方式雇主侧保留（用于入职流程） |
+| placed | ✅ 完整归档：PII 加密备份到冷表 `candidates_private_archive`，主表硬删除，用户标记 deleted |
+| 任意终态 (rejected_*/withdrawn) | ✅ 完整删除 |
+
+**v1 实现**：在 `POST /candidate/delete_my_data` handler 里先 `SELECT * FROM recommendations WHERE candidate_user_id = ? AND status IN ('candidate_approved')`，非空则返回 `INVALID_STATE` + 详情。
 
 ### 7.2 状态机实现
 
@@ -987,12 +1044,28 @@ async function handleUnlockContact(recId: string) {
 | headhunter | 200 | 上传/推荐是主要操作 |
 | employer | 100 | 浏览 + 表达兴趣 |
 
-### 8.2 配额扣减
+### 8.2 配额扣减（原子操作，避免竞态）
 
-- 每次 API 调用开始时检查 `quota_used < quota_per_day`
-- 不足时立即返回 `INSUFFICIENT_QUOTA` (HTTP 429)
+- **必须用单条 SQL 完成 check + increment**（不是先查后改）
+- 不足时 `affected rows = 0` → 返回 `INSUFFICIENT_QUOTA` (HTTP 429)
 - 每日 UTC 0 点自动重置（`quota_used = 0, quota_reset_at = next UTC midnight`）
 - 平台可在管理后台手动调整某用户配额
+
+**实现**：
+```sql
+-- 单条 UPDATE 同时完成检查和扣减
+UPDATE users
+SET quota_used = quota_used + ?    -- 本次 action 的消耗（如 5）
+WHERE id = ?
+  AND status = 'active'
+  AND quota_used + ? <= quota_per_day
+RETURNING quota_used AS new_used, quota_per_day;
+
+-- affected rows = 0 时：
+--   - 可能是用户 suspended（→ UNAUTHORIZED/FORBIDDEN）
+--   - 可能是配额不足（→ INSUFFICIENT_QUOTA）
+--   需要在 UPDATE 前先 SELECT status，或用 RETURNING 同时返回 status
+```
 
 ### 8.3 突发限流（防单用户打满 DB）
 
