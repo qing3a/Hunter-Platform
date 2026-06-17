@@ -34,3 +34,31 @@ describe('aes-gcm', () => {
     expect(buf.every(b => b === 0)).toBe(true);
   });
 });
+
+describe('aes-gcm versioned payload (M5 v1: prefix)', () => {
+  const KEY = Buffer.alloc(32, 1);
+
+  it('encrypt produces v1: prefix', async () => {
+    const { encrypt } = await import('../../../src/main/modules/crypto/aes-gcm');
+    const ct = encrypt(KEY, 'hello');
+    expect(ct.startsWith('v1:')).toBe(true);
+    expect(ct.length).toBeGreaterThan(3);
+  });
+
+  it('decrypt accepts v1: prefix and round-trips', async () => {
+    const { encrypt, decrypt } = await import('../../../src/main/modules/crypto/aes-gcm');
+    const ct = encrypt(KEY, 'hello');
+    expect(decrypt(KEY, ct)).toBe('hello');
+  });
+
+  it('decrypt rejects bare base64 (legacy data without v1: prefix)', async () => {
+    const { decrypt } = await import('../../../src/main/modules/crypto/aes-gcm');
+    const nodeCrypto = await import('node:crypto');
+    const iv = nodeCrypto.randomBytes(12);
+    const cipher = nodeCrypto.createCipheriv('aes-256-gcm', KEY, iv);
+    const ct = Buffer.concat([cipher.update('legacy', 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    const legacy = Buffer.concat([iv, tag, ct]).toString('base64');
+    expect(() => decrypt(KEY, legacy)).toThrow(/missing v1: prefix|Unsupported/);
+  });
+});

@@ -60,8 +60,8 @@ describe('M1 end-to-end', () => {
     const priv = conn.prepare('SELECT name_enc, phone_enc FROM candidates_private LIMIT 1').get() as { name_enc: string; phone_enc: string };
     expect(priv.name_enc).not.toContain('张三');
     expect(priv.phone_enc).not.toContain('13800138000');
-    // 加密后是 base64（包含字母+数字+=/+）
-    expect(priv.name_enc).toMatch(/^[A-Za-z0-9+/=]+$/);
+    // M5: 加密后是 v1:<base64> 格式
+    expect(priv.name_enc).toMatch(/^v1:[A-Za-z0-9+/=]+$/);
     conn.close();
   });
 
