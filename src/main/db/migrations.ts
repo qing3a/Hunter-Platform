@@ -4,12 +4,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-import type { DatabaseSync } from 'node:sqlite';
-
-const nodeRequire = createRequire(import.meta.url);
-const { DatabaseSync: _DBC } = nodeRequire('node:sqlite') as typeof import('node:sqlite');
-type DB = InstanceType<typeof _DBC>;
+import type { DB } from './connection.js';
 
 const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 1, description: 'M1 baseline (users, candidates, idempotency, rate limit, action history)', file: 'schema.sql' },

@@ -2,17 +2,23 @@
 // instead of `better-sqlite3`. Same synchronous API and SQL semantics;
 // avoids native compilation. Existing Convo project also uses node:sqlite
 // (commit ac0edd1). Plan ref: spec §4 "better-sqlite3" was a recommendation.
+//
+// The `createRequire` dance is needed because Vite/Vitest 2.x can't resolve
+// the `node:` URL prefix in import specifiers; once Node's native loader runs
+// (in production), a plain `import { DatabaseSync } from 'node:sqlite'` would
+// also work. We standardize on createRequire for both test and prod for
+// consistent behavior.
 
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Use createRequire for node:sqlite so Vite's transformer doesn't try to
-// resolve the `node:` prefix (Vitest 2.1.9 + Vite 5.4 limitation).
 const nodeRequire = createRequire(import.meta.url);
 const { DatabaseSync } = nodeRequire('node:sqlite') as typeof import('node:sqlite');
 
-export function openDb(dbPath: string): InstanceType<typeof DatabaseSync> {
+export type DB = InstanceType<typeof DatabaseSync>;
+
+export function openDb(dbPath: string): DB {
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(dbPath);
