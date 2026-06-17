@@ -34,5 +34,54 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
     } catch (e) { next(e); }
   });
 
+  const RecommendSchema = z.object({
+    anonymized_candidate_id: z.string().min(1),
+    job_id: z.string().min(1),
+    commission_split: z.object({ hunter: z.number(), referrer: z.number() }).optional(),
+    referrer_headhunter_id: z.string().optional(),
+  });
+
+  const WithdrawSchema = z.object({
+    recommendation_id: z.string().min(1),
+  });
+
+  const PublishSchema = z.object({
+    anonymized_candidate_id: z.string().min(1),
+  });
+
+  router.post('/recommendations', (req, res, next) => {
+    try {
+      const parsed = RecommendSchema.safeParse(req.body);
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const rec = handler.recommendCandidate((req as typeof req & { user?: User }).user!, parsed.data as any);
+      res.json({ ok: true, data: rec });
+    } catch (e) { next(e); }
+  });
+
+  router.post('/recommendations/:id/withdraw', (req, res, next) => {
+    try {
+      const parsed = WithdrawSchema.safeParse({ recommendation_id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body');
+      handler.withdrawRecommendation((req as typeof req & { user?: User }).user!, parsed.data);
+      res.json({ ok: true, data: { status: 'withdrawn' } });
+    } catch (e) { next(e); }
+  });
+
+  router.post('/candidates/:id/publish-to-pool', (req, res, next) => {
+    try {
+      const parsed = PublishSchema.safeParse({ anonymized_candidate_id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body');
+      handler.publishToPool((req as typeof req & { user?: User }).user!, parsed.data);
+      res.json({ ok: true, data: { published: true } });
+    } catch (e) { next(e); }
+  });
+
+  router.get('/recommendations', (req, res, next) => {
+    try {
+      const list = handler.listMyRecommendations((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
+      res.json({ ok: true, data: list });
+    } catch (e) { next(e); }
+  });
+
   return router;
 }
