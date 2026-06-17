@@ -60,9 +60,14 @@ describe('POST /v1/employer/placements', () => {
     expect(r.status).toBe(403);
   });
 
-  it('rejects duplicate (P1#4 UNIQUE)', async () => {
+  it('rejects duplicate with DUPLICATE_REQUEST error code (P1#4 UNIQUE)', async () => {
     await request(app).post('/v1/employer/placements').set('Authorization', `Bearer ${employerKey}`).send({ anonymized_candidate_id: anonymizedId, job_id: jobId, annual_salary: 1_000_000 });
     const r = await request(app).post('/v1/employer/placements').set('Authorization', `Bearer ${employerKey}`).send({ anonymized_candidate_id: anonymizedId, job_id: jobId, annual_salary: 1_000_000 });
-    expect(r.status).toBeGreaterThanOrEqual(400);
+    expect(r.status).toBe(409);
+    expect(r.body.ok).toBe(false);
+    expect(r.body.error.code).toBe('DUPLICATE_REQUEST');
+    // 错误消息不应暴露内部 SQLite 信息
+    expect(r.body.error.message).not.toContain('SQLite');
+    expect(r.body.error.message).not.toContain('UNIQUE');
   });
 });

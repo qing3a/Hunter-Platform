@@ -65,7 +65,15 @@ export function createCommissionHandler(db: DB) {
         created_at: now,
         updated_at: now,
       };
-      places.insert(placement);
+      // P1#4: 把 UNIQUE 约束错误包装成 DUPLICATE_REQUEST（不暴露 SQLite 内部）
+      try {
+        places.insert(placement);
+      } catch (e: any) {
+        if (e?.message?.includes('UNIQUE constraint failed')) {
+          throw Errors.duplicateRequest('Placement already exists for this candidate + job + headhunter');
+        }
+        throw e;
+      }
       return placement;
     },
 
