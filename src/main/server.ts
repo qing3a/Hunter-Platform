@@ -3,6 +3,7 @@ import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
 import { ApiError } from './errors.js';
+import { createAuthRouter } from './routes/auth.js';
 
 export function createApp(): Express {
   const env = loadEnv();
@@ -16,6 +17,8 @@ export function createApp(): Express {
   app.get('/v1/health', (_req, res) => {
     res.json({ ok: true, data: { status: 'healthy', timestamp: new Date().toISOString() } });
   });
+
+  app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
