@@ -9,7 +9,7 @@ import { createUnlockAuditLogRepo } from '../../db/repositories/unlock-audit-log
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { createRateLimit } from '../rate-limit/bucket.js';
-import { encrypt, zeroMemory } from '../crypto/aes-gcm.js';
+import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS, RATE_LIMIT_BURSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
@@ -181,6 +181,91 @@ export function createEmployerHandler(db: DB) {
           payload_enc: payloadEnc,
           contains_pii: 0,
         });
+        db.exec('COMMIT');
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+    },
+
+    unlockContact(
+      user: User,
+      input: { recommendation_id: string },
+      ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string },
+    ): void {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can unlock contact');
+
+      const limits = RATE_LIMIT_BURSTS.employer;
+      const rlResult = rl.check(user.id, [
+        { windowSeconds: 1, limit: limits.second },
+        { windowSeconds: 60, limit: limits.minute },
+        { windowSeconds: 3600, limit: limits.hour },
+      ]);
+      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.unlock_contact);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      db.exec('BEGIN');
+      try {
+        const rec = recommendations.findById(input.recommendation_id);
+        if (!rec) throw Errors.notFound('Recommendation not found');
+        if (rec.employer_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
+
+        try {
+          assertTransition(rec.status, 'unlocked');
+        } catch (e) {
+          throw Errors.invalidState(`Invalid state: cannot unlock from status ${rec.status}`);
+        }
+
+        const anon = candidatesAnon.findById(rec.anonymized_candidate_id);
+        if (!anon) throw new Error('Anonymized candidate not found');
+        const priv = db.prepare('SELECT * FROM candidates_private WHERE id = ?').get(anon.source_private_id) as any;
+        if (!priv) throw new Error('Private candidate not found');
+
+        let name = '';
+        let phone = '';
+        let email = '';
+        let nameBuf: Buffer | null = null;
+        let phoneBuf: Buffer | null = null;
+        let emailBuf: Buffer | null = null;
+        try {
+          name = decrypt(ctx.encryptionKey, priv.name_enc);
+          phone = decrypt(ctx.encryptionKey, priv.phone_enc);
+          email = decrypt(ctx.encryptionKey, priv.email_enc);
+          nameBuf = Buffer.from(name, 'utf8');
+          phoneBuf = Buffer.from(phone, 'utf8');
+          emailBuf = Buffer.from(email, 'utf8');
+
+          recommendations.updateStatus(rec.id, 'unlocked');
+
+          auditLog.insert({
+            recommendation_id: rec.id, actor_user_id: user.id, action: 'unlock_delivery',
+            ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
+          });
+
+          const payload = {
+            recommendation_id: rec.id,
+            candidate_id: priv.candidate_user_id,
+            name, phone, email,
+          };
+          const payloadEnc = encrypt(ctx.encryptionKey, JSON.stringify(payload));
+
+          webhooks.enqueue({
+            target_user_id: user.id,
+            event_type: 'deliver_contact',
+            payload_enc: payloadEnc,
+            contains_pii: 1,
+          });
+        } finally {
+          if (nameBuf) zeroMemory(nameBuf);
+          if (phoneBuf) zeroMemory(phoneBuf);
+          if (emailBuf) zeroMemory(emailBuf);
+        }
         db.exec('COMMIT');
       } catch (e) {
         db.exec('ROLLBACK');
