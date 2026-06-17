@@ -195,7 +195,7 @@ CREATE TABLE users (
   contact         TEXT,                     -- 平台与该用户的联系方式（平台运营用）
   agent_endpoint  TEXT,                     -- 用户的 Agent 接收回调的 URL
   api_key_hash    TEXT NOT NULL UNIQUE,     -- bcrypt(api_key)
-  api_key_prefix  TEXT NOT NULL,            -- 用于日志识别（前 8 字符）
+  api_key_prefix  TEXT NOT NULL,            -- 用于 auth 中间件缩小候选集 + 日志识别（12 字符 = "hp_live_" + 4 随机字符）
   quota_per_day   INTEGER NOT NULL DEFAULT 100,
   quota_used      INTEGER NOT NULL DEFAULT 0,
   quota_reset_at  TEXT NOT NULL,            -- ISO 8601
