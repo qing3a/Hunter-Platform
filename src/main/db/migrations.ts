@@ -7,7 +7,8 @@ import path from 'node:path';
 import type { DB } from './connection.js';
 
 const MIGRATIONS: { version: number; description: string; file: string }[] = [
-  { version: 1, description: 'M1 baseline (users, candidates, idempotency, rate limit, action history)', file: 'schema.sql' },
+  { version: 1, description: 'M1 baseline (users, candidates, idempotency, rate limit, action history)', file: 'migrations/v001.sql' },
+  { version: 2, description: 'M2 (jobs, recommendations, unlock_audit_log, webhook_delivery_queue)', file: 'migrations/v002.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
