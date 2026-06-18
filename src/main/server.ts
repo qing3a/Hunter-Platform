@@ -27,7 +27,7 @@ import { createViewTokenRepo } from './modules/view/view-token-repo.js';
 import { createViewHandlers } from './modules/view/handler.js';
 import { createViewUrlInjector } from './modules/view/injector.js';
 import { createViewsRouter } from './modules/view/views-endpoint.js';
-import { createAdminRouter } from './routes/admin.js';
+import { createLandingRouter } from './routes/landing.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -169,9 +169,8 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/config', createConfigRouter(db));
   app.use('/v1/market', createMarketRouter(db));
 
-  // Public operations dashboard — no auth, no quota, no PII.
-  // Router owns its `/dashboard` path; mount at root (not `/admin`) per plan §2.
-  app.use(createAdminRouter(db));
+  // Public marketplace landing page (GET /) — no auth, no quota, no PII.
+  app.use(createLandingRouter(db));
 
   // action_history 审计中间件 — 仅覆盖 4 个业务路由前缀
   // 必须挂在业务 routers 之前，否则 routers send response 后后续 middleware 不执行
