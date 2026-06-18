@@ -61,6 +61,18 @@ API 响应中的字段命名遵循以下约定：
 | GET | `/v1/employer/talent` | 浏览脱敏人才池 | 1 |
 | POST | `/v1/employer/recommendations/{id}/express-interest` | 对候选人表达兴趣 | 3 |
 | POST | `/v1/employer/recommendations/{id}/unlock-contact` | 申请解锁联系方式 | 5 |
+| POST | `/v1/employer/placements` | 创建入职记录 | 1 |
+| GET | `/v1/employer/placements` | 我的入职记录 | 1 |
+
+**`POST /v1/employer/placements` 请求体**（schema 真实形状）：
+```json
+{
+  "job_id": "job_xxx",
+  "anonymized_candidate_id": "ca_xxx",
+  "annual_salary": 600000
+}
+```
+注意：用 `anonymized_candidate_id`（脱敏候选人 ID），不是 `candidate_user_id`。
 
 ### 3.3 猎头
 
@@ -70,6 +82,15 @@ API 响应中的字段命名遵循以下约定：
 | GET | `/v1/headhunter/candidates` | 我的候选人列表 | 1 |
 | POST | `/v1/headhunter/candidates/{id}/publish-to-pool` | 共享到公开池 | 2 |
 | POST | `/v1/headhunter/recommendations` | 推荐给雇主 | 5 |
+
+**`POST /v1/headhunter/recommendations` 请求体**：
+```json
+{
+  "anonymized_candidate_id": "ca_xxx",
+  "job_id": "job_xxx"
+}
+```
+**重要约束**：同一猎头对同一 (候选人, 岗位) 重复推荐 → 返回 `409 DUPLICATE_REQUEST`。创建不同 job 或使用新候选人来避开。
 | GET | `/v1/headhunter/recommendations` | 我的推荐列表 | 1 |
 | POST | `/v1/headhunter/recommendations/{id}/withdraw` | 撤回推荐 | 1 |
 
@@ -85,13 +106,16 @@ API 响应中的字段命名遵循以下约定：
 
 ### 3.5 市场与配置
 
-| Method | Path | 描述 | 配额 |
-|--------|------|------|------|
-| GET | `/v1/market/leaderboard` | 猎头业绩榜 | 1 |
-| GET | `/v1/config/industries` | 行业列表 | 1 |
-| GET | `/v1/config/title_levels` | 职级映射 | 1 |
-| GET | `/v1/config/salary_bands` | 薪资带宽 | 1 |
-| GET | `/v1/skill.md` | 本文档 | 0 |
+| Method | Path | 描述 | 配额 | 鉴权 |
+|--------|------|------|------|------|
+| GET | `/v1/market/leaderboard` | 猎头业绩榜 | 1 | Bearer |
+| GET | `/v1/config/industries` | 行业列表 | 1 | Bearer |
+| GET | `/v1/config/title_levels` | 职级映射 | 1 | Bearer |
+| GET | `/v1/config/salary_bands` | 薪资带宽 | 1 | Bearer |
+| GET | `/v1/skill.md` | 本文档 | 0 | 公开 |
+| GET | `/v1/openapi.json` | OpenAPI 3 spec | 0 | 公开 |
+| GET | `/v1/health` | 健康检查 | 0 | 公开 |
+| GET | `/metrics` | Prometheus 指标 | 0 | 公开 |
 
 ## 4. 脱敏字段映射
 
@@ -132,6 +156,8 @@ unlocked             → placed
 ### 6.1 配额
 
 每日 quota + 1s/1min/1h 三层限流。超限返回 429。
+
+**额外：IP 级别限流**（针对 `POST /v1/auth/register`）：单 IP 5 次/小时。同一个 IP 反复注册新账号会撞限流。开发调试时如需绕过，先调用 `DELETE FROM rate_limit_buckets;` 清表（或等 1 小时自然过期）。
 
 | 角色 | 每日 quota | 1 秒 | 1 分 | 1 时 |
 |------|-----------|------|------|------|
