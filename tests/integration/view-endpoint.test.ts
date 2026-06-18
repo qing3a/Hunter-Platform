@@ -64,6 +64,66 @@ describe('view endpoints — happy path', () => {
     expect(viewRes.text).toContain('用户配额');
     expect(viewRes.text).toContain(userId);
   });
+
+  it('GET /view/recommendation/:id with valid token returns timeline HTML', async () => {
+    // Register candidate + upload
+    const candReg = await request(app).post('/v1/auth/register')
+      .send({ user_type: 'candidate', name: 'Rec Cand', contact: 'rec-c@c.com' });
+    const candId = candReg.body.data.user_id;
+
+    const upload = await request(app).post('/v1/headhunter/candidates')
+      .set('Authorization', `Bearer ${apiKey}`)
+      .send({
+        candidate_user_id: candId,
+        name: 'X', phone: '13800138000', email: 'r@x.com',
+        current_company: 'A', current_title: 'T',
+        expected_salary: 100000, years_experience: 1,
+        education_school: 'S', skills: [],
+      });
+    const anonymizedId = upload.body.data.anonymized_id;
+
+    // Register employer + post job
+    const empReg = await request(app).post('/v1/auth/register')
+      .send({ user_type: 'employer', name: 'Test Emp', contact: 'rec-e@e.com' });
+    const empKey = empReg.body.data.api_key;
+    const job = await request(app).post('/v1/employer/jobs')
+      .set('Authorization', `Bearer ${empKey}`)
+      .send({ title: 'Senior Engineer', description: 'A role' });
+    const jobId = job.body.data.id;
+
+    // Headhunter recommends candidate to job
+    const rec = await request(app).post('/v1/headhunter/recommendations')
+      .set('Authorization', `Bearer ${apiKey}`)
+      .send({ anonymized_candidate_id: anonymizedId, job_id: jobId });
+    const viewUrl = rec.body.data.view_url;
+    expect(viewUrl).toMatch(/^https?:\/\/[^/]+\/view\/recommendation\//);
+
+    const viewRes = await request(app).get(stripHost(viewUrl));
+    expect(viewRes.status).toBe(200);
+    expect(viewRes.headers['content-type']).toMatch(/^text\/html/);
+    expect(viewRes.text).toContain('推荐状态');
+    expect(viewRes.text).toContain('猎头推荐'); // first timeline step
+  });
+
+  it('GET /view/audit/:id (obtained via POST /v1/views/audit) returns audit HTML', async () => {
+    // Generate some audit history by calling status
+    await request(app).get(`/v1/users/${userId}/status`)
+      .set('Authorization', `Bearer ${apiKey}`);
+
+    // Use the new explicit endpoint to obtain a view URL
+    const tokenRes = await request(app)
+      .post(`/v1/views/audit/${userId}`)
+      .set('Authorization', `Bearer ${apiKey}`);
+    expect(tokenRes.status).toBe(200);
+    const viewUrl = tokenRes.body.data.view_url;
+    expect(viewUrl).toMatch(/^https?:\/\/[^/]+\/view\/audit\//);
+
+    const viewRes = await request(app).get(stripHost(viewUrl));
+    expect(viewRes.status).toBe(200);
+    expect(viewRes.headers['content-type']).toMatch(/^text\/html/);
+    expect(viewRes.text).toContain('审计日志');
+    expect(viewRes.text).toContain(userId);
+  });
 });
 
 /** Strip the http(s)://host prefix from an absolute URL to get a path supertest can GET. */
