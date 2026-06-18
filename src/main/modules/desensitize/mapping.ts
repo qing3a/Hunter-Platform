@@ -1,10 +1,96 @@
-// v1 手写配置；v2 可接 LLM 推导
-export const INDUSTRY_MAP: Record<string, string> = {
-  '字节跳动': '互联网', '阿里巴巴': '互联网', '腾讯': '互联网', '百度': '互联网',
-  '美团': '互联网', '京东': '互联网', '小米': '互联网', '华为': '通信/硬件',
-  '招商银行': '金融', '中国银行': '金融', '工商银行': '金融',
-  '中金': '金融', '高盛': '金融',
-};
+// v1: 从 config/industry_map.json 加载，支持 fallback 模糊匹配
+// v2: 可接 LLM 推导
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface IndustryConfig {
+  version: number;
+  updated_at: string;
+  categories: { id: string; companies: string[] }[];
+  fallback_keywords: Record<string, string[]>;
+  default: string;
+}
+
+interface IndustryCache {
+  companies: Map<string, string>;  // company name → category id (first-wins)
+  cfg: IndustryConfig;
+  categoryOrder: string[];  // for fallback iteration order
+}
+
+let _cache: IndustryCache | null = null;
+
+function loadIndustryMap(): IndustryCache {
+  if (_cache) return _cache;
+  const path = join(process.cwd(), 'config', 'industry_map.json');
+  let cfg: IndustryConfig;
+  try {
+    cfg = JSON.parse(readFileSync(path, 'utf8'));
+    // basic shape validation
+    if (!Array.isArray(cfg.categories)) throw new Error('categories not array');
+  } catch (e) {
+    // 兜底：文件丢失或解析失败时使用最小集合
+    console.warn('[industry_map] failed to load config/industry_map.json, using minimal fallback:', (e as Error).message);
+    cfg = {
+      version: 0,
+      updated_at: 'fallback',
+      categories: [
+        { id: '互联网', companies: ['字节跳动', '阿里巴巴', '腾讯', '百度', '美团', '京东', '小米'] },
+        { id: '通信/硬件', companies: ['华为'] },
+        { id: '金融', companies: ['招商银行', '中国银行', '工商银行', '中金', '高盛'] },
+      ],
+      fallback_keywords: {
+        '金融': ['银行', '证券', '保险'],
+        '互联网': ['科技', '网络'],
+      },
+      default: '其他',
+    };
+  }
+  const companies = new Map<string, string>();
+  for (const cat of cfg.categories) {
+    for (const c of cat.companies) {
+      if (!companies.has(c)) companies.set(c, cat.id); // first-wins
+    }
+  }
+  _cache = {
+    companies,
+    cfg,
+    categoryOrder: cfg.categories.map(c => c.id),
+  };
+  return _cache;
+}
+
+export function lookupIndustry(companyName: string | undefined | null): string | undefined {
+  if (!companyName) return undefined;
+  const { companies, cfg, categoryOrder } = loadIndustryMap();
+
+  // 1. 枚举命中
+  const hit = companies.get(companyName);
+  if (hit) return hit;
+
+  // 2. fallback 关键词（按 categories 数组顺序遍历，避免随机匹配）
+  for (const catId of categoryOrder) {
+    const keywords = cfg.fallback_keywords[catId] ?? [];
+    if (keywords.some(k => companyName.includes(k))) {
+      return catId;
+    }
+  }
+
+  // 3. default
+  return cfg.default;
+}
+
+// 兼容旧 API（保留 INDUSTRY_MAP 导出供可能的旧 import）
+// 注意：现在读的是 Map 不是 Record；如需保持兼容可在外面用 Object.fromEntries
+export const INDUSTRY_MAP: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get(_t, prop: string) {
+    const { companies } = loadIndustryMap();
+    return companies.get(prop);
+  },
+  has(_t, prop: string) {
+    const { companies } = loadIndustryMap();
+    return companies.has(prop);
+  },
+});
 
 export const TITLE_LEVEL_PATTERNS: { regex: RegExp; level: string }[] = [
   { regex: /P[5-7]|高级.*工程师|高级开发/, level: 'P6' },
