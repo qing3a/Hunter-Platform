@@ -69,14 +69,11 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     }
   });
 
-  app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
-  app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/users', createUsersRouter(db));
 
   // action_history 审计中间件 — 仅覆盖 4 个业务路由前缀
-  // 注意：用户检查延迟到 res.on('finish') 触发，所以可以挂在 auth 中间件之前
+  // 必须挂在业务 routers 之前，否则 routers send response 后后续 middleware 不执行
+  // res.on('finish') 回调在整个 chain 完成后才触发（包括 auth）
   const actionHistoryRepo = createActionHistoryRepo(db);
   const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
 
@@ -88,9 +85,16 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     return actionHistoryMW(req, res, next);
   });
 
+  app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
+  app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof ApiError) {
+      // 让 action_history 中间件在 finish 时能拿到 error_code
+      res.locals.errorCode = err.code;
       res.status(err.statusCode).json({
         ok: false,
         error: { code: err.code, message: err.message, details: err.details },
