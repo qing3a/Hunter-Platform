@@ -27,6 +27,19 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" https://a
 
 **API key 只能获取一次**（注册时）。丢失后用 `POST /v1/auth/rotate_key` 轮换（v2）。
 
+## 2.5 字段命名约定
+
+API 响应中的字段命名遵循以下约定：
+
+| 字段含义 | 字段名 | 示例 |
+|---------|-------|------|
+| 资源自身 ID | `id` | `data.id`（user / job / recommendation 的 self ID）|
+| 外键 | `<resource_type>_id` | `headhunter_id`, `employer_id`, `job_id` |
+| 多态外键 | `target_id` | history endpoint 操作的目标资源 |
+| **例外** | `anonymized_id` | AnonymizedCandidate（脱敏候选人 ID，保留语义） |
+
+历史变更：`POST /v1/auth/register` 响应从 `data.user_id` 重命名为 `data.id`（v1 breaking change）。`GET /v1/users/{id}/history` 响应的 `user_id` 保持 DB 列名风格。
+
 ## 3. 完整 API 端点
 
 ### 3.1 通用
@@ -200,7 +213,7 @@ const upload = await fetch(`${BASE}/headhunter/candidates`, {
   method: 'POST',
   headers: { 'Authorization': `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    candidate_user_id: reg_candidate.data.user_id,  // 候选人先注册
+    candidate_user_id: reg_candidate.data.id,  // 候选人先注册
     name: '张三', phone: '13800138000', email: 'z@x.com',
     current_company: '字节跳动', current_title: '高级前端',
     expected_salary: 750000, years_experience: 8,
