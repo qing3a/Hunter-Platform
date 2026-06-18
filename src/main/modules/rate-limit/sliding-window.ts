@@ -72,3 +72,69 @@ export function upsertCount(db: DB, userId: string, windowStart: string, windowS
     DO UPDATE SET request_count = request_count + 1
   `).run(userId, windowStart, windowSeconds, expires);
 }
+
+export interface SlidingWindowCheckResult {
+  allowed: boolean;
+  remaining: number;
+  resetAfterSeconds: number;
+  estimated: number;
+  previousCount: number;
+  currentCount: number;
+  /** Only present when allowed=false. */
+  violatedWindowSeconds?: number;
+  /** Only present when allowed=false. */
+  retryAfterSeconds?: number;
+}
+
+/**
+ * Sliding-window-counter rate limit check. Atomically checks + (on allow) increments
+ * the current window's counter. Uses the legacy `rate_limit_buckets` table unchanged.
+ *
+ * Semantics:
+ *   - estimated = previous_count × weight + current_count
+ *   - if estimated >= limit → reject (do NOT increment)
+ *   - if estimated <  limit → allow and increment current window
+ */
+export function slidingWindowCheck(
+  db: DB,
+  userId: string,
+  windowSeconds: number,
+  limit: number,
+  now: Date = new Date(),
+): SlidingWindowCheckResult {
+  const currentStart = bucketStart(now, windowSeconds);
+  const previousStart = bucketStart(new Date(now.getTime() - windowSeconds * 1000), windowSeconds);
+
+  const previousCount = readCount(db, userId, previousStart, windowSeconds);
+  const currentCount = readCount(db, userId, currentStart, windowSeconds);
+
+  const { estimated, elapsed, weight } = slidingWindowEstimate(
+    now, windowSeconds, previousStart, currentStart, previousCount, currentCount,
+  );
+  const resetAfterSeconds = Math.max(1, Math.ceil(windowSeconds - elapsed));
+
+  if (estimated >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAfterSeconds,
+      estimated,
+      previousCount,
+      currentCount,
+      violatedWindowSeconds: windowSeconds,
+      retryAfterSeconds: resetAfterSeconds,
+    };
+  }
+
+  // Allowed → increment
+  upsertCount(db, userId, currentStart, windowSeconds);
+  const newEstimated = previousCount * weight + currentCount + 1;
+  return {
+    allowed: true,
+    remaining: Math.max(0, Math.floor(limit - newEstimated)),
+    resetAfterSeconds,
+    estimated: newEstimated,
+    previousCount,
+    currentCount: currentCount + 1,
+  };
+}

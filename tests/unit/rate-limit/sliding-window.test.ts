@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { bucketStart, slidingWindowEstimate, readCount, upsertCount } from '../../../src/main/modules/rate-limit/sliding-window';
+import { bucketStart, slidingWindowEstimate, readCount, upsertCount, slidingWindowCheck } from '../../../src/main/modules/rate-limit/sliding-window';
 import { openDb } from '../../../src/main/db/connection';
 import { runMigrations } from '../../../src/main/db/migrations';
 
@@ -99,5 +99,59 @@ describe('readCount / upsertCount', () => {
   it('upsertCount is scoped by windowSeconds', () => {
     upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
     expect(readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 3600)).toBe(0);
+  });
+});
+
+describe('slidingWindowCheck', () => {
+  const testDbPath = path.join(__dirname, '../../../tmp/sw-check.db');
+  let db: ReturnType<typeof openDb>;
+
+  beforeEach(() => {
+    try { fs.unlinkSync(testDbPath); } catch { /* ignore */ }
+    db = openDb(testDbPath);
+    runMigrations(db);
+  });
+  afterEach(() => { db.close(); try { fs.unlinkSync(testDbPath); } catch { /* ignore */ } });
+
+  it('allows a request when estimated < limit and increments the current window', () => {
+    const result = slidingWindowCheck(db, 'user_1', 60, 10, new Date('2026-06-19T00:00:30.000Z'));
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(9);  // limit 10 - (prev 0 × 0.5 + curr 1) = 9
+    expect(result.resetAfterSeconds).toBe(30);
+  });
+
+  it('rejects when estimated >= limit', () => {
+    const now = new Date('2026-06-19T00:00:30.000Z');
+    // Pre-fill the previous window to 20
+    upsertCount(db, 'user_1', '2026-06-18T23:59:00.000Z', 60);
+    for (let i = 0; i < 19; i++) upsertCount(db, 'user_1', '2026-06-18T23:59:00.000Z', 60);
+    // Pre-fill the current window to 5
+    for (let i = 0; i < 5; i++) upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    // At half-elapsed: prev=20 × 0.5 + curr=5 = 15 ≥ 10 → reject
+    const result = slidingWindowCheck(db, 'user_1', 60, 10, now);
+    expect(result.allowed).toBe(false);
+    expect(result.violatedWindowSeconds).toBe(60);
+    expect(result.retryAfterSeconds).toBe(30);
+  });
+
+  it('rejected request does NOT increment the counter (no penalty)', () => {
+    const now = new Date('2026-06-19T00:00:30.000Z');
+    // Fill previous window to 20
+    for (let i = 0; i < 20; i++) upsertCount(db, 'user_1', '2026-06-18T23:59:00.000Z', 60);
+    // Fill current window to 10 (at limit)
+    for (let i = 0; i < 10; i++) upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    const before = readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    slidingWindowCheck(db, 'user_1', 60, 10, now);
+    const after = readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    expect(after).toBe(before);  // No new row added
+  });
+
+  it('returns per-window remaining and resetAfter', () => {
+    const now = new Date('2026-06-19T00:00:30.000Z');
+    const result = slidingWindowCheck(db, 'user_1', 60, 10, now);
+    expect(result.allowed).toBe(true);
+    expect(result.previousCount).toBe(0);
+    expect(result.currentCount).toBe(1);
+    expect(result.estimated).toBe(1);
   });
 });
