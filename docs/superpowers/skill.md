@@ -347,3 +347,67 @@ export PLATFORM_ENCRYPTION_KEYS="v1:$(openssl rand -base64 32),v2:$(openssl rand
 
 k6 脚本在 `tests/load/`，覆盖 spec §15.2 全部场景。详见 [`tests/load/README.md`](../load/README.md)。
 - ⏳ v2：加密密钥轮换、跨猎头推荐细分、多语言、完整 GDPR 导出
+
+## 限流
+
+所有认证请求受三层滑动窗口限流（1s / 60s / 3600s），实现为 sliding-window-counter 算法（不是 fixed-window，因此撞限后能渐进恢复，不会"锁一整窗口"）。
+
+| 用户类型 | 1s 突发 | 1min | 1h |
+|---|---|---|---|
+| candidate | 10 | 50 | 300 |
+| headhunter | 20 | 100 | 750 |
+| employer | 30 | 200 | 1200 |
+
+### 响应头（每个认证请求）
+
+每个受保护 endpoint 的响应都带 IETF `RateLimit-*` headers，按 1s/60s/3600s 顺序：
+
+| Header | 示例 | 含义 |
+|---|---|---|
+| `RateLimit-Limit` | `20, 100, 750` | 三个窗口的上限 |
+| `RateLimit-Remaining` | `18, 98, 745` | 三个窗口的剩余配额 |
+| `RateLimit-Reset` | `1, 45, 2105` | 三个窗口到下次重置的秒数 |
+
+### 软警告
+
+当任一窗口 `remaining / limit < 20%` 时，响应额外带：
+
+| Header | 含义 |
+|---|---|
+| `RateLimit-Policy: warn` | 标记进入软警告状态 |
+| `X-RateLimit-Warning: approaching-limit: hour window at 85%` | 人类可读的具体窗口与占用率 |
+
+### 429 响应
+
+- 状态码 429
+- `Retry-After: <秒数>` —— 等于三个窗口 reset 中的最大值（最保守）
+- body:
+  ```json
+  {
+    "ok": false,
+    "error": {
+      "code": "RATE_LIMITED",
+      "message": "Burst rate limit exceeded",
+      "details": { "violated_window": "second|minute|hour", "retry_after_seconds": 1 }
+    }
+  }
+  ```
+
+### 客户端建议
+
+- 主动读 `RateLimit-Remaining`
+- 任一窗口 remaining < 20% 时主动降速
+- 收到 `RateLimit-Policy: warn` 时按 `Retry-After` 调度退避
+- 收到 429 时严格按 `Retry-After` 等待后再重试
+
+### 不受限的 endpoint
+
+以下 endpoint 不走 per-user 限流：
+
+- `POST /v1/auth/register`（独立的 IP 限流，5/h）
+- `GET /v1/health`
+- `GET /v1/skill.md` / `GET /v1/openapi.json`
+- `GET /v1/config/*` / `GET /v1/market/leaderboard`
+- `GET /`（landing 页面）
+- `GET /view/*` / `GET /v1/views/*`
+- `GET /metrics` / `GET /v1/metrics`
