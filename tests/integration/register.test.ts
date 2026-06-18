@@ -30,7 +30,7 @@ describe('POST /v1/auth/register', () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.data.user_id).toMatch(/^user_/);
+    expect(res.body.data.id).toMatch(/^user_/);
     expect(res.body.data.api_key).toMatch(/^hp_live_/);
   });
 

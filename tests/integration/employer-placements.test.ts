@@ -23,7 +23,7 @@ describe('POST /v1/employer/placements', () => {
     const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
     headhunterKey = h.body.data.api_key;
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
-    candidateId = c.body.data.user_id;
+    candidateId = c.body.data.id;
 
     const up = await request(app).post('/v1/headhunter/candidates').set('Authorization', `Bearer ${headhunterKey}`).send({
       candidate_user_id: candidateId, name: 'X', phone: '13800000000', email: 'x@x.com',

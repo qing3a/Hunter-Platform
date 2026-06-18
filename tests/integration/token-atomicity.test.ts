@@ -21,7 +21,7 @@ describe('view token atomicity', () => {
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${hh.body.data.api_key}`)
       .send({
-        candidate_user_id: cand.body.data.user_id,
+        candidate_user_id: cand.body.data.id,
         name: 'X', phone: '13800138000', email: 'x@x.com',
         current_company: 'A', current_title: 'T',
         expected_salary: 100000, years_experience: 1,

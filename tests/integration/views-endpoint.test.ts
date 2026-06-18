@@ -17,7 +17,7 @@ describe('POST /v1/views/audit/:id', () => {
 
     const reg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'headhunter', name: 'Audit Test HH', contact: 'audit@h.com' });
-    userId = reg.body.data.user_id;
+    userId = reg.body.data.id;
     apiKey = reg.body.data.api_key;
   });
 
@@ -62,7 +62,7 @@ describe('POST /v1/views/audit/:id', () => {
 
     // Use HH's api_key to request OTHER's audit
     const res = await request(app)
-      .post(`/v1/views/audit/${other.body.data.user_id}`)
+      .post(`/v1/views/audit/${other.body.data.id}`)
       .set('Authorization', `Bearer ${apiKey}`);
 
     expect(res.status).toBe(403);

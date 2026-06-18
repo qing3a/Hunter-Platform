@@ -18,7 +18,7 @@ describe('view endpoints — happy path', () => {
     // Register a headhunter (will be the authenticated user for viewable actions)
     const hhReg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'headhunter', name: 'Test HH', contact: 'h@x.com' });
-    userId = hhReg.body.data.user_id;
+    userId = hhReg.body.data.id;
     apiKey = hhReg.body.data.api_key;
   });
 
@@ -30,7 +30,7 @@ describe('view endpoints — happy path', () => {
     // Register a candidate (so we can upload their profile)
     const candReg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'X', contact: 'x@x.com' });
-    const candId = candReg.body.data.user_id;
+    const candId = candReg.body.data.id;
 
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${apiKey}`)
@@ -69,7 +69,7 @@ describe('view endpoints — happy path', () => {
     // Register candidate + upload
     const candReg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'Rec Cand', contact: 'rec-c@c.com' });
-    const candId = candReg.body.data.user_id;
+    const candId = candReg.body.data.id;
 
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${apiKey}`)

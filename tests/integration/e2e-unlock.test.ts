@@ -41,13 +41,13 @@ describe('M2 E2E: 4-step unlock flow', () => {
 
     const emp = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E', contact: 'e@x.com', agent_endpoint: 'http://localhost:9870/wh' });
     employerKey = emp.body.data.api_key;
-    employerId = emp.body.data.user_id;
+    employerId = emp.body.data.id;
     const hun = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
     headhunterKey = hun.body.data.api_key;
-    headhunterId = hun.body.data.user_id;
+    headhunterId = hun.body.data.id;
     const can = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com', agent_endpoint: 'http://localhost:9871/wh' });
     candidateKey = can.body.data.api_key;
-    candidateId = can.body.data.user_id;
+    candidateId = can.body.data.id;
 
     const upload = await request(app)
       .post('/v1/headhunter/candidates')

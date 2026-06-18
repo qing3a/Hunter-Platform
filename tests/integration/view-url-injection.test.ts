@@ -26,7 +26,7 @@ describe('view_url injection', () => {
     const res = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${apiKey}`)
       .send({
-        candidate_user_id: candReg.body.data.user_id,
+        candidate_user_id: candReg.body.data.id,
         name: '张三', phone: '13800138000', email: 'z@x.com',
         current_company: '字节跳动', current_title: '高级前端',
         expected_salary: 750000, years_experience: 8,
@@ -39,7 +39,7 @@ describe('view_url injection', () => {
   it('GET /v1/users/{id}/status response includes view_url', async () => {
     const reg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
-    const res = await request(app).get(`/v1/users/${reg.body.data.user_id}/status`)
+    const res = await request(app).get(`/v1/users/${reg.body.data.id}/status`)
       .set('Authorization', `Bearer ${reg.body.data.api_key}`);
     expect(res.body.data.view_url).toMatch(/^https?:\/\/[^/]+\/view\/user-quota\//);
   });

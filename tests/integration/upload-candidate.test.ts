@@ -21,7 +21,7 @@ describe('POST /v1/headhunter/candidates', () => {
     const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h1-upload@x.com' });
     headhunterKey = h.body.data.api_key;
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c1-upload@x.com' });
-    candidateId = c.body.data.user_id;
+    candidateId = c.body.data.id;
   });
   afterAll(() => { try { fs.unlinkSync(testDb); } catch {} });
 

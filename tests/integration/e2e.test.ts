@@ -25,11 +25,11 @@ describe('M1 end-to-end', () => {
 
     const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'E2E Hunter', contact: 'e2e-h@x.com' });
     headhunterKey = h.body.data.api_key;
-    headhunterId = h.body.data.user_id;
+    headhunterId = h.body.data.id;
 
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'E2E Cand', contact: 'e2e-c@x.com' });
     candidateKey = c.body.data.api_key;
-    candidateId = c.body.data.user_id;
+    candidateId = c.body.data.id;
   });
   afterAll(() => { try { fs.unlinkSync(testDb); } catch {} });
 
