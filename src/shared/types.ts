@@ -57,6 +57,7 @@ export interface Job {
   title: string;
   description: string | null;
   requirements: string | null;
+  required_skills: string[];
   salary_min: number | null;
   salary_max: number | null;
   status: JobStatus;
