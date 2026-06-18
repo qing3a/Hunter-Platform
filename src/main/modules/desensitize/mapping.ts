@@ -93,8 +93,9 @@ export const INDUSTRY_MAP: Record<string, string> = new Proxy({} as Record<strin
 });
 
 export const TITLE_LEVEL_PATTERNS: { regex: RegExp; level: string }[] = [
-  { regex: /P[5-7]|高级.*工程师|高级开发/, level: 'P6' },
-  { regex: /P[8-9]|资深|Staff/, level: 'P7+' },
+  // P6: senior engineer variants. 高级X（前端/后端/测试/架构/运维）+ 高级工程师 + P5-P7
+  { regex: /P[5-7]|高级工程师|高级.*?(?:开发|前端|后端|测试|架构|运维|研发)/, level: 'P6' },
+  { regex: /P[8-9]|资深|专家|Staff|Principal/, level: 'P7+' },
   { regex: /M[1-2]|经理|主管/, level: 'M1' },
   { regex: /M[3-4]|总监/, level: 'M2' },
   { regex: /VP|副总裁|总裁/, level: 'VP' },
