@@ -121,7 +121,7 @@ export function createEmployerHandler(db: DB) {
       user: User,
       input: { recommendation_id: string },
       ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string } = { encryptionKey: Buffer.alloc(32) },
-    ): void {
+    ): { __audit: { target_type: 'recommendation'; target_id: string } } {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can express interest');
 
       const limits = RATE_LIMIT_BURSTS.employer;
@@ -186,13 +186,14 @@ export function createEmployerHandler(db: DB) {
         db.exec('ROLLBACK');
         throw e;
       }
+      return { __audit: { target_type: 'recommendation', target_id: input.recommendation_id } };
     },
 
     unlockContact(
       user: User,
       input: { recommendation_id: string },
       ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string },
-    ): void {
+    ): { __audit: { target_type: 'recommendation'; target_id: string } } {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can unlock contact');
 
       const limits = RATE_LIMIT_BURSTS.employer;
@@ -271,6 +272,7 @@ export function createEmployerHandler(db: DB) {
         db.exec('ROLLBACK');
         throw e;
       }
+      return { __audit: { target_type: 'recommendation', target_id: input.recommendation_id } };
     },
   };
 }

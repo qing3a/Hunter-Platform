@@ -92,7 +92,13 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       const ctx: any = { encryptionKey };
       if (ip) ctx.ip = ip;
       if (req.headers['user-agent']) ctx.userAgent = req.headers['user-agent'];
-      handler.expressInterest((req as typeof req & { user?: User }).user!, parsed.data, ctx);
+      const result = handler.expressInterest((req as typeof req & { user?: User }).user!, parsed.data, ctx);
+      // action_history 审计
+      const audit = (result as any).__audit;
+      if (audit) {
+        res.locals.ahTargetType = audit.target_type;
+        res.locals.ahTargetId = audit.target_id;
+      }
       res.json({ ok: true, data: { status: 'employer_interested' } });
     } catch (e) { next(e); }
   });
@@ -105,7 +111,13 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       const ctx: any = { encryptionKey };
       if (ip) ctx.ip = ip;
       if (req.headers['user-agent']) ctx.userAgent = req.headers['user-agent'];
-      handler.unlockContact((req as typeof req & { user?: User }).user!, parsed.data, ctx);
+      const result = handler.unlockContact((req as typeof req & { user?: User }).user!, parsed.data, ctx);
+      // action_history 审计
+      const audit = (result as any).__audit;
+      if (audit) {
+        res.locals.ahTargetType = audit.target_type;
+        res.locals.ahTargetId = audit.target_id;
+      }
       res.json({ ok: true, data: { status: 'unlocked' } });
     } catch (e) { next(e); }
   });

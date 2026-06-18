@@ -22,6 +22,11 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
       const xff = req.headers['x-forwarded-for'];
       const ip = (typeof xff === 'string' ? xff.split(',')[0]?.trim() : undefined) || req.socket.remoteAddress || 'unknown';
       const user = handler.handle(parsed.data.user_type, parsed.data.name, parsed.data.contact, parsed.data.agent_endpoint, ip, isProduction);
+      // action_history 审计：register 时 req.user 不存在（无 auth），
+      // 通过 userIdForAudit 让中间件知道要写哪个 user_id
+      res.locals.userIdForAudit = user.id;
+      res.locals.ahTargetType = 'user';
+      res.locals.ahTargetId = user.id;
       res.json({
         ok: true,
         data: {

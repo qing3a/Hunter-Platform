@@ -30,7 +30,15 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = UploadSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       const result = await handler.uploadCandidate((req as typeof req & { user?: User }).user!, parsed.data);
-      res.json({ ok: true, data: result });
+      // action_history 审计：把 handler 返回的 __audit 写到 res.locals
+      const audit = (result as any).__audit;
+      if (audit) {
+        res.locals.ahTargetType = audit.target_type;
+        res.locals.ahTargetId = audit.target_id;
+        res.locals.ahResSummary = audit.res_summary;
+      }
+      // 不向 API 客户端暴露 __audit
+      res.json({ ok: true, data: { anonymized_id: result.anonymized_id, preview: result.preview } });
     } catch (e) { next(e); }
   });
 

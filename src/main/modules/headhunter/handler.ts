@@ -34,7 +34,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
   const rl = createRateLimit(db);
 
   return {
-    async uploadCandidate(user: User, input: UploadCandidateInput): Promise<{ anonymized_id: string; preview: AnonymizedCandidate }> {
+    async uploadCandidate(user: User, input: UploadCandidateInput): Promise<{ anonymized_id: string; preview: AnonymizedCandidate; __audit: { target_type: 'candidate'; target_id: string; res_summary: { anonymized_id: string; industry: string | null; title_level: string | null } } }> {
       // 1. 验证 user 是 headhunter
       if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can upload candidates');
 
@@ -106,7 +106,19 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
           created_at: now, updated_at: now,
         });
 
-        return { anonymized_id: anonId, preview };
+        return {
+          anonymized_id: anonId,
+          preview,
+          __audit: {
+            target_type: 'candidate',
+            target_id: anonId,
+            res_summary: {
+              anonymized_id: anonId,
+              industry: preview.industry,
+              title_level: preview.title_level,
+            },
+          },
+        };
       } finally {
         // 立即清零内存中的 PII
         zeroMemory(nameBuf);
