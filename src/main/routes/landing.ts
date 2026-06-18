@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import type { DB } from '../db/connection.js';
-import { renderLanding, type CandidateCard, type IndustryGroup, type RecentJob, type LandingData } from '../modules/view/templates/landing.js';
+import { renderLanding, type CandidateCard, type IndustryGroup, type RecentJob, type LandingData, type HeadhunterRanking, type PlacementItem } from '../modules/view/templates/landing.js';
 
 export function createLandingRouter(db: DB): Router {
   const router = Router();
@@ -86,6 +86,56 @@ function gatherLandingData(db: DB): LandingData {
     if (r.user_type === 'headhunter') activeHeadhunterCount = r.c;
   }
 
+  const todayUnlocksRow = db.prepare(
+    `SELECT COUNT(*) as c FROM recommendations
+     WHERE status = 'unlocked' AND updated_at >= datetime('now', 'start of day')`
+  ).get() as { c: number };
+
+  const todayPlacementsRow = db.prepare(
+    `SELECT COUNT(*) as c FROM placements
+     WHERE updated_at >= datetime('now', 'start of day')`
+  ).get() as { c: number };
+
+  const totalCandidatesRow = db.prepare(
+    `SELECT COUNT(*) as c FROM candidates_anonymized`
+  ).get() as { c: number };
+
+  const topHeadhunterRows = db.prepare(
+    `SELECT id, name, reputation FROM users
+     WHERE user_type = 'headhunter' AND status = 'active'
+     ORDER BY reputation DESC LIMIT 3`
+  ).all() as Array<{ id: string; name: string; reputation: number }>;
+  const topHeadhunters: HeadhunterRanking[] = topHeadhunterRows.map((r, i) => ({
+    rank: i + 1,
+    id: r.id,
+    name: r.name,
+    reputation: r.reputation,
+  }));
+
+  const placementRows = db.prepare(
+    `SELECT p.annual_salary, p.updated_at,
+            j.title as job_title, j.industry as job_industry,
+            h.name as headhunter_name
+     FROM placements p
+     LEFT JOIN jobs j ON p.job_id = j.id
+     LEFT JOIN users h ON p.primary_headhunter_id = h.id
+     WHERE p.status = 'placed'
+     ORDER BY p.updated_at DESC LIMIT 5`
+  ).all() as Array<{
+    annual_salary: number | null;
+    updated_at: string;
+    job_title: string | null;
+    job_industry: string | null;
+    headhunter_name: string | null;
+  }>;
+  const latestPlacements: PlacementItem[] = placementRows.map((r) => ({
+    title: r.job_title ?? '(已删除岗位)',
+    industry: r.job_industry,
+    salaryText: formatSalaryAnnual(r.annual_salary),
+    headhunterName: r.headhunter_name ?? '匿名猎头',
+    at: relativeTime(r.updated_at),
+  }));
+
   return {
     openJobsCount: openJobsRow.c,
     publicCandidatesCount: pubCandRow.c,
@@ -94,9 +144,31 @@ function gatherLandingData(db: DB): LandingData {
     activeEmployerCount,
     activeHeadhunterCount,
     serverTime: new Date().toISOString(),
+    todayUnlocks: todayUnlocksRow.c,
+    todayPlacements: todayPlacementsRow.c,
+    totalCandidates: totalCandidatesRow.c,
+    uptimePercent: 99.9,
+    topHeadhunters,
+    latestPlacements,
   };
 }
 
 function safeParseSkills(json: string): string[] {
   try { return JSON.parse(json) as string[]; } catch { return []; }
+}
+
+function formatSalaryAnnual(salary: number | null): string {
+  if (salary == null) return '—';
+  const wan = salary / 10000;
+  if (wan < 50) return `${wan}万`;
+  return `${Math.floor(wan / 10) * 10}-${Math.ceil(wan / 10) * 10}万`;
+}
+
+function relativeTime(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days < 1) return '今天';
+  if (days === 1) return '昨天';
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }

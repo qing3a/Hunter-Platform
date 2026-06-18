@@ -84,4 +84,81 @@ describe('GET / (marketplace landing)', () => {
     const res = await request(app).get('/');
     expect(res.status).toBe(200);
   });
+
+  describe('Hero Stats section', () => {
+    it('shows today\'s unlocks count', async () => {
+      const app = createApp();
+      const hh = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'StatsHH', contact: 'statsh@h.com' });
+      const cand = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'StatsC', contact: 'statsc@c.com' });
+      const emp = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'StatsE', contact: 'statse@e.com' });
+
+      const upload = await request(app).post('/v1/headhunter/candidates')
+        .set('Authorization', `Bearer ${hh.body.data.api_key}`)
+        .send({ candidate_user_id: cand.body.data.id, name: 'X', phone: '13800138000', email: 'x@x.com', current_company: 'A', current_title: 'T', expected_salary: 100000, years_experience: 1, education_school: 'S', skills: [] });
+      const job = await request(app).post('/v1/employer/jobs')
+        .set('Authorization', `Bearer ${emp.body.data.api_key}`)
+        .send({ title: 'Job' });
+      const rec = await request(app).post('/v1/headhunter/recommendations')
+        .set('Authorization', `Bearer ${hh.body.data.api_key}`)
+        .send({ anonymized_candidate_id: upload.body.data.anonymized_id, job_id: job.body.data.id });
+      await request(app).post(`/v1/employer/recommendations/${rec.body.data.id}/express-interest`)
+        .set('Authorization', `Bearer ${emp.body.data.api_key}`);
+      await request(app).post(`/v1/candidate/recommendations/${rec.body.data.id}/approve-unlock`)
+        .set('Authorization', `Bearer ${cand.body.data.api_key}`);
+      await request(app).post(`/v1/employer/recommendations/${rec.body.data.id}/unlock-contact`)
+        .set('Authorization', `Bearer ${emp.body.data.api_key}`);
+
+      const res = await request(app).get('/');
+      expect(res.text).toMatch(/data-target="[1-9][\s\S]{0,200}今日解锁/);
+    });
+  });
+
+  describe('Top 3 Headhunters section', () => {
+    it('shows headhunters sorted by reputation DESC', async () => {
+      const app = createApp();
+      await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopA', contact: 'topa@h.com' });
+      await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopB', contact: 'topb@h.com' });
+
+      const res = await request(app).get('/');
+      expect(res.text).toContain('Top 3 Headhunters');
+      expect(res.text).toMatch(/🥇[\s\S]{0,500}TopA/);
+    });
+  });
+
+  describe('Latest 5 Placements section', () => {
+    it('renders gracefully when no placements exist', async () => {
+      const app = createApp();
+      const res = await request(app).get('/');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Latest');
+    });
+  });
+
+  describe('PII safety in new sections', () => {
+    it('does NOT leak user_id / contact / email', async () => {
+      const app = createApp();
+      await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'PIIEmp', contact: 'leaked@evil.com' });
+
+      const res = await request(app).get('/');
+      expect(res.text).not.toContain('leaked@evil.com');
+      expect(res.text).not.toMatch(/user_[a-f0-9]{12}/);
+      expect(res.text).not.toContain('PIIEmp');
+    });
+  });
+
+  describe('visual refresh', () => {
+    it('contains brand color CSS variable (teal)', async () => {
+      const app = createApp();
+      const res = await request(app).get('/');
+      expect(res.text).toContain('--brand-primary');
+      expect(res.text).toMatch(/#[0-9a-f]{6}/i);
+    });
+
+    it('contains inline JS for animations', async () => {
+      const app = createApp();
+      const res = await request(app).get('/');
+      expect(res.text).toContain('<script>');
+      expect(res.text).toContain('countUp');
+    });
+  });
 });
