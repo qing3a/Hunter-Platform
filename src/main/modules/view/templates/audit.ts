@@ -3,8 +3,8 @@ import { SHARED_CSS } from './shared-css.js';
 export interface AuditEntry {
   at: string;
   action_type: string;
-  method: string;
-  path: string;
+  method: string | null;
+  path: string | null;
   status_code: number | null;
   error_code: string | null;
   duration_ms: number | null;
@@ -26,8 +26,8 @@ export function renderAudit(d: AuditViewData): string {
     const dur = e.duration_ms !== null ? `${e.duration_ms}ms` : '—';
     return `<tr>
       <td>${esc(e.at)}</td>
-      <td><code>${esc(e.method)}</code></td>
-      <td><code>${esc(e.path)}</code></td>
+      <td><code>${esc(e.method ?? '—')}</code></td>
+      <td><code>${esc(e.path ?? '—')}</code></td>
       <td>${esc(e.action_type)}</td>
       <td>${status}${err}</td>
       <td>${dur}</td>

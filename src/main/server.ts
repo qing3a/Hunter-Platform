@@ -18,6 +18,12 @@ import { startMetricsRefresh, stopMetricsRefresh } from './modules/metrics/refre
 import { startScheduler, stopScheduler } from './modules/cron/scheduler.js';
 import { createActionHistoryMiddleware } from './modules/audit/action-history-middleware.js';
 import { createActionHistoryRepo } from './db/repositories/action-history.js';
+import { createCandidatesAnonymizedRepo } from './db/repositories/candidates-anonymized.js';
+import { createRecommendationsRepo } from './db/repositories/recommendations.js';
+import { createUsersRepo } from './db/repositories/users.js';
+import { createViewTokenRepo } from './modules/view/view-token-repo.js';
+import { createViewHandlers } from './modules/view/handler.js';
+import { createViewUrlInjector } from './modules/view/injector.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -27,6 +33,91 @@ import type { DB } from './db/connection.js';
 export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Express {
   const app = express();
   app.use(express.json({ limit: '4kb' }));
+
+  // Render layer: view_url injector (wraps res.json to inject view_url on 2xx responses)
+  // Mounted early so all downstream routers inherit the wrapped res.json.
+  const baseUrl = `http://localhost:${env.PORT}`;
+  app.use(createViewUrlInjector(db, baseUrl));
+
+  // Render layer: /view/* HTML routes (public — token IS the auth)
+  const viewRepo = createViewTokenRepo(db);
+  const viewHandlers = createViewHandlers(viewRepo, baseUrl, {
+    // Real data sources wired here. Implementations use existing repos.
+    getCandidate: async (id) => {
+      const repo = createCandidatesAnonymizedRepo(db);
+      const c = repo.findById(id);
+      if (!c) return null;
+      let skills: string[] = [];
+      if (c.skills_json) {
+        try { skills = JSON.parse(c.skills_json) as string[]; } catch { skills = []; }
+      }
+      return {
+        anonymizedId: c.id,
+        industry: c.industry ?? '',
+        titleLevel: c.title_level ?? '',
+        salaryRange: c.salary_range ?? '',
+        educationTier: c.education_tier ?? '',
+        yearsExperience: c.years_experience ?? 0,
+        skills,
+      };
+    },
+    getRecommendation: async (id) => {
+      const repo = createRecommendationsRepo(db);
+      const r = repo.findById(id);
+      if (!r) return null;
+      return {
+        recommendationId: r.id,
+        candidateAnonymizedId: r.anonymized_candidate_id,
+        jobTitle: null,  // Recommendation row has job_id, not job_title (would need join)
+        status: r.status,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    },
+    getUserQuota: async (id) => {
+      const usersRepo = createUsersRepo(db);
+      const u = usersRepo.findById(id);
+      if (!u) return null;
+      return {
+        userId: u.id,
+        userType: u.user_type,
+        name: u.name,
+        quotaPerDay: u.quota_per_day,
+        quotaUsed: u.quota_used,
+        quotaResetAt: u.quota_reset_at,
+        rateLimits: [],   // not stored in users row; reserved for future
+        recentActions: [], // not stored in users row; reserved for future
+      };
+    },
+    getAudit: async (userId) => {
+      const repo = createActionHistoryRepo(db);
+      const rows = repo.listByUser(userId, { limit: 50 });
+      return rows.map((r) => {
+        // action_history doesn't currently record method/path; parse request_summary_json
+        // for them if a future middleware populates it. status_code is approximated
+        // from the success/error status (action_history doesn't store HTTP code).
+        let method: string | null = null;
+        let path: string | null = null;
+        if (r.request_summary_json) {
+          try {
+            const parsed = JSON.parse(r.request_summary_json) as { method?: string; path?: string };
+            method = parsed.method ?? null;
+            path = parsed.path ?? null;
+          } catch { /* leave null */ }
+        }
+        return {
+          at: r.created_at,
+          action_type: r.action_type,
+          method,
+          path,
+          status_code: r.status === 'success' ? 200 : null,
+          error_code: r.error_code,
+          duration_ms: r.duration_ms,
+        };
+      });
+    },
+  });
+  app.use('/view', viewHandlers.router);
 
   // Metrics: HTTP request duration + count (M5)
   app.use(metricsMiddleware);
