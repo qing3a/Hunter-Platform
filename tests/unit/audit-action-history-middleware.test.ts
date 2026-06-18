@@ -74,10 +74,22 @@ describe('action_history middleware', () => {
 
   it('does NOT write when req.user is missing (e.g. unauthenticated)', () => {
     const req = mockReq({ user: undefined } as any);
-    middleware(req, mockRes(), vi.fn());
-    // 即使 finish 也不写
-    // (req.user 缺失 → 中间件直接跳过)
+    const res = mockRes();
+    middleware(req, res, vi.fn());
+    // 显式 trigger finish — 即使 res 完成也不应该写
+    (res as any)._finishCb();
     expect(insertMock).not.toHaveBeenCalled();
+  });
+
+  it('uses res.locals.userIdForAudit when req.user is missing (e.g. /auth/register)', () => {
+    const req = mockReq({ user: undefined } as any);
+    const res = mockRes();
+    res.locals.userIdForAudit = 'user_newly_registered';
+    middleware(req, res, vi.fn());
+    (res as any)._finishCb();
+    const entry = insertMock.mock.calls[0][0];
+    expect(entry.user_id).toBe('user_newly_registered');
+    expect(entry.action_type).toBe('register');
   });
 
   it('does NOT throw when insert fails (fire-and-forget)', () => {

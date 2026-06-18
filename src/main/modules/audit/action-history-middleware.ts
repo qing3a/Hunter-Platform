@@ -9,15 +9,17 @@ interface RepoShape {
 
 export function createActionHistoryMiddleware(repo: RepoShape): RequestHandler {
   return function actionHistoryMW(req: Request, res: Response, next) {
-    const user = (req as any).user;
-    if (!user || !user.id) {
-      return next();  // 未鉴权请求不写
-    }
-
     const start = Date.now();
     const actionType = lookupActionType(req.method, req.path);
 
     res.on('finish', () => {
+      // 延迟到 finish 时再读 req.user：这样中间件可以挂在 auth 之前，
+      // finish 时整个 chain 已执行完（包括 auth）
+      const userId: string | undefined = (req as any).user?.id ?? (res.locals as any).userIdForAudit;
+      if (!userId) {
+        return;  // 未鉴权请求不写（也不接受 audit userId 覆盖）
+      }
+
       try {
         let reqSummary: object | null = null;
         let resSummary: object | null = null;
@@ -32,7 +34,7 @@ export function createActionHistoryMiddleware(repo: RepoShape): RequestHandler {
         const errorCode = status === 'error' ? ((res.locals as any).errorCode ?? null) : null;
 
         repo.insert({
-          user_id: user.id,
+          user_id: userId,
           action_type: actionType,
           target_type: (res.locals as any).ahTargetType ?? null,
           target_id: (res.locals as any).ahTargetId ?? null,
