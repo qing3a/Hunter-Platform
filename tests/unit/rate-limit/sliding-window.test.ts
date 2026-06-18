@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { bucketStart, slidingWindowEstimate } from '../../../src/main/modules/rate-limit/sliding-window';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bucketStart, slidingWindowEstimate, readCount, upsertCount } from '../../../src/main/modules/rate-limit/sliding-window';
+import { openDb } from '../../../src/main/db/connection';
+import { runMigrations } from '../../../src/main/db/migrations';
 
 describe('bucketStart', () => {
   it('floors to the start of the current 1-second window', () => {
@@ -57,5 +61,43 @@ describe('slidingWindowEstimate', () => {
     expect(result.estimated).toBe(150);
     expect(result.elapsed).toBe(30);
     expect(result.weight).toBe(0.5);
+  });
+});
+
+describe('readCount / upsertCount', () => {
+  const testDbPath = path.join(__dirname, '../../../tmp/sw-unit.db');
+  let db: ReturnType<typeof openDb>;
+
+  beforeEach(() => {
+    try { fs.unlinkSync(testDbPath); } catch { /* ignore */ }
+    db = openDb(testDbPath);
+    runMigrations(db);
+  });
+  afterEach(() => { db.close(); try { fs.unlinkSync(testDbPath); } catch { /* ignore */ } });
+
+  it('readCount returns 0 for a fresh user/window', () => {
+    expect(readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60)).toBe(0);
+  });
+
+  it('upsertCount creates a row with count=1', () => {
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    expect(readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60)).toBe(1);
+  });
+
+  it('upsertCount increments the existing row on conflict', () => {
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    expect(readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60)).toBe(3);
+  });
+
+  it('upsertCount is scoped by user_id', () => {
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    expect(readCount(db, 'user_2', '2026-06-19T00:00:00.000Z', 60)).toBe(0);
+  });
+
+  it('upsertCount is scoped by windowSeconds', () => {
+    upsertCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 60);
+    expect(readCount(db, 'user_1', '2026-06-19T00:00:00.000Z', 3600)).toBe(0);
   });
 });
