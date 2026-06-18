@@ -1,5 +1,5 @@
 import type { AnonymizedCandidate } from '../../../shared/types.js';
-import { INDUSTRY_MAP, TITLE_LEVEL_PATTERNS, SALARY_BANDS, SCHOOL_TIERS } from './mapping.js';
+import { lookupIndustry, TITLE_LEVEL_PATTERNS, SALARY_BANDS, SCHOOL_TIERS } from './mapping.js';
 
 export interface DesensitizeInput {
   current_company?: string;
@@ -12,7 +12,7 @@ export interface DesensitizeInput {
 
 export function desensitize(input: DesensitizeInput): AnonymizedCandidate {
   return {
-    industry: input.current_company ? (INDUSTRY_MAP[input.current_company] ?? '其他') : null,
+    industry: input.current_company ? (lookupIndustry(input.current_company) ?? '其他') : null,
     title_level: input.current_title ? (matchTitleLevel(input.current_title) ?? '未分类') : null,
     years_experience: input.years_experience ?? null,
     salary_range: input.expected_salary != null ? matchSalaryBand(input.expected_salary) : null,
