@@ -26,7 +26,7 @@ export function createViewHandlers(
   repo: ReturnType<typeof createViewTokenRepo>,
   baseUrl: string,
   sources: ViewDataSources,
-) {
+): { router: import('express').Router } {
   const router = Router();
 
   function sendError(res: Response, httpStatus: number, title: string, message: string, icon: string) {
