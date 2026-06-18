@@ -16,6 +16,8 @@ import { metricsMiddleware } from './modules/metrics/middleware.js';
 import { getRegistry } from './modules/metrics/registry.js';
 import { startMetricsRefresh, stopMetricsRefresh } from './modules/metrics/refresh.js';
 import { startScheduler, stopScheduler } from './modules/cron/scheduler.js';
+import { createActionHistoryMiddleware } from './modules/audit/action-history-middleware.js';
+import { createActionHistoryRepo } from './db/repositories/action-history.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -72,6 +74,19 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/users', createUsersRouter(db));
+
+  // action_history 审计中间件 — 仅覆盖 4 个业务路由前缀
+  // 注意：用户检查延迟到 res.on('finish') 触发，所以可以挂在 auth 中间件之前
+  const actionHistoryRepo = createActionHistoryRepo(db);
+  const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
+
+  const AUDITED_PREFIXES = ['/v1/auth/register', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
+  app.use((req, res, next) => {
+    if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+      return next();
+    }
+    return actionHistoryMW(req, res, next);
+  });
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
