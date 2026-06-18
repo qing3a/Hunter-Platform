@@ -18,6 +18,7 @@ export interface CreateJobInput {
   title: string;
   description?: string;
   requirements?: string;
+  required_skills?: string[];
   salary_min?: number;
   salary_max?: number;
   priority?: 'low' | 'normal' | 'high' | 'urgent';
@@ -61,6 +62,7 @@ export function createEmployerHandler(db: DB) {
         title: input.title,
         description: input.description ?? null,
         requirements: input.requirements ?? null,
+        required_skills: input.required_skills ?? [],
         salary_min: input.salary_min ?? null,
         salary_max: input.salary_max ?? null,
         status: 'open',
@@ -106,7 +108,6 @@ export function createEmployerHandler(db: DB) {
           return true;
         })
         .map(c => ({
-          id: c.id,
           anonymized_id: c.id,
           industry: c.industry,
           title_level: c.title_level,
