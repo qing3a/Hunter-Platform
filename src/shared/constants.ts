@@ -6,10 +6,16 @@ export const QUOTA_PER_DAY = {
 } as const;
 
 export const RATE_LIMIT_BURSTS = {
-  candidate:  { second: 10, minute: 50,  hour: 200 },
-  headhunter: { second: 20, minute: 100, hour: 500 },
-  employer:   { second: 30, minute: 200, hour: 800 },
+  candidate:  { second: 10, minute: 50,  hour: 300 },
+  headhunter: { second: 20, minute: 100, hour: 750 },
+  employer:   { second: 30, minute: 200, hour: 1200 },
 } as const;
+
+/** Trigger soft warning when remaining / limit falls below this ratio. */
+export const RATE_LIMIT_SOFT_WARN_RATIO = 0.20;
+
+/** Algorithm version. 1 = fixed-window (deprecated, kept for rollback), 2 = sliding-window-counter. */
+export const RATE_LIMIT_ALGO_VERSION = 2;
 
 export const QUOTA_COSTS = {
   register: 0,
