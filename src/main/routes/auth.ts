@@ -30,7 +30,7 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
       res.json({
         ok: true,
         data: {
-          user_id: user.id,
+          id: user.id,
           api_key: user.api_key,
           quota_per_day: user.quota_per_day,
           user_type: user.user_type,
