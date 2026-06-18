@@ -51,5 +51,12 @@ export function createViewTokenRepo(db: DB) {
       const result = markConsumedStmt.run(consumedAt, token);
       return (result as { changes: number }).changes === 1;
     },
+
+    // Unfiltered lookup — used by validate to disambiguate expired vs consumed vs invalid.
+    // Exists for this single purpose; not part of the public API for callers.
+    lookupRaw(token: string): ViewTokenRow | null {
+      const stmt = db.prepare(`SELECT * FROM view_tokens WHERE token = ?`);
+      return (stmt.get(token) as ViewTokenRow | undefined) ?? null;
+    },
   };
 }
