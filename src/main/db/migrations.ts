@@ -10,6 +10,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 1, description: 'M1 baseline (users, candidates, idempotency, rate limit, action history)', file: 'migrations/v001.sql' },
   { version: 2, description: 'M2 (jobs, recommendations, unlock_audit_log, webhook_delivery_queue)', file: 'migrations/v002.sql' },
   { version: 3, description: 'M4 (placements, admin_action_log)', file: 'migrations/v003.sql' },
+  { version: 4, description: 'render-layer view_tokens table', file: 'migrations/v004_view_tokens.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {

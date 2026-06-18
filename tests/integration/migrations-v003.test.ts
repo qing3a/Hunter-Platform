@@ -20,7 +20,7 @@ describe('migrations v003', () => {
     expect(names).toContain('placements');
     expect(names).toContain('admin_action_log');
     const migs = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(migs.map((m: any) => m.version)).toEqual([1, 2, 3]);
+    expect(migs.map((m: any) => m.version)).toEqual([1, 2, 3, 4]);
     db.close();
   });
 });
