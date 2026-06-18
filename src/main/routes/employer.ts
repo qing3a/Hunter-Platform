@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
 import { createCommissionHandler } from '../modules/commission/handler.js';
 import { Errors } from '../errors.js';
@@ -37,6 +38,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createEmployerHandler(db);
   router.use(authMiddleware(db));
+  router.use(createRateLimitMiddleware(db));
 
   const commissionHandler = createCommissionHandler(db);
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createHeadhunterHandler } from '../modules/headhunter/handler.js';
 import { createCandidatesAnonymizedRepo } from '../db/repositories/candidates-anonymized.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
@@ -29,6 +30,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
   const anonRepo = createCandidatesAnonymizedRepo(db);
 
   router.use(authMiddleware(db));
+  router.use(createRateLimitMiddleware(db));
 
   router.post('/candidates', async (req, res, next) => {
     try {

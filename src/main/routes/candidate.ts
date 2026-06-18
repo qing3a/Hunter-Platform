@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createCandidateHandler } from '../modules/candidate/handler.js';
 import { createCandidateExport } from '../modules/candidate/export.js';
 import { createUnlockAuditLogRepo } from '../db/repositories/unlock-audit-log.js';
@@ -13,6 +14,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const exporter = createCandidateExport(db, encryptionKey);
   const audit = createUnlockAuditLogRepo(db);
   router.use(authMiddleware(db));
+  router.use(createRateLimitMiddleware(db));
 
   router.get('/opportunities', (req, res, next) => {
     try {
