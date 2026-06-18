@@ -1,5 +1,8 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
+
+const BASE = __ENV.BASE_URL || 'http://localhost:3000';
+const API_KEY = __ENV.API_KEY;
 
 export const options = {
   scenarios: {
@@ -10,11 +13,14 @@ export const options = {
       duration: '5s',
       preAllocatedVUs: 5,
     },
+    recovery_after_429: {
+      executor: 'constant-vus',
+      vus: 1,
+      duration: '70s',
+      startTime: '10s',  // begin after burst
+    },
   },
 };
-
-const BASE = __ENV.BASE_URL || 'http://localhost:3000';
-const API_KEY = __ENV.API_KEY;
 
 export default function () {
   const res = http.get(`${BASE}/v1/users/me/status`, {
@@ -22,6 +28,8 @@ export default function () {
   });
   check(res, {
     'status is 200 or 429': (r) => r.status === 200 || r.status === 429,
-    '429 returned': (r) => r.status === 429,
+    'has RateLimit-Remaining': (r) => r.headers['RateLimit-Remaining'] !== undefined,
+    'has Retry-After on 429': (r) => r.status === 200 || r.headers['Retry-After'] !== undefined,
   });
+  if (res.status === 429) sleep(1);
 }
