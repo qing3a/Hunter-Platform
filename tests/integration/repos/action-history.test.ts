@@ -47,4 +47,43 @@ describe('action_history repository', () => {
     expect(repo.countByUser('u2')).toBe(1);
     expect(repo.countByUser('nonexistent')).toBe(0);
   });
+
+  describe('insert', () => {
+    it('inserts a success entry and returns id', () => {
+      const db = (globalThis as any).__ahTestDb;
+      const freshRepo = (globalThis as any).__ahTestDb.__ahRepo;
+      void freshRepo; // suppress unused warning
+      const id = repo.insert({
+        user_id: 'u1', action_type: 'upload_candidate',
+        target_type: 'candidate', target_id: 'ca_test',
+        request_summary_json: null, response_summary_json: '{"anonymized_id":"ca_test"}',
+        status: 'success', error_code: null, duration_ms: 42,
+        created_at: new Date().toISOString(),
+      });
+      void db;
+      expect(typeof id).toBe('number');
+      expect(id).toBeGreaterThan(0);
+      const rows = repo.listByUser('u1');
+      // 之前已有 2 条 (express_interest, upload_candidate)，新增 1 条
+      expect(rows.length).toBeGreaterThanOrEqual(3);
+      const inserted = rows.find(r => r.target_id === 'ca_test');
+      expect(inserted).toBeTruthy();
+      expect(inserted!.action_type).toBe('upload_candidate');
+      expect(inserted!.duration_ms).toBe(42);
+    });
+
+    it('inserts an error entry with error_code', () => {
+      repo.insert({
+        user_id: 'u2', action_type: 'register',
+        target_type: null, target_id: null,
+        request_summary_json: null, response_summary_json: null,
+        status: 'error', error_code: 'RATE_LIMITED', duration_ms: 5,
+        created_at: new Date().toISOString(),
+      });
+      const rows = repo.listByUser('u2');
+      const inserted = rows.find(r => r.action_type === 'register' && r.status === 'error');
+      expect(inserted).toBeTruthy();
+      expect(inserted!.error_code).toBe('RATE_LIMITED');
+    });
+  });
 });
