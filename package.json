@@ -1,20 +1,19 @@
 {
-  "name": "convo",
+  "name": "hunter-platform",
   "version": "0.1.0",
-  "description": "AI desktop client",
+  "description": "猎头中介 API 平台",
   "main": "./out/main/index.js",
   "author": "Convo Contributors",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "pnpm typecheck && electron-vite build",
+    "dev": "tsx --env-file=.env src/main/index.ts",
+    "build": "pnpm typecheck && tsc -p tsconfig.node.json",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "start": "electron-vite preview",
-    "package": "electron-vite build && electron-builder",
+    "start": "node --env-file=.env out/main/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "api:dev": "tsx src/main/index.ts"
+    "api:dev": "tsx --env-file=.env src/main/index.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
