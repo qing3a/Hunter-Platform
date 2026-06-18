@@ -96,10 +96,12 @@ export async function main(): Promise<void> {
 
   if (shouldStartApiStandalone()) {
     // Mode A: tsx CLI / `node out/main/index.js` — API only
+    console.log('[hunter-platform] starting in API-only mode (no Electron)');
     apiServer = await startApiServer();
     console.log('API server running standalone (no Electron)');
   } else {
     // Mode B: Electron — API + window
+    console.log('[hunter-platform] starting in Electron mode (API + Admin UI)');
     await app.whenReady();
     await startBackend();
     registerPingIpc();
