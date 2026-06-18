@@ -11,6 +11,7 @@ import { createHeadhunterRouter } from './routes/headhunter.js';
 import { createEmployerRouter } from './routes/employer.js';
 import { createCandidateRouter } from './routes/candidate.js';
 import { createUsersRouter } from './routes/users.js';
+import { createConfigRouter } from './routes/config.js';
 import { createWebhookWorker } from './modules/webhook/worker.js';
 import { metricsMiddleware } from './modules/metrics/middleware.js';
 import { getRegistry } from './modules/metrics/registry.js';
@@ -163,6 +164,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   });
 
   app.use('/v1/users', createUsersRouter(db));
+  app.use('/v1/config', createConfigRouter(db));
 
   // action_history 审计中间件 — 仅覆盖 4 个业务路由前缀
   // 必须挂在业务 routers 之前，否则 routers send response 后后续 middleware 不执行

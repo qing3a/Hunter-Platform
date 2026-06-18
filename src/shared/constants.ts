@@ -27,6 +27,8 @@ export const QUOTA_COSTS = {
   reject_unlock: 1,
   list_recommendations: 1,
   list_my_jobs: 1,
+  config_lookup: 1,
+  list_my_candidates: 1,
 } as const;
 
 export const WEBHOOK_DELIVERY_TIMEOUT_MS = 5000;

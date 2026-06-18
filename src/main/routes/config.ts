@@ -1,0 +1,60 @@
+import { Router, type Request, type Response } from 'express';
+import { authMiddleware } from '../modules/auth/middleware.js';
+import type { DB } from '../db/connection.js';
+import { loadIndustryMap, TITLE_LEVEL_PATTERNS, SALARY_BANDS } from '../modules/desensitize/mapping.js';
+import { createQuotaManager } from '../modules/quota/manager.js';
+import { QUOTA_COSTS } from '../../shared/constants.js';
+
+export function createConfigRouter(db: DB): Router {
+  const router = Router();
+  const quota = createQuotaManager(db);
+
+  router.use(authMiddleware(db));
+
+  // GET /v1/config/industries — list industry categories with company counts
+  router.get('/industries', (req: Request, res: Response) => {
+    const authedUser = (req as any).user;
+    if (authedUser) {
+      const r = quota.tryConsume(authedUser.id, QUOTA_COSTS.config_lookup ?? 1);
+      if (!r.ok && r.reason === 'INSUFFICIENT_QUOTA') {
+        return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
+      }
+    }
+    const { cfg } = loadIndustryMap();
+    const data = cfg.categories.map((c: { id: string; companies?: string[] }) => ({
+      id: c.id,
+      companies_count: (c.companies ?? []).length,
+    }));
+    res.json({ ok: true, data });
+  });
+
+  // GET /v1/config/title_levels — list title-level regex patterns
+  router.get('/title_levels', (req: Request, res: Response) => {
+    const authedUser = (req as any).user;
+    if (authedUser) {
+      const r = quota.tryConsume(authedUser.id, QUOTA_COSTS.config_lookup ?? 1);
+      if (!r.ok && r.reason === 'INSUFFICIENT_QUOTA') {
+        return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
+      }
+    }
+    const data = TITLE_LEVEL_PATTERNS.map((t: { regex: RegExp; level: string }) => ({
+      code: t.level,
+      match: t.regex.source,
+    }));
+    res.json({ ok: true, data });
+  });
+
+  // GET /v1/config/salary_bands — list salary band buckets
+  router.get('/salary_bands', (req: Request, res: Response) => {
+    const authedUser = (req as any).user;
+    if (authedUser) {
+      const r = quota.tryConsume(authedUser.id, QUOTA_COSTS.config_lookup ?? 1);
+      if (!r.ok && r.reason === 'INSUFFICIENT_QUOTA') {
+        return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
+      }
+    }
+    res.json({ ok: true, data: SALARY_BANDS });
+  });
+
+  return router;
+}

@@ -19,7 +19,7 @@ interface IndustryCache {
 
 let _cache: IndustryCache | null = null;
 
-function loadIndustryMap(): IndustryCache {
+export function loadIndustryMap(): IndustryCache {
   if (_cache) return _cache;
   const path = join(process.cwd(), 'config', 'industry_map.json');
   let cfg: IndustryConfig;
