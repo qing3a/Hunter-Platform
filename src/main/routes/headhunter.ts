@@ -3,8 +3,11 @@ import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createHeadhunterHandler } from '../modules/headhunter/handler.js';
+import { createCandidatesAnonymizedRepo } from '../db/repositories/candidates-anonymized.js';
+import { createQuotaManager } from '../modules/quota/manager.js';
 import { Errors } from '../errors.js';
 import type { User } from '../../shared/types.js';
+import { QUOTA_COSTS } from '../../shared/constants.js';
 
 const UploadSchema = z.object({
   candidate_user_id: z.string().min(1),
@@ -22,6 +25,8 @@ const UploadSchema = z.object({
 export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createHeadhunterHandler(db, encryptionKey);
+  const quota = createQuotaManager(db);
+  const anonRepo = createCandidatesAnonymizedRepo(db);
 
   router.use(authMiddleware(db));
 
@@ -88,6 +93,35 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
     try {
       const list = handler.listMyRecommendations((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
       res.json({ ok: true, data: list });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/headhunter/candidates — list this headhunter's uploaded candidates
+  router.get('/candidates', (req, res, next) => {
+    try {
+      const user = (req as typeof req & { user?: User }).user!;
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can list candidates');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.list_my_candidates ?? 1);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      const list = anonRepo.findByHeadhunterId(user.id);
+
+      // Convention A: drop raw `id`, expose as `anonymized_id`; parse skills_json
+      const data = list.map((c) => {
+        const { id, skills_json, ...rest } = c;
+        return {
+          ...rest,
+          anonymized_id: id,
+          skills: skills_json ? JSON.parse(skills_json) as string[] : [],
+        };
+      });
+
+      res.json({ ok: true, data });
     } catch (e) { next(e); }
   });
 

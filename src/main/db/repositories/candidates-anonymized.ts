@@ -26,6 +26,9 @@ export function createCandidatesAnonymizedRepo(db: DB) {
       @skills_json, @is_public_pool, @unlock_status, @created_at, @updated_at)
   `);
   const findByIdStmt = db.prepare('SELECT * FROM candidates_anonymized WHERE id = ?');
+  const findByHeadhunterIdStmt = db.prepare(
+    'SELECT * FROM candidates_anonymized WHERE source_headhunter_id = ? ORDER BY created_at DESC'
+  );
 
   return {
     insert(c: CandidateAnonymized): void {
@@ -33,6 +36,9 @@ export function createCandidatesAnonymizedRepo(db: DB) {
     },
     findById(id: string): CandidateAnonymized | undefined {
       return findByIdStmt.get(id) as CandidateAnonymized | undefined;
+    },
+    findByHeadhunterId(headhunterId: string): CandidateAnonymized[] {
+      return findByHeadhunterIdStmt.all(headhunterId) as unknown as CandidateAnonymized[];
     },
   };
 }
