@@ -24,6 +24,7 @@ import { createUsersRepo } from './db/repositories/users.js';
 import { createViewTokenRepo } from './modules/view/view-token-repo.js';
 import { createViewHandlers } from './modules/view/handler.js';
 import { createViewUrlInjector } from './modules/view/injector.js';
+import { createViewsRouter } from './modules/view/views-endpoint.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -118,6 +119,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     },
   });
   app.use('/view', viewHandlers.router);
+  app.use('/v1/views', createViewsRouter(db, baseUrl));
 
   // Metrics: HTTP request duration + count (M5)
   app.use(metricsMiddleware);
