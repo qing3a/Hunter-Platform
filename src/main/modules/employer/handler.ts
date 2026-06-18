@@ -8,10 +8,9 @@ import { createRecommendationsRepo } from '../../db/repositories/recommendations
 import { createUnlockAuditLogRepo } from '../../db/repositories/unlock-audit-log.js';
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { createQuotaManager } from '../quota/manager.js';
-import { createRateLimit } from '../rate-limit/bucket.js';
 import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { assertTransition } from '../unlock/state-machine.js';
-import { QUOTA_COSTS, RATE_LIMIT_BURSTS } from '../../../shared/constants.js';
+import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 
 export interface CreateJobInput {
@@ -34,19 +33,10 @@ export function createEmployerHandler(db: DB) {
   const auditLog = createUnlockAuditLogRepo(db);
   const webhooks = createWebhookQueueRepo(db);
   const quota = createQuotaManager(db);
-  const rl = createRateLimit(db);
 
   return {
     createJob(user: User, input: CreateJobInput): Job {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can create jobs');
-
-      const limits = RATE_LIMIT_BURSTS.employer;
-      const rlResult = rl.check(user.id, [
-        { windowSeconds: 1, limit: limits.second },
-        { windowSeconds: 60, limit: limits.minute },
-        { windowSeconds: 3600, limit: limits.hour },
-      ]);
-      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.create_job);
       if (!qResult.ok) {
@@ -125,14 +115,6 @@ export function createEmployerHandler(db: DB) {
     ): { __audit: { target_type: 'recommendation'; target_id: string } } {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can express interest');
 
-      const limits = RATE_LIMIT_BURSTS.employer;
-      const rlResult = rl.check(user.id, [
-        { windowSeconds: 1, limit: limits.second },
-        { windowSeconds: 60, limit: limits.minute },
-        { windowSeconds: 3600, limit: limits.hour },
-      ]);
-      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
-
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.express_interest);
       if (!qResult.ok) {
         if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
@@ -196,14 +178,6 @@ export function createEmployerHandler(db: DB) {
       ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string },
     ): { __audit: { target_type: 'recommendation'; target_id: string } } {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can unlock contact');
-
-      const limits = RATE_LIMIT_BURSTS.employer;
-      const rlResult = rl.check(user.id, [
-        { windowSeconds: 1, limit: limits.second },
-        { windowSeconds: 60, limit: limits.minute },
-        { windowSeconds: 3600, limit: limits.hour },
-      ]);
-      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.unlock_contact);
       if (!qResult.ok) {

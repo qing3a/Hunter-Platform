@@ -6,10 +6,9 @@ import { createUsersRepo } from '../../db/repositories/users.js';
 import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
 import { createJobsRepo } from '../../db/repositories/jobs.js';
 import { createQuotaManager } from '../quota/manager.js';
-import { createRateLimit } from '../rate-limit/bucket.js';
 import { encrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { desensitize } from '../desensitize/engine.js';
-import { QUOTA_COSTS, RATE_LIMIT_BURSTS } from '../../../shared/constants.js';
+import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import type { User, AnonymizedCandidate, Recommendation } from '../../../shared/types.js';
 
@@ -31,7 +30,6 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
   const anon = createCandidatesAnonymizedRepo(db);
   const users = createUsersRepo(db);
   const quota = createQuotaManager(db);
-  const rl = createRateLimit(db);
 
   return {
     async uploadCandidate(user: User, input: UploadCandidateInput): Promise<{ anonymized_id: string; preview: AnonymizedCandidate; __audit: { target_type: 'candidate'; target_id: string; res_summary: { anonymized_id: string; industry: string | null; title_level: string | null } } }> {
@@ -43,16 +41,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
       if (!candidateUser) throw Errors.invalidParams('candidate_user_id not found');
       if (candidateUser.user_type !== 'candidate') throw Errors.invalidParams('Referenced user is not a candidate');
 
-      // 3. 突发限流
-      const limits = RATE_LIMIT_BURSTS.headhunter;
-      const rlResult = rl.check(user.id, [
-        { windowSeconds: 1, limit: limits.second },
-        { windowSeconds: 60, limit: limits.minute },
-        { windowSeconds: 3600, limit: limits.hour },
-      ]);
-      if (!rlResult.allowed) throw Errors.rateLimited('Burst rate limit exceeded');
-
-      // 4. 配额扣减
+      // 3. 配额扣减
       const quotaResult = quota.tryConsume(user.id, QUOTA_COSTS.upload_candidate);
       if (!quotaResult.ok) {
         if (quotaResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
