@@ -179,6 +179,55 @@
             }
           }
         }
+      },
+      "RateLimitedError": {
+        "type": "object",
+        "required": [
+          "ok",
+          "error"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "RATE_LIMITED"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "properties": {
+                  "violated_window": {
+                    "type": "string",
+                    "enum": [
+                      "second",
+                      "minute",
+                      "hour"
+                    ]
+                  },
+                  "retry_after_seconds": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -276,7 +325,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -301,6 +413,69 @@
                   }
                 }
               }
+            },
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
             }
           }
         }
@@ -309,7 +484,70 @@
         "summary": "我的候选人列表",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -319,7 +557,70 @@
         "summary": "推荐给雇主",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       },
@@ -327,7 +628,70 @@
         "summary": "我的推荐列表",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -347,7 +711,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -367,7 +794,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -377,7 +867,70 @@
         "summary": "创建职位",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       },
@@ -385,7 +938,70 @@
         "summary": "我的职位列表",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -395,7 +1011,70 @@
         "summary": "浏览脱敏人才池",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -415,7 +1094,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -435,7 +1177,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -478,6 +1283,69 @@
                   "$ref": "#/components/schemas/Placement"
                 }
               }
+            },
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
             }
           }
         }
@@ -486,7 +1354,70 @@
         "summary": "我的入职记录列表",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -496,7 +1427,70 @@
         "summary": "查看匹配机会",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -516,7 +1510,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -536,7 +1593,70 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
@@ -553,6 +1673,69 @@
                   "type": "object"
                 }
               }
+            },
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
             }
           }
         }
@@ -563,7 +1746,70 @@
         "summary": "GDPR 撤回（GDPR Article 17）",
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "headers": {
+              "RateLimit-Limit": {
+                "description": "IETF draft-ietf-httpapi-ratelimit-headers. Per-window upper limit, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "20, 100, 750"
+                }
+              },
+              "RateLimit-Remaining": {
+                "description": "Per-window remaining quota, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "18, 98, 745"
+                }
+              },
+              "RateLimit-Reset": {
+                "description": "Per-window seconds until reset, ordered 1s/60s/3600s.",
+                "schema": {
+                  "type": "string",
+                  "example": "1, 45, 2105"
+                }
+              },
+              "Retry-After": {
+                "description": "Seconds to wait before retrying. Conservative (max of 3 windows).",
+                "schema": {
+                  "type": "integer",
+                  "example": 2105
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitedError"
+                }
+              }
+            }
           }
         }
       }
