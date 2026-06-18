@@ -4,6 +4,7 @@ import type { DB } from '../../db/connection.js';
 import type { User } from '../../../shared/types.js';
 import { createViewTokenRepo } from './view-token-repo.js';
 import { generateViewUrl } from './generate.js';
+import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
 import { Errors } from '../../errors.js';
 
 /**
@@ -36,6 +37,38 @@ export function createViewsRouter(db: DB, baseUrl: string): Router {
     }
 
     const { url } = generateViewUrl(repo, baseUrl, user.id, 'audit', user.id);
+    res.json({ ok: true, data: { view_url: url } });
+  });
+
+  // POST /v1/views/recommendation/:rec_id
+  // Issues a one-time view URL for a specific recommendation. The requesting
+  // user must be either the headhunter who created the recommendation or the
+  // employer on the target job. The candidate on the recommendation is
+  // intentionally NOT allowed (the recommendation is between the two parties).
+  router.post('/recommendation/:rec_id', (req: Request, res: Response) => {
+    const authedReq = req as Request & { user?: User };
+    const user = authedReq.user;
+    if (!user) {
+      throw Errors.unauthorized();
+    }
+
+    const recId = req.params.rec_id;
+    if (typeof recId !== 'string') {
+      throw Errors.invalidParams('Invalid recommendation id');
+    }
+    const recsRepo = createRecommendationsRepo(db);
+    const rec = recsRepo.findById(recId);
+    if (!rec) {
+      throw Errors.notFound('Recommendation not found');
+    }
+
+    const isHeadhunter = user.user_type === 'headhunter' && rec.headhunter_id === user.id;
+    const isEmployer = user.user_type === 'employer' && rec.employer_id === user.id;
+    if (!isHeadhunter && !isEmployer) {
+      throw Errors.forbidden('You can only request view URLs for recommendations you are part of');
+    }
+
+    const { url } = generateViewUrl(repo, baseUrl, user.id, 'recommendation', recId);
     res.json({ ok: true, data: { view_url: url } });
   });
 
