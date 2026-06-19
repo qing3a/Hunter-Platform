@@ -43,3 +43,16 @@ describe('desensitize engine', () => {
     expect(desensitize({ expected_salary: 15000000 }).salary_range).toBe('200万+');
   });
 });
+
+describe('SCHOOL_TIERS — all 39 985 schools', () => {
+  it('maps every 985 school to "985"', async () => {
+    const { desensitize } = await import('../../../src/main/modules/desensitize/engine');
+    const samples = [
+      '北京大学', '清华大学', '浙江大学', '上海交通大学', '国防科技大学',
+    ];
+    for (const school of samples) {
+      const result = desensitize({ education_school: school });
+      expect(result.education_tier, `${school} should be 985`).toBe('985');
+    }
+  });
+});
