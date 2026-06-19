@@ -12,6 +12,7 @@ import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
+import { SALARY_BANDS } from '../desensitize/mapping.js';
 
 export interface CreateJobInput {
   title: string;
@@ -69,7 +70,7 @@ export function createEmployerHandler(db: DB) {
       return jobs.listByEmployer(user.id, opts);
     },
 
-    browseTalent(user: User, filters: { industry?: string; title_level?: string; min_years?: number; max_years?: number; skills?: string[] }): AnonymizedCandidate[] {
+    browseTalent(user: User, filters: { industry?: string; title_level?: string; min_years?: number; max_years?: number; skills?: string[]; min_salary?: number; max_salary?: number }): AnonymizedCandidate[] {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can browse talent');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.browse_talent);
@@ -77,6 +78,28 @@ export function createEmployerHandler(db: DB) {
         if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
         if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
         throw Errors.notFound('User not found');
+      }
+
+      // 把 [min_salary, max_salary] 映射到 SALARY_BANDS 的 label 集合
+      let allowedSalaryLabels: Set<string> | null = null;
+      const min = (filters.min_salary != null && filters.min_salary >= 0) ? filters.min_salary : null;
+      const max = (filters.max_salary != null && filters.max_salary >= 0) ? filters.max_salary : null;
+      if (min != null || max != null) {
+        allowedSalaryLabels = new Set(
+          SALARY_BANDS
+            .filter(b => {
+              // band 与 [min, max] 有交集才算命中
+              if (min != null) {
+                const bandMax = b.max ?? Number.POSITIVE_INFINITY;
+                if (bandMax < min) return false;  // band 全部 < min
+              }
+              if (max != null) {
+                if (b.min > max) return false;   // band 全部 > max
+              }
+              return true;
+            })
+            .map(b => b.label)
+        );
       }
 
       const all = db.prepare(
@@ -92,6 +115,11 @@ export function createEmployerHandler(db: DB) {
           if (filters.skills && filters.skills.length > 0) {
             const candSkills: string[] = JSON.parse(c.skills_json ?? '[]');
             if (!filters.skills.some(s => candSkills.includes(s))) return false;
+          }
+          // salary range 过滤
+          if (allowedSalaryLabels != null) {
+            if (!c.salary_range) return false;  // 候选人无 salary_range 数据 → 排除
+            if (!allowedSalaryLabels.has(c.salary_range)) return false;
           }
           return true;
         })

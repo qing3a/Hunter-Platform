@@ -18,6 +18,10 @@ export function createActionHistoryRepo(db: DB) {
   const listByUserStmt = db.prepare(
     'SELECT * FROM action_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
   );
+  // Variant with `since` (ISO 8601) filter for /v1/users/:id/history.
+  const listByUserSinceStmt = db.prepare(
+    'SELECT * FROM action_history WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
+  );
   const countByUserStmt = db.prepare(
     'SELECT COUNT(*) as cnt FROM action_history WHERE user_id = ?'
   );
@@ -42,6 +46,21 @@ export function createActionHistoryRepo(db: DB) {
     },
     listByUser(userId: string, opts: { limit?: number; offset?: number } = {}): ActionHistoryEntry[] {
       return listByUserStmt.all(userId, opts.limit ?? 50, opts.offset ?? 0) as unknown as ActionHistoryEntry[];
+    },
+    /**
+     * List action history for a user, optionally filtered to entries newer
+     * than `since` (ISO 8601 string). Used by GET /v1/users/:id/history.
+     */
+    listByUserSince(
+      userId: string,
+      opts: { limit?: number; offset?: number; since?: string } = {},
+    ): ActionHistoryEntry[] {
+      const limit = opts.limit ?? 50;
+      const offset = opts.offset ?? 0;
+      if (opts.since) {
+        return listByUserSinceStmt.all(userId, opts.since, limit, offset) as unknown as ActionHistoryEntry[];
+      }
+      return listByUserStmt.all(userId, limit, offset) as unknown as ActionHistoryEntry[];
     },
     countByUser(userId: string): number {
       return (countByUserStmt.get(userId) as { cnt: number }).cnt;

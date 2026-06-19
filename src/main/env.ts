@@ -21,6 +21,9 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  // Set to "false" to disable ALL rate limiting (per-user sliding window + IP register limit).
+  // Use only for local development / testing. Defaults to enabled in all envs.
+  RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
 });
 
 export type Env = Omit<z.infer<typeof EnvSchema>, 'PLATFORM_ENCRYPTION_KEY'> & {

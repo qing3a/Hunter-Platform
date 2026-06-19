@@ -22,7 +22,7 @@ describe('migrations v002', () => {
     expect(names).toContain('unlock_audit_log');
     expect(names).toContain('webhook_delivery_queue');
     const migs = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(migs.map(m => m.version)).toEqual([1, 2, 3, 4, 5]);
+    expect(migs.map(m => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     db.close();
   });
 });

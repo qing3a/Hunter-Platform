@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { authMiddleware } from '../modules/auth/middleware.js';
+import { optionalAuthMiddleware } from '../modules/auth/middleware.js';
 import type { DB } from '../db/connection.js';
 import { loadIndustryMap, TITLE_LEVEL_PATTERNS, SALARY_BANDS } from '../modules/desensitize/mapping.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
@@ -9,7 +9,10 @@ export function createConfigRouter(db: DB): Router {
   const router = Router();
   const quota = createQuotaManager(db);
 
-  router.use(authMiddleware(db));
+  // skill.md §5.6: /v1/config/* is in the "unlimited, no auth" list.
+  // Use optional auth so we can still see who is calling in metrics, but
+  // never block anonymous callers.
+  router.use(optionalAuthMiddleware(db));
 
   // GET /v1/config/industries — list industry categories with company counts
   router.get('/industries', (req: Request, res: Response) => {

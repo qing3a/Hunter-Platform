@@ -182,7 +182,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   const actionHistoryRepo = createActionHistoryRepo(db);
   const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
 
-  const AUDITED_PREFIXES = ['/v1/auth/register', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
+  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
   app.use((req, res, next) => {
     if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
       return next();
@@ -194,6 +194,24 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+
+// 404 JSON fallback — never let Express's default HTML leak out.
+// Skips /view/* (HTML pages render their own 404) and the well-known redirect /skill.md.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (res.headersSent) return next();
+    // Skip /view/* (HTML pages render their own 404 if needed)
+    if (req.path === '/view' || req.path.startsWith('/view/')) {
+      return next();
+    }
+    res.status(404).json({
+      ok: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: `No route matched ${req.method} ${req.path}`,
+        details: { method: req.method, path: req.path },
+      },
+    });
+  });
 
   // Error handler
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {

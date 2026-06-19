@@ -4,6 +4,7 @@ import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createCandidateHandler } from '../modules/candidate/handler.js';
 import { createCandidateExport } from '../modules/candidate/export.js';
+import { createGdprHandler } from '../modules/candidate/gdpr-handler.js';
 import { createUnlockAuditLogRepo } from '../db/repositories/unlock-audit-log.js';
 import { Errors } from '../errors.js';
 import type { User } from '../../shared/types.js';
@@ -12,6 +13,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createCandidateHandler(db);
   const exporter = createCandidateExport(db, encryptionKey);
+  const gdpr = createGdprHandler(db);
   const audit = createUnlockAuditLogRepo(db);
   router.use(authMiddleware(db));
   router.use(createRateLimitMiddleware(db));
@@ -62,6 +64,24 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
       if (req.headers['user-agent']) ctx.userAgent = req.headers['user-agent'];
       handler.rejectUnlock((req as typeof req & { user?: User }).user!, { recommendation_id: req.params.id }, ctx);
       res.json({ ok: true, data: { status: 'rejected_candidate' } });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/candidate/delete-my-data — GDPR / data-subject erasure
+  // 鉴权：authMiddleware (any active user); handler 内部再校验 candidate
+  // 配额：1 次（gdpr-handler 内部 tryConsume）
+  // 行为：见 modules/candidate/gdpr-handler.ts
+  router.post('/delete-my-data', (req, res, next) => {
+    try {
+      const user = (req as typeof req & { user?: User }).user;
+      if (!user) throw Errors.unauthorized();
+      const summary = gdpr.deleteMyData(user);
+
+      // audit: 标记 target 是 user 自己，type='user'
+      res.locals.ahTargetType = 'user';
+      res.locals.ahTargetId = user.id;
+
+      res.json({ ok: true, data: summary });
     } catch (e) { next(e); }
   });
 

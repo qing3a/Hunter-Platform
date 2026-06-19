@@ -81,6 +81,8 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       if (req.query.min_years) filters.min_years = Number(req.query.min_years);
       if (req.query.max_years) filters.max_years = Number(req.query.max_years);
       if (req.query.skills) filters.skills = String(req.query.skills).split(',');
+      if (req.query.min_salary) filters.min_salary = Number(req.query.min_salary);
+      if (req.query.max_salary) filters.max_salary = Number(req.query.max_salary);
       const list = handler.browseTalent((req as typeof req & { user?: User }).user!, filters);
       res.json({ ok: true, data: list });
     } catch (e) { next(e); }

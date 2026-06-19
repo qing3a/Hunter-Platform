@@ -51,9 +51,11 @@ describe('GET /v1/market/leaderboard', () => {
     expect(res.body.data[0].name).toBe('HH');
   });
 
-  it('returns 401 without auth', async () => {
+  it('returns 200 without auth (optional-auth: public)', async () => {
+    // /v1/market/leaderboard uses optionalAuthMiddleware (see "已修复" #2).
     const app = createApp();
     const res = await request(app).get('/v1/market/leaderboard');
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
   });
 });

@@ -32,10 +32,13 @@ describe('GET /v1/config/*', () => {
       expect(internet.companies_count).toBeGreaterThan(0);
     });
 
-    it('returns 401 without auth', async () => {
+    it('returns 200 without auth (optional-auth: public)', async () => {
+      // /v1/config/* uses optionalAuthMiddleware — anonymous callers get the same
+      // response as authenticated ones (see "已修复" #2).
       const app = createApp();
       const res = await request(app).get('/v1/config/industries');
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.data)).toBe(true);
     });
   });
 
@@ -52,10 +55,10 @@ describe('GET /v1/config/*', () => {
       expect(codes).toContain('M1');
     });
 
-    it('returns 401 without auth', async () => {
+    it('returns 200 without auth (optional-auth: public)', async () => {
       const app = createApp();
       const res = await request(app).get('/v1/config/title_levels');
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(200);
     });
   });
 
@@ -73,10 +76,10 @@ describe('GET /v1/config/*', () => {
       expect(first.max === null || typeof first.max === 'number').toBe(true);
     });
 
-    it('returns 401 without auth', async () => {
+    it('returns 200 without auth (optional-auth: public)', async () => {
       const app = createApp();
       const res = await request(app).get('/v1/config/salary_bands');
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(200);
     });
   });
 });

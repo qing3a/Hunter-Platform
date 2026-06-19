@@ -12,6 +12,9 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 3, description: 'M4 (placements, admin_action_log)', file: 'migrations/v003.sql' },
   { version: 4, description: 'render-layer view_tokens table', file: 'migrations/v004_view_tokens.sql' },
   { version: 5, description: 'jobs.required_skills_json column for structured required_skills', file: 'migrations/v005_required_skills.sql' },
+  { version: 6, description: 'users.api_key_expires_at column for rotate-key grace period', file: 'migrations/v006_api_key_grace_period.sql' },
+  { version: 7, description: 'users prev_api_key_* slot for rotated-key grace period', file: 'migrations/v007_grace_period_slot.sql' },
+  { version: 8, description: 'GDPR soft-delete: relax users.name/contact and candidates_private PII columns to nullable', file: 'migrations/v008_gdpr_nullable.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {

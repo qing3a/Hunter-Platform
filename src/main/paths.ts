@@ -1,10 +1,23 @@
-import { app } from 'electron';
+/**
+ * Filesystem path helpers for the API server.
+ *
+ * API-only mode: paths come from the environment (`DATABASE_PATH` etc.),
+ * not from Electron's `app.getPath('userData')`. The server is the single
+ * owner of on-disk state; CLI tools and tests should pass paths explicitly
+ * to `openDb()` instead of relying on this module.
+ */
 import path from 'node:path';
 
-export const userDataDir = (): string => app.getPath('userData');
+const DEFAULT_DB_PATH = './tmp/hunter.db';
 
-export const dbPath = (): string => path.join(userDataDir(), 'sessions.db');
+export function dbPath(): string {
+  return process.env.DATABASE_PATH || DEFAULT_DB_PATH;
+}
 
-export const attachmentsDir = (): string => path.join(userDataDir(), 'attachments');
+export function attachmentsDir(): string {
+  return path.join(path.dirname(dbPath()), 'attachments');
+}
 
-export const logsDir = (): string => path.join(userDataDir(), 'logs');
+export function logsDir(): string {
+  return path.join(path.dirname(dbPath()), 'logs');
+}

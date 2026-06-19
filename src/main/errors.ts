@@ -29,6 +29,10 @@ export const Errors = {
     new ApiError('INVALID_STATE', msg, 409),
   duplicateRequest: (msg = 'Idempotency key reused with different body') =>
     new ApiError('DUPLICATE_REQUEST', msg, 409),
+  contactTaken: (msg: string, details?: Record<string, unknown>) =>
+    new ApiError('CONTACT_TAKEN', msg, 409, details),
+  notImplemented: (msg: string) =>
+    new ApiError('NOT_IMPLEMENTED', msg, 501),
   internal: (msg = 'Internal server error') =>
     new ApiError('INTERNAL_ERROR', msg, 500),
 };

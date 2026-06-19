@@ -11,6 +11,21 @@ export interface User {
   agent_endpoint: string | null;
   api_key_hash: string;
   api_key_prefix: string;
+  /**
+   * When the current api_key_hash stops being accepted. NULL = never expires.
+   * Set during rotate-key (now + 24h for the OLD key); the new key is
+   * written with expires_at = NULL.
+   */
+  api_key_expires_at: string | null;
+  /**
+   * Grace-period slot for the previous (rotated-out) API key. After rotate-key,
+   * the OLD hash is moved here with prev_api_key_expires_at = now + 24h.
+   * NULL means no grace key. Auth middleware accepts this slot if
+   * prev_api_key_expires_at > now.
+   */
+  prev_api_key_hash: string | null;
+  prev_api_key_prefix: string | null;
+  prev_api_key_expires_at: string | null;
   quota_per_day: number;
   quota_used: number;
   quota_reset_at: string;
@@ -25,10 +40,16 @@ export type ErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INVALID_PARAMS'
-  | 'INSUFFICIENT_QUOTA'
-  | 'RATE_LIMITED'
   | 'INVALID_STATE'
   | 'DUPLICATE_REQUEST'
+  | 'CONTACT_TAKEN'
+  | 'INSUFFICIENT_QUOTA'
+  | 'RATE_LIMITED'
+  | 'INVALID_CHARSET'
+  | 'INVALID_CONTENT_TYPE'
+  | 'INVALID_JSON'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'NOT_IMPLEMENTED'
   | 'INTERNAL_ERROR';
 
 export type ApiResponse<T> =

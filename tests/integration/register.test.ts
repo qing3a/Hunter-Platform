@@ -40,7 +40,8 @@ describe('POST /v1/auth/register', () => {
     expect(r1.status).toBe(200);
     const r2 = await request(app).post('/v1/auth/register').send(payload);
     expect(r2.status).toBe(409);
-    expect(r2.body.error.code).toBe('DUPLICATE_REQUEST');
+    // 修复 #3: same-role 24h 内重复 contact 改用 CONTACT_TAKEN
+    expect(r2.body.error.code).toBe('CONTACT_TAKEN');
   });
 
   it('rejects missing required fields', async () => {

@@ -50,7 +50,7 @@ describe('utf8-only middleware (integration)', () => {
       .set('Content-Type', 'text/plain')
       .send('not json');
     expect(r.status).toBe(400);
-    expect(r.body.error.code).toBe('INVALID_CHARSET');
+    expect(r.body.error.code).toBe('INVALID_CONTENT_TYPE');
   });
 
   it('does not affect GET requests (no Content-Type required)', async () => {

@@ -39,6 +39,7 @@ export function createUsersRouter(db: DB): Router {
   });
 
   // GET /v1/users/:id/history — 查询操作历史（仅本人）
+  // 支持 ?limit= (≤200, default 50) 和 ?since= (ISO 8601)
   router.get('/:id/history', (req, res, next) => {
     try {
       const u = users.findById(req.params.id);
@@ -47,7 +48,34 @@ export function createUsersRouter(db: DB): Router {
       if ((req as typeof req & { user?: User }).user!.id !== u.id) {
         throw Errors.forbidden('Can only view your own history');
       }
-      const list = actionHistory.listByUser(u.id, { limit: 100 });
+
+      // Parse ?limit (clamped to [1, 200], default 50)
+      const rawLimit = req.query.limit;
+      let limit = 50;
+      if (rawLimit !== undefined) {
+        const n = Number(rawLimit);
+        if (!Number.isFinite(n) || n < 1) {
+          throw Errors.invalidParams('limit must be a positive integer');
+        }
+        limit = Math.min(Math.floor(n), 200);
+      }
+
+      // Parse ?since (ISO 8601; rejected if invalid)
+      const rawSince = req.query.since;
+      let since: string | undefined;
+      if (typeof rawSince === 'string' && rawSince.length > 0) {
+        const parsed = new Date(rawSince);
+        if (Number.isNaN(parsed.getTime())) {
+          throw Errors.invalidParams('since must be a valid ISO 8601 timestamp');
+        }
+        since = parsed.toISOString();
+      }
+
+      const offset = req.query.offset ? Number(req.query.offset) : 0;
+      const list = actionHistory.listByUserSince(
+        u.id,
+        since !== undefined ? { limit, offset, since } : { limit, offset },
+      );
       res.json({ ok: true, data: list });
     } catch (e) { next(e); }
   });

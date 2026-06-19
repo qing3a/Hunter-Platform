@@ -20,6 +20,13 @@ const WINDOWS: { seconds: 1 | 60 | 3600; key: 'second' | 'minute' | 'hour' }[] =
  */
 export function createRateLimitMiddleware(db: DB): RequestHandler {
   return function rateLimitMiddleware(req: Request, res: Response, next: NextFunction): void {
+    // Kill switch (env: RATE_LIMIT_ENABLED=false) — disables all per-user sliding-window
+    // rate limiting. For local dev / automated testing only. The header `X-RateLimit-Skip: 1`
+    // also opts a single request out (handy for debugging without restarting).
+    if (process.env.RATE_LIMIT_ENABLED === 'false' || req.headers['x-ratelimit-skip'] === '1') {
+      next();
+      return;
+    }
     // Feature-flag: if algo is set to 1, skip entirely (fallback to old behavior)
     if (RATE_LIMIT_ALGO_VERSION !== 2) {
       next();

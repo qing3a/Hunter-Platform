@@ -22,7 +22,9 @@ describe('GET /v1/skill.md', () => {
     const res = await request(app).get('/v1/skill.md');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/text\/markdown/);
-    expect(res.text).toContain('# Hunter Platform');
+    // skill.md 当前标题包含 emoji 前缀；用通用 marker 检查
+    expect(res.text).toContain('Hunter Platform');
+    expect(res.text).toContain('Agent Skill');
   });
 
   it('/skill.md redirects to /v1/skill.md', async () => {

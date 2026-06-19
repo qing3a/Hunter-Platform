@@ -37,7 +37,7 @@ describe('rate-limit middleware', () => {
 
   it('allows request under limit and calls next() with headers set', () => {
     const mw = createRateLimitMiddleware(db);
-    const req = { user: candidate } as any;
+    const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
     mw(req, res, () => { nextCalled = true; });
@@ -65,7 +65,7 @@ describe('rate-limit middleware', () => {
     }
 
     const mw = createRateLimitMiddleware(db);
-    const req = { user: candidate } as any;
+    const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
     mw(req, res, () => { nextCalled = true; });
@@ -93,7 +93,7 @@ describe('rate-limit middleware', () => {
     }
 
     const mw = createRateLimitMiddleware(db);
-    const req = { user: candidate } as any;
+    const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     mw(req, res, () => {});
     expect(res.headers['RateLimit-Policy']).toBe('warn');
@@ -102,7 +102,7 @@ describe('rate-limit middleware', () => {
 
   it('returns 401-style error when req.user is missing', () => {
     const mw = createRateLimitMiddleware(db);
-    const req = {} as any;
+    const req = { headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
     mw(req, res, () => { nextCalled = true; });
@@ -119,7 +119,7 @@ describe('rate-limit middleware', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const mw = createRateLimitMiddleware(brokenDb);
-    const req = { user: candidate } as any;
+    const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
     mw(req, res, () => { nextCalled = true; });

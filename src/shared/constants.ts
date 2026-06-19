@@ -23,6 +23,7 @@ export const QUOTA_COSTS = {
   // M2:
   create_job: 5,
   browse_talent: 1,
+  browse_jobs: 1,  // v1.3: GET /v1/market/jobs
   express_interest: 3,
   unlock_contact: 5,
   recommend_candidate: 5,
