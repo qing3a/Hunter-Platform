@@ -57,7 +57,7 @@ export function createRateLimitMiddleware(db: DB): RequestHandler {
     // Soft warning: any window remaining < 20%?
     const warnStates = WINDOWS.map((w, i) => ({
       windowSeconds: w.seconds,
-      remaining: results[i].remaining,
+      remaining: results[i]!.remaining,
       limit: limits[w.key],
     }));
     const triggered = warnStates.some(s => shouldWarn(s.remaining, s.limit, RATE_LIMIT_SOFT_WARN_RATIO));

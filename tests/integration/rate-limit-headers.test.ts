@@ -56,16 +56,35 @@ describe('rate-limit headers (integration)', () => {
     expect(r2Rem).toBe(r1Rem - 1);   // 1s window: each request consumes 1
   });
 
-  it('returns 429 with Retry-After when 1s limit exceeded', async () => {
+  it('returns 429 with Retry-After when 1h limit exceeded', async () => {
     const { userId, apiKey } = await registerHeadhunter('RL3');
-    // headhunter 1s limit = 20 → fire 20 requests then expect 21st to be 429
-    for (let i = 0; i < 20; i++) {
-      await request(app).get(`/v1/users/${userId}/status`).set('Authorization', `Bearer ${apiKey}`);
+    // headhunter 1h limit = 750. Pre-fill the 1h bucket row directly to 750 so the
+    // next request is denied regardless of real-time request rate (avoids 1s window
+    // boundary flakiness from supertest roundtrips).
+    const { openDb } = await import('../../src/main/db/connection');
+    const db = openDb(testDb);
+    try {
+      const hourStart = (() => {
+        const ms = Date.now();
+        const hourMs = 3600 * 1000;
+        return new Date(Math.floor(ms / hourMs) * hourMs).toISOString();
+      })();
+      for (let i = 0; i < 750; i++) {
+        db.prepare(`
+          INSERT INTO rate_limit_buckets (user_id, window_start, window_seconds, request_count, expires_at)
+          VALUES (?, ?, 3600, 1, '2099-01-01T00:00:00.000Z')
+          ON CONFLICT (user_id, window_start, window_seconds)
+          DO UPDATE SET request_count = request_count + 1
+        `).run(userId, hourStart);
+      }
+    } finally {
+      db.close();
     }
+
     const r = await request(app).get(`/v1/users/${userId}/status`).set('Authorization', `Bearer ${apiKey}`);
     expect(r.status).toBe(429);
     expect(r.headers['retry-after']).toBeDefined();
     expect(r.body.error.code).toBe('RATE_LIMITED');
-    expect(r.body.error.details.violated_window).toBe('second');
+    expect(r.body.error.details.violated_window).toBe('hour');
   });
 });
