@@ -56,7 +56,6 @@ export interface Job {
   employer_id: string;
   title: string;
   description: string | null;
-  requirements: string | null;
   required_skills: string[];
   salary_min: number | null;
   salary_max: number | null;
@@ -97,6 +96,7 @@ export interface RecommendationWithCandidate extends Recommendation {
 
 export type WebhookEventType =
   | 'notify_unlock_request'
+  | 'notify_unlock_approved'
   | 'unlock_approved_by_candidate'
   | 'deliver_contact'
   | 'placement_created'

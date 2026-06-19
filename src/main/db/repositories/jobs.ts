@@ -32,7 +32,7 @@ export function createJobsRepo(db: DB) {
         employer_id: job.employer_id,
         title: job.title,
         description: job.description,
-        requirements: job.requirements,
+        requirements: null,
         required_skills_json_col: JSON.stringify(job.required_skills ?? []),
         salary_min: job.salary_min,
         salary_max: job.salary_max,

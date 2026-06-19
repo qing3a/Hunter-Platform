@@ -29,7 +29,7 @@ describe('POST /v1/employer/jobs — required_skills field', () => {
     expect(res.body.data.required_skills).toEqual(['React', 'TypeScript', 'Node.js']);
   });
 
-  it('keeps requirements (free text) working alongside required_skills', async () => {
+  it('ignores requirements field (removed from API) and only returns required_skills', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
       .send({ user_type: 'employer', name: 'SkillEmp2', contact: 'sk2@emp.com' });
@@ -38,13 +38,12 @@ describe('POST /v1/employer/jobs — required_skills field', () => {
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
       .send({
         title: 'Backend Engineer',
-        requirements: '5+ years backend experience',
         required_skills: ['Go', 'PostgreSQL'],
       });
 
     expect(res.status).toBe(200);
-    expect(res.body.data.requirements).toBe('5+ years backend experience');
     expect(res.body.data.required_skills).toEqual(['Go', 'PostgreSQL']);
+    expect(res.body.data.requirements).toBeUndefined();
   });
 
   it('GET /v1/employer/jobs returns required_skills as array', async () => {

@@ -11,7 +11,6 @@ import type { User } from '../../shared/types.js';
 const CreateJobSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000).optional(),
-  requirements: z.string().max(5000).optional(),
   required_skills: z.array(z.string().min(1).max(100)).max(20).optional(),
   salary_min: z.number().int().positive().optional(),
   salary_max: z.number().int().positive().optional(),

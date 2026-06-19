@@ -16,7 +16,6 @@ import { Errors } from '../../errors.js';
 export interface CreateJobInput {
   title: string;
   description?: string;
-  requirements?: string;
   required_skills?: string[];
   salary_min?: number;
   salary_max?: number;
@@ -51,7 +50,6 @@ export function createEmployerHandler(db: DB) {
         employer_id: user.id,
         title: input.title,
         description: input.description ?? null,
-        requirements: input.requirements ?? null,
         required_skills: input.required_skills ?? [],
         salary_min: input.salary_min ?? null,
         salary_max: input.salary_max ?? null,
