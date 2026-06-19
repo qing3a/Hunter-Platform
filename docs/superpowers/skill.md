@@ -289,6 +289,28 @@ curl -X POST https://api.hunter-platform.com/v1/employer/recommendations/rec_xxx
 
 ---
 
+## 视图链接（view_url）
+
+部分 endpoint 的 2xx 响应会包含一个 `view_url` 字段，格式：
+`http://<host>/view/<token>`
+
+- 受邀方（如 employer）可访问该 URL 查看候选人脱敏画像（行业、职级、薪资段、学校层级、技能、年限）
+- token 是 HMAC 签名后的 JWT，24h 过期
+- 包含 view_url 的 endpoint：`POST /v1/auth/register`、候选人查看相关 endpoint 等
+
+示例：
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "...",
+    "view_url": "http://localhost:3000/view/eyJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
+---
+
 ## v1 范围
 
 - ✅ 注册/认证/三角色基础
