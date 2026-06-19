@@ -4,6 +4,7 @@ import { createRecommendationsRepo } from '../../db/repositories/recommendations
 import { createUnlockAuditLogRepo } from '../../db/repositories/unlock-audit-log.js';
 import { createCandidatesPrivateRepo } from '../../db/repositories/candidates-private.js';
 import { createJobsRepo } from '../../db/repositories/jobs.js';
+import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
@@ -25,6 +26,7 @@ export function createCandidateHandler(db: DB) {
   const audit = createUnlockAuditLogRepo(db);
   const priv = createCandidatesPrivateRepo(db);
   const jobs = createJobsRepo(db);
+  const webhooks = createWebhookQueueRepo(db);
   const quota = createQuotaManager(db);
 
   return {
@@ -96,6 +98,18 @@ export function createCandidateHandler(db: DB) {
         audit.insert({
           recommendation_id: rec.id, actor_user_id: user.id, action: 'approve_unlock',
           ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
+        });
+        const approvePayload = {
+          recommendation_id: rec.id,
+          anonymized_candidate_id: rec.anonymized_candidate_id,
+          candidate_user_id: privRecord.candidate_user_id,
+          approved_at: new Date().toISOString(),
+        };
+        webhooks.enqueue({
+          target_user_id: rec.employer_id,
+          event_type: 'notify_unlock_approved',
+          payload_enc: Buffer.from(JSON.stringify(approvePayload), 'utf8').toString('base64'),
+          contains_pii: 0,
         });
         db.exec('COMMIT');
       } catch (e) {
