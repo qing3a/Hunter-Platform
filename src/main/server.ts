@@ -28,6 +28,7 @@ import { createViewHandlers } from './modules/view/handler.js';
 import { createViewUrlInjector } from './modules/view/injector.js';
 import { createViewsRouter } from './modules/view/views-endpoint.js';
 import { createLandingRouter } from './routes/landing.js';
+import { createUtf8OnlyMiddleware } from './modules/encoding/index.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -36,6 +37,9 @@ import type { DB } from './db/connection.js';
  */
 export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Express {
   const app = express();
+  // Mount utf8-only BEFORE express.json: reject requests with non-UTF-8 charsets
+  // before the body parser tries to decode them (otherwise gbk would throw 500).
+  app.use(createUtf8OnlyMiddleware());
   app.use(express.json({ limit: '4kb' }));
 
   // Render layer: view_url injector (wraps res.json to inject view_url on 2xx responses)

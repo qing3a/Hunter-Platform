@@ -27,11 +27,10 @@ describe('utf8-only middleware', () => {
     expect(r.status).toBe(200);
   });
 
-  it('rejects POST with application/json (no charset)', () => {
+  it('accepts POST with application/json (no charset) — defaults to UTF-8 (RFC 8259)', () => {
     const r = runMw('POST', 'application/json');
-    expect(r.next).toBe(false);
-    expect(r.status).toBe(400);
-    expect(r.body.error.code).toBe('INVALID_CHARSET');
+    expect(r.next).toBe(true);
+    expect(r.status).toBe(200);
   });
 
   it('rejects POST with application/json; charset=gbk', () => {
@@ -46,10 +45,10 @@ describe('utf8-only middleware', () => {
     expect(r.status).toBe(400);
   });
 
-  it('rejects POST with no Content-Type header', () => {
+  it('accepts POST with no Content-Type header (empty body, nothing to mis-decode)', () => {
     const r = runMw('POST', undefined);
-    expect(r.next).toBe(false);
-    expect(r.status).toBe(400);
+    expect(r.next).toBe(true);
+    expect(r.status).toBe(200);
   });
 
   it('skips GET', () => {
