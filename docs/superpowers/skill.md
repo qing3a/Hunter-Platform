@@ -437,6 +437,36 @@ Headers:
 
 ---
 
+## 🛠 X. Admin API（运维 / 服务器 AI 管理接口）
+
+> **鉴权**：所有端点（除 `/v1/admin/ping` 外）需要 `Authorization: Bearer <ADMIN_PASSWORD>`。
+> 密码哈希通过环境变量 `ADMIN_PASSWORD_HASH`（bcrypt 格式）配置。
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET    | `/v1/admin/ping` | 健康检查（无需鉴权） |
+| GET    | `/v1/admin/dashboard/stats` | 平台统计 |
+| GET    | `/v1/admin/users` | 用户列表（?user_type&status&limit） |
+| POST   | `/v1/admin/users/:id/suspend` | 暂停用户 |
+| POST   | `/v1/admin/users/:id/unsuspend` | 恢复用户 |
+| POST   | `/v1/admin/users/:id/adjust-quota` | 调整 quota |
+| GET    | `/v1/admin/candidates` | 候选人列表 |
+| POST   | `/v1/admin/candidates/:id/remove-from-pool` | 从人才池移除 |
+| GET    | `/v1/admin/audit` | 审计日志 |
+| GET    | `/v1/admin/webhooks/dead-letter` | 死信 webhook |
+| POST   | `/v1/admin/webhooks/:id/retry` | 重试 webhook |
+| GET    | `/v1/admin/rate-limit/buckets` | 限流桶列表 |
+| POST   | `/v1/admin/rate-limit/users/:id/clear` | 清除用户限流 |
+| GET    | `/v1/admin/config` | 读取配置 |
+| PUT    | `/v1/admin/config/:key` | 更新配置 |
+| GET    | `/v1/admin/placements` | placement 列表 |
+| POST   | `/v1/admin/placements/:id/mark-paid` | 标记已付款 |
+| POST   | `/v1/admin/placements/:id/cancel` | 取消 |
+| GET    | `/v1/admin/placements/summary` | 汇总 |
+| GET    | `/v1/admin/admin-log` | 管理员操作日志 |
+
+---
+
 ## 🖼 7. view_url（脱敏画像链接）
 
 部分 endpoint 的 2xx 响应包含 `view_url`：
