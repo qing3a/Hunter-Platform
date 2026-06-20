@@ -369,6 +369,8 @@ UTC 0 自动重置（内部 `node-cron` 任务，**无 HTTP 端点**）。
 | `RateLimit-Policy: warn` | 标记进入软警告 |
 | `X-RateLimit-Warning: approaching-limit: hour window at 85%` | 人类可读 |
 
+> **注**：`RATE_LIMIT_ENABLED=false` 时（默认 dev 配置），`RateLimit-Limit: -1` 表示当前无限流，agent 仍可按 §14.1 节奏正常工作。值为 `-1` 而非 `0` 避免与"已耗尽"语义混淆（GitHub API 同款约定）。
+
 ### 5.5 429 响应
 
 ```json

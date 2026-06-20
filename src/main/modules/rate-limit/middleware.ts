@@ -24,6 +24,12 @@ export function createRateLimitMiddleware(db: DB): RequestHandler {
     // rate limiting. For local dev / automated testing only. The header `X-RateLimit-Skip: 1`
     // also opts a single request out (handy for debugging without restarting).
     if (process.env.RATE_LIMIT_ENABLED === 'false' || req.headers['x-ratelimit-skip'] === '1') {
+      // Even when enforcement is off, emit headers so agents can detect "no limit" mode.
+      // Sentinel: Limit=-1 means "unlimited" (GitHub API convention).
+      res.setHeader('RateLimit-Limit', '-1');
+      res.setHeader('RateLimit-Remaining', '-1');
+      res.setHeader('RateLimit-Reset', '0');
+      res.setHeader('RateLimit-Policy', 'unlimited');
       next();
       return;
     }

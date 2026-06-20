@@ -128,4 +128,52 @@ describe('rate-limit middleware', () => {
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('rate-limit DB error'), expect.any(Error));
     consoleSpy.mockRestore();
   });
+
+  describe('kill switch emits unlimited headers (Bug 2)', () => {
+    const originalEnv = process.env.RATE_LIMIT_ENABLED;
+
+    afterEach(() => {
+      if (originalEnv === undefined) delete process.env.RATE_LIMIT_ENABLED;
+      else process.env.RATE_LIMIT_ENABLED = originalEnv;
+    });
+
+    it('emits RateLimit-Limit=-1 + RateLimit-Policy=unlimited when RATE_LIMIT_ENABLED=false', () => {
+      process.env.RATE_LIMIT_ENABLED = 'false';
+      const mw = createRateLimitMiddleware(db);
+      const req = { user: candidate, headers: {} } as any;
+      const res = fakeRes();
+      let nextCalled = false;
+      mw(req, res, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+      expect(res.headers['RateLimit-Limit']).toBe('-1');
+      expect(res.headers['RateLimit-Remaining']).toBe('-1');
+      expect(res.headers['RateLimit-Reset']).toBe('0');
+      expect(res.headers['RateLimit-Policy']).toBe('unlimited');
+    });
+
+    it('emits unlimited headers when X-RateLimit-Skip=1', () => {
+      const mw = createRateLimitMiddleware(db);
+      const req = { user: candidate, headers: { 'x-ratelimit-skip': '1' } } as any;
+      const res = fakeRes();
+      let nextCalled = false;
+      mw(req, res, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+      expect(res.headers['RateLimit-Limit']).toBe('-1');
+      expect(res.headers['RateLimit-Remaining']).toBe('-1');
+      expect(res.headers['RateLimit-Reset']).toBe('0');
+      expect(res.headers['RateLimit-Policy']).toBe('unlimited');
+    });
+
+    it('still emits real (non-unlimited) headers when RATE_LIMIT_ENABLED=true', () => {
+      process.env.RATE_LIMIT_ENABLED = 'true';
+      const mw = createRateLimitMiddleware(db);
+      const req = { user: candidate, headers: {} } as any;
+      const res = fakeRes();
+      let nextCalled = false;
+      mw(req, res, () => { nextCalled = true; });
+      expect(nextCalled).toBe(true);
+      expect(res.headers['RateLimit-Limit']).toBe('10, 50, 300');
+      expect(res.headers['RateLimit-Policy']).toBeUndefined();
+    });
+  });
 });
