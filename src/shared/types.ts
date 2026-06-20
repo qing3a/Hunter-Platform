@@ -76,7 +76,9 @@ export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface Job {
   id: string;
-  employer_id: string;
+  employer_id: string | null;
+  source_headhunter_id: string | null;
+  created_for_employer_id: string | null;
   title: string;
   description: string | null;
   required_skills: string[];
