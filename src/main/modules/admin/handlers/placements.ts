@@ -5,10 +5,10 @@ import { createAdminActionLogRepo } from '../../../db/repositories/admin-action-
 import { createCommissionHandler } from '../../commission/handler.js';
 import { Errors } from '../../../errors.js';
 
-export function createAdminPlacementsHandler(db: DB) {
+export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
   const places = createPlacementsRepo(db);
   const adminLog = createAdminActionLogRepo(db);
-  const commission = createCommissionHandler(db);
+  const commission = createCommissionHandler(db, encryptionKey);
 
   return {
     list(filter: { status?: 'pending_payment' | 'paid' | 'cancelled' }): unknown[] {

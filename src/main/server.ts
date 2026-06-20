@@ -204,7 +204,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.get('/v1/admin/ping', (_req, res) => {
     res.json({ ok: true, data: { message: 'admin pong' } });
   });
-  app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(), createAdminRouter(db));
+  app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(), createAdminRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));

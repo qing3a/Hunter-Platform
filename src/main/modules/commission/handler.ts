@@ -7,6 +7,7 @@ import { createJobsRepo } from '../../db/repositories/jobs.js';
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { calculateCommission } from './calculator.js';
 import { Errors } from '../../errors.js';
+import { encrypt } from '../crypto/aes-gcm.js';
 import type { User } from '../../../shared/types.js';
 
 export interface CreatePlacementInput {
@@ -15,7 +16,7 @@ export interface CreatePlacementInput {
   annual_salary: number;
 }
 
-export function createCommissionHandler(db: DB) {
+export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
   const places = createPlacementsRepo(db);
   const recs = createRecommendationsRepo(db);
   const jobs = createJobsRepo(db);
@@ -105,7 +106,7 @@ export function createCommissionHandler(db: DB) {
         status: placement.status,
         created_at: placement.created_at,
       };
-      const payload_enc = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
+      const payload_enc = encrypt(encryptionKey, JSON.stringify(payload));
       webhooks.enqueue({
         target_user_id: placement.primary_headhunter_id,
         event_type: 'placement_created',

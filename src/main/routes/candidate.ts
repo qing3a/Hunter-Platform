@@ -11,7 +11,7 @@ import type { User } from '../../shared/types.js';
 
 export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
-  const handler = createCandidateHandler(db);
+  const handler = createCandidateHandler(db, encryptionKey);
   const exporter = createCandidateExport(db, encryptionKey);
   const gdpr = createGdprHandler(db);
   const audit = createUnlockAuditLogRepo(db);

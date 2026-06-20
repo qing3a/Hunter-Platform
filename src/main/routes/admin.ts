@@ -11,7 +11,7 @@ import { createAdminPlacementsHandler } from '../modules/admin/handlers/placemen
 import { createAdminAdminLogHandler } from '../modules/admin/handlers/admin-log.js';
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
 
-export function createAdminRouter(db: DB): Router {
+export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const users = createAdminUsersHandler(db);
   const candidates = createAdminCandidatesHandler(db);
@@ -19,7 +19,7 @@ export function createAdminRouter(db: DB): Router {
   const webhooks = createAdminWebhooksHandler(db);
   const rateLimit = createAdminRateLimitHandler(db);
   const config = createAdminConfigHandler();
-  const placements = createAdminPlacementsHandler(db);
+  const placements = createAdminPlacementsHandler(db, encryptionKey);
   const adminLog = createAdminAdminLogHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
 

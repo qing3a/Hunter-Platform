@@ -44,7 +44,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   router.use(authMiddleware(db));
   router.use(createRateLimitMiddleware(db));
 
-  const commissionHandler = createCommissionHandler(db);
+  const commissionHandler = createCommissionHandler(db, encryptionKey);
 
   router.post('/placements', (req, res, next) => {
     try {

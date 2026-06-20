@@ -9,6 +9,7 @@ import { createQuotaManager } from '../quota/manager.js';
 import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
+import { encrypt } from '../crypto/aes-gcm.js';
 
 export interface ViewOpportunity {
   recommendation_id: string;
@@ -21,7 +22,7 @@ export interface ViewOpportunity {
   requested_at: string;
 }
 
-export function createCandidateHandler(db: DB) {
+export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
   const recs = createRecommendationsRepo(db);
   const audit = createUnlockAuditLogRepo(db);
   const priv = createCandidatesPrivateRepo(db);
@@ -108,7 +109,7 @@ export function createCandidateHandler(db: DB) {
         webhooks.enqueue({
           target_user_id: rec.employer_id,
           event_type: 'notify_unlock_approved',
-          payload_enc: Buffer.from(JSON.stringify(approvePayload), 'utf8').toString('base64'),
+          payload_enc: encrypt(encryptionKey, JSON.stringify(approvePayload)),
           contains_pii: 0,
         });
         db.exec('COMMIT');
