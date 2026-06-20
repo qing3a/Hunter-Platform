@@ -5,6 +5,7 @@ import path from 'node:path';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
+import { MAX_BODY_SIZE, BODY_LIMIT_LARGE } from '../shared/constants.js';
 import { ApiError } from './errors.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createHeadhunterRouter } from './routes/headhunter.js';
@@ -39,10 +40,10 @@ import type { DB } from './db/connection.js';
  */
 export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Express {
   const app = express();
-  // Mount utf8-only BEFORE express.json: reject requests with non-UTF-8 charsets
-  // before the body parser tries to decode them (otherwise gbk would throw 500).
-  app.use(createUtf8OnlyMiddleware());
-  app.use(express.json({ limit: '4kb' }));
+  // utf8-only and express.json() body limits are attached PER-ROUTER below.
+  // Rationale: a global 4KB limit makes the zod `description: max(5000)` check on
+  // /v1/employer/jobs unreachable (5000 UTF-8 chars ≈ 15KB → 413). Each router
+  // mounts with the smallest viable limit; only /v1/employer needs BODY_LIMIT_LARGE.
 
   // Render layer: view_url injector (wraps res.json to inject view_url on 2xx responses)
   // Mounted early so all downstream routers inherit the wrapped res.json.
@@ -130,6 +131,20 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/view', viewHandlers.router);
   app.use('/v1/views', createViewsRouter(db, baseUrl));
 
+  // action_history middleware MUST be mounted BEFORE business routers so it can
+  // register res.on('finish') at request entry. If mounted after, the response
+  // has already been sent by the time the listener is added and finish never fires.
+  const actionHistoryRepo = createActionHistoryRepo(db);
+  const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
+
+  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
+  app.use((req, res, next) => {
+    if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
+      return next();
+    }
+    return actionHistoryMW(req, res, next);
+  });
+
   // Metrics: HTTP request duration + count (M5)
   app.use(metricsMiddleware);
   app.get('/metrics', async (_req, res) => {
@@ -171,37 +186,28 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     }
   });
 
-  app.use('/v1/users', createUsersRouter(db));
-  app.use('/v1/config', createConfigRouter(db));
-  app.use('/v1/market', createMarketRouter(db));
+  // Per-router body limits. Default 4KB is enough for nearly all routes; only
+  // /v1/employer/* needs BODY_LIMIT_LARGE because POST /v1/employer/jobs accepts
+  // a description up to z.string().max(5000) (≈ 15KB UTF-8 Chinese).
+  // utf8-only is mounted alongside express.json because both gate body size.
+  // NOTE: Admin routes take only small POST bodies (placement status changes);
+  // keeping 4KB is appropriate.
+  app.use('/v1/auth',       createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createAuthRouter(db, env.NODE_ENV === 'production'));
+  app.use('/v1/users',      createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createUsersRouter(db));
+  app.use('/v1/config',     createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createConfigRouter(db));
+  app.use('/v1/market',     createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createMarketRouter(db));
+  app.use('/v1/headhunter', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/employer',   createUtf8OnlyMiddleware(64 * 1024), express.json({ limit: BODY_LIMIT_LARGE }), createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/candidate',  createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   // /v1/admin/ping is intentionally public (ops monitoring). Registered BEFORE
   // the auth-gated admin router so the middleware never sees it.
   app.get('/v1/admin/ping', (_req, res) => {
     res.json({ ok: true, data: { message: 'admin pong' } });
   });
-  app.use('/v1/admin', createAdminAuthMiddleware(), createAdminRouter(db));
+  app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(), createAdminRouter(db));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
-
-  // action_history 审计中间件 — 仅覆盖 4 个业务路由前缀
-  // 必须挂在业务 routers 之前，否则 routers send response 后后续 middleware 不执行
-  // res.on('finish') 回调在整个 chain 完成后才触发（包括 auth）
-  const actionHistoryRepo = createActionHistoryRepo(db);
-  const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
-
-  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
-  app.use((req, res, next) => {
-    if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
-      return next();
-    }
-    return actionHistoryMW(req, res, next);
-  });
-
-  app.use('/v1/auth', createAuthRouter(db, env.NODE_ENV === 'production'));
-  app.use('/v1/headhunter', createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/employer', createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  app.use('/v1/candidate', createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
 // 404 JSON fallback — never let Express's default HTML leak out.
 // Skips /view/* (HTML pages render their own 404) and the well-known redirect /skill.md.

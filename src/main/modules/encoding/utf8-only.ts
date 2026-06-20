@@ -2,8 +2,8 @@ import type { Request, Response, NextFunction, RequestHandler } from 'express';
 
 const SKIP_METHODS = new Set(['GET', 'HEAD', 'DELETE', 'OPTIONS']);
 
-/** Hard cap matches `express.json({ limit: '4kb' })`. Bodies above are rejected. */
-const MAX_BODY_BYTES = 4 * 1024;
+/** Hard cap (bytes). Default matches `express.json({ limit: '4kb' })`. */
+const DEFAULT_MAX_BODY_BYTES = 4 * 1024;
 
 /**
  * Reject POST/PUT/PATCH requests that:
@@ -31,7 +31,7 @@ const MAX_BODY_BYTES = 4 * 1024;
  *   downstream `express.json()` short-circuits and won't re-decode the
  *   (already-validated) bytes.
  */
-export function createUtf8OnlyMiddleware(): RequestHandler {
+export function createUtf8OnlyMiddleware(maxBytes: number = DEFAULT_MAX_BODY_BYTES): RequestHandler {
   // `fatal: true` makes decode() throw RangeError on invalid UTF-8
   // instead of silently substituting U+FFFD.
   const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -71,11 +71,11 @@ export function createUtf8OnlyMiddleware(): RequestHandler {
     req.on('data', (chunk: Buffer) => {
       if (aborted) return;
       total += chunk.length;
-      if (total > MAX_BODY_BYTES) {
+      if (total > maxBytes) {
         aborted = true;
         res.status(413).json({
           ok: false,
-          error: { code: 'PAYLOAD_TOO_LARGE', message: `Request body exceeds ${MAX_BODY_BYTES} bytes` },
+          error: { code: 'PAYLOAD_TOO_LARGE', message: `Request body exceeds ${maxBytes} bytes` },
         });
         req.destroy();
         return;

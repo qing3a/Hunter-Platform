@@ -43,6 +43,8 @@ export const WEBHOOK_RETRY_DELAYS_SECONDS = [1, 4, 16] as const;
 export const RECOMMENDATION_DEFAULT_COMMISSION_SPLIT = { hunter: 1.0, referrer: 0 };
 
 export const MAX_BODY_SIZE = '4kb';
+/** express.json() body size limit for routes that accept long job descriptions (5000 UTF-8 chars ≈ 15KB). */
+export const BODY_LIMIT_LARGE = '64kb';
 export const IDEMPOTENCY_TTL_HOURS = 24;
 export const API_KEY_PREFIX_LENGTH = 12;  // ⚠️ 必须 ≥ 12 才能用于 auth bucketing（8 字符全相同）
 export const RATE_LIMIT_WINDOW_SECONDS = [1, 60, 3600] as const;

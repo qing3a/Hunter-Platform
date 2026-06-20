@@ -10,6 +10,10 @@ interface RepoShape {
 export function createActionHistoryMiddleware(repo: RepoShape): RequestHandler {
   return function actionHistoryMW(req: Request, res: Response, next) {
     const start = Date.now();
+    // NOTE: this middleware MUST be mounted at top level (BEFORE any
+    // `app.use('/v1/...', subRouter)` mounts). If mounted after a sub-router,
+    // req.path is mutated to the sub-relative path AND res.on('finish') won't
+    // fire because the response was already sent inside the sub-router.
     const actionType = lookupActionType(req.method, req.path);
 
     res.on('finish', () => {
