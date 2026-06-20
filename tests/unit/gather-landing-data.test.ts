@@ -138,3 +138,27 @@ describe('gatherLandingData - hotSkills', () => {
     ]);
   });
 });
+
+describe('gatherLandingData - healthStatus', () => {
+  it('returns healthy for working DB', () => {
+    const db = openDb(':memory:');
+    runMigrations(db);
+    const data = gatherLandingData(db);
+    expect(data.healthStatus).toBe('healthy');
+  });
+
+  it('returns degraded when DB throws on probe', () => {
+    const db = openDb(':memory:');
+    runMigrations(db);
+    // Override prepare to fail on `SELECT 1`
+    const origPrepare = db.prepare.bind(db);
+    db.prepare = ((sql: string) => {
+      if (sql.replace(/\s+/g, ' ').trim() === 'SELECT 1') {
+        throw new Error('simulated DB failure');
+      }
+      return origPrepare(sql);
+    }) as typeof db.prepare;
+    const data = gatherLandingData(db);
+    expect(data.healthStatus).toBe('degraded');
+  });
+});

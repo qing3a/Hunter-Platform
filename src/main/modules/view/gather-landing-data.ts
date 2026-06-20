@@ -271,6 +271,14 @@ export function gatherLandingData(db: DB): LandingData {
     console.error('Hot Skills aggregation failed:', e);
   }
 
+  // 14) DB probe
+  let healthStatus: HealthStatus = 'healthy';
+  try {
+    db.prepare('SELECT 1').get();
+  } catch {
+    healthStatus = 'degraded';
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
@@ -278,6 +286,6 @@ export function gatherLandingData(db: DB): LandingData {
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
     topEmployers, topIndustries, hotSkills,
-    healthStatus: 'healthy',
+    healthStatus,
   };
 }
