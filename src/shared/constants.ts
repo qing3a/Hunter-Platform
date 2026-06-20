@@ -48,3 +48,18 @@ export const BODY_LIMIT_LARGE = '64kb';
 export const IDEMPOTENCY_TTL_HOURS = 24;
 export const API_KEY_PREFIX_LENGTH = 12;  // ⚠️ 必须 ≥ 12 才能用于 auth bucketing（8 字符全相同）
 export const RATE_LIMIT_WINDOW_SECONDS = [1, 60, 3600] as const;
+
+/**
+ * 猎头代雇主建岗场景下的佣金拆账比例。
+ * - recommender: 推荐候选人的猎头（写 recommendations.headhunter_id）
+ * - creator: 创建岗位的猎头（写 jobs.source_headhunter_id）
+ *
+ * 适用规则（见 spec §5.4 角色映射表）：
+ * - 同人（creator == recommender）：creator 拿 100%（share: 1.0）
+ * - 跨人：70% recommender / 30% creator
+ * - creator 覆盖原 referral chain（即使 rec.referrer_headhunter_id 存在，30% 也给 creator）
+ */
+export const COMMISSION_SPLIT_HEADHUNTER_CREATED = {
+  recommender: 0.7,
+  creator: 0.3,
+} as const;
