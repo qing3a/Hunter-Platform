@@ -23,10 +23,9 @@ export function createAdminRouter(db: DB): Router {
   const adminLog = createAdminAdminLogHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
 
-  // Health check (no auth required — useful for ops monitoring)
-  router.get('/ping', (_req, res) => {
-    res.json({ ok: true, data: { message: 'admin pong' } });
-  });
+  // Health check is mounted separately in server.ts (no auth) before the
+  // auth-gated admin router. Keep /ping out of this router to avoid the
+  // auth middleware rejecting it.
 
   // Dashboard
   router.get('/dashboard/stats', (_req, res, next) => {

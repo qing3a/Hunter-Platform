@@ -174,6 +174,11 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/users', createUsersRouter(db));
   app.use('/v1/config', createConfigRouter(db));
   app.use('/v1/market', createMarketRouter(db));
+  // /v1/admin/ping is intentionally public (ops monitoring). Registered BEFORE
+  // the auth-gated admin router so the middleware never sees it.
+  app.get('/v1/admin/ping', (_req, res) => {
+    res.json({ ok: true, data: { message: 'admin pong' } });
+  });
   app.use('/v1/admin', createAdminAuthMiddleware(), createAdminRouter(db));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
