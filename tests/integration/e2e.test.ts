@@ -67,7 +67,7 @@ describe('M1 end-to-end', () => {
 
   it('rejects upload with insufficient quota after exhausting', async () => {
     // 已用 5/200，再发 39 次消耗 5*39=195，第 40 次失败
-    // 留出 1s+ 时间窗避开 20 req/s 限流
+    // 留出 1s+ 时间窗避开 20 req/s 限流（实测：删掉 sleep 后 40 次会撞限流而不是 quota）
     for (let i = 0; i < 39; i++) {
       await request(app)
         .post('/v1/headhunter/candidates')
@@ -94,5 +94,5 @@ describe('M1 end-to-end', () => {
       });
     expect(r.status).toBe(429);
     expect(r.body.error.code).toBe('INSUFFICIENT_QUOTA');
-  });
+  }, 15_000);
 });
