@@ -106,3 +106,35 @@ describe('gatherLandingData - topIndustries', () => {
     ]);
   });
 });
+
+describe('gatherLandingData - hotSkills', () => {
+  let db: ReturnType<typeof openDb>;
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+  });
+
+  it('returns empty array when no open jobs have skills', () => {
+    const data = gatherLandingData(db);
+    expect(data.hotSkills).toEqual([]);
+  });
+
+  it('aggregates skills from open jobs, top 10, sorted DESC', () => {
+    db.exec(`
+      INSERT INTO users (id, user_type, name, contact, status, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
+      VALUES ('u_e1', 'employer', 'Boss Inc', 'e1@e.com', 'active', 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now'));
+      INSERT INTO jobs (id, employer_id, title, status, required_skills_json, created_at, updated_at)
+      VALUES
+        ('j1', 'u_e1', 'J1', 'open', '["React", "TypeScript"]', datetime('now'), datetime('now')),
+        ('j2', 'u_e1', 'J2', 'open', '["React", "Go"]', datetime('now'), datetime('now')),
+        ('j3', 'u_e1', 'J3', 'open', '["TypeScript"]', datetime('now'), datetime('now')),
+        ('j4', 'u_e1', 'J4', 'closed', '["Hidden"]', datetime('now'), datetime('now'));
+    `);
+    const data = gatherLandingData(db);
+    expect(data.hotSkills).toEqual([
+      { skill: 'React', count: 2 },
+      { skill: 'TypeScript', count: 2 },
+      { skill: 'Go', count: 1 },
+    ]);
+  });
+});

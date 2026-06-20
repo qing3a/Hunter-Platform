@@ -251,13 +251,33 @@ export function gatherLandingData(db: DB): LandingData {
     console.error('Top Industries query failed:', e);
   }
 
+  // 13) Hot Skills (JS-side aggregation, top 10, with per-field fallback per spec §6)
+  let hotSkills: SkillCount[] = [];
+  try {
+    const skillJobRows = db.prepare(
+      `SELECT required_skills_json FROM jobs WHERE status = 'open'`
+    ).all() as Array<{ required_skills_json: string | null }>;
+    const skillCounts = new Map<string, number>();
+    for (const r of skillJobRows) {
+      for (const s of safeParseSkills(r.required_skills_json)) {
+        skillCounts.set(s, (skillCounts.get(s) ?? 0) + 1);
+      }
+    }
+    hotSkills = Array.from(skillCounts.entries())
+      .map(([skill, count]) => ({ skill, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  } catch (e) {
+    console.error('Hot Skills aggregation failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
     serverTime: new Date().toISOString(),
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
-    topEmployers, topIndustries, hotSkills: [],
+    topEmployers, topIndustries, hotSkills,
     healthStatus: 'healthy',
   };
 }
