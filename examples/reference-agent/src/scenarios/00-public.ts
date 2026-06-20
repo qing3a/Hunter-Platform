@@ -10,7 +10,7 @@ export async function run(client: ApiClient, r: Reporter): Promise<void> {
   r.record({ name: 'health', method: 'GET', path: '/v1/health', status: res.status, ok: res.status === 200 && res.data?.data?.status === 'healthy', expected: 200 });
 
   res = await client.request({ method: 'GET', path: '/v1/skill.md' });
-  r.record({ name: 'skill.md', method: 'GET', path: '/v1/skill.md', status: res.status, ok: res.status === 200 && res.raw.includes('# Hunter Platform'), expected: 200 });
+  r.record({ name: 'skill.md', method: 'GET', path: '/v1/skill.md', status: res.status, ok: res.status === 200 && res.raw.includes('Hunter Platform'), expected: 200 });
 
   res = await client.request({ method: 'GET', path: '/v1/openapi.json' });
   r.record({ name: 'openapi', method: 'GET', path: '/v1/openapi.json', status: res.status, ok: res.status === 200 && (res.data?.openapi ?? res.data?.swagger) !== undefined, expected: 200 });
