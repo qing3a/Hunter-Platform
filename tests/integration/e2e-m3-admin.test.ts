@@ -18,12 +18,12 @@ describe('M3 E2E: Admin dashboard + actions', () => {
     const { runMigrations } = await import('../../src/main/db/migrations');
     db = openDb(testDb);
     runMigrations(db);
-    const { makeDashboardIpc } = await import('../../src/main/ipc/dashboard');
-    const { createUsersIpc } = await import('../../src/main/ipc/users');
-    const { createWebhooksIpc } = await import('../../src/main/ipc/webhooks');
-    dashboardIpc = makeDashboardIpc(db);
-    usersIpc = createUsersIpc(db);
-    webhooksIpc = createWebhooksIpc(db);
+    const { makeAdminDashboardHandler } = await import('../../src/main/modules/admin/handlers/dashboard');
+    const { createAdminUsersHandler } = await import('../../src/main/modules/admin/handlers/users');
+    const { createAdminWebhooksHandler } = await import('../../src/main/modules/admin/handlers/webhooks');
+    dashboardIpc = makeAdminDashboardHandler(db);
+    usersIpc = createAdminUsersHandler(db);
+    webhooksIpc = createAdminWebhooksHandler(db);
     const users = (await import('../../src/main/db/repositories/users')).createUsersRepo(db);
     const now = '2026-06-17T00:00:00Z';
     users.insert({ id: 'h1', user_type: 'headhunter', name: 'H1', contact: null, agent_endpoint: null, api_key_hash: 'h1', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 50, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
