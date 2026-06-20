@@ -15,21 +15,13 @@ describe('POST /v1/headhunter/jobs', () => {
   beforeEach(setupEnv);
   afterEach(() => { delete process.env.DATABASE_PATH; });
 
-  async function registerEmployer() {
-    const res = await request(createApp()).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E1', contact: 'e@e.com' });
-    return res.body.data;
-  }
-  async function registerHeadhunter() {
-    const res = await request(createApp()).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H1', contact: 'h@h.com' });
-    return res.body.data;
-  }
-
   it('headhunter 创建成功 + employer_id=NULL + source_headhunter_id=me', async () => {
-    const emp = await registerEmployer();
-    const hh = await registerHeadhunter();
-    const res = await request(createApp())
+    const app = createApp();
+    const emp = (await request(app).post('/v1/auth/register')
+      .send({ user_type: 'employer', name: 'E1', contact: 'e@e.com' })).body.data;
+    const hh = (await request(app).post('/v1/auth/register')
+      .send({ user_type: 'headhunter', name: 'H1', contact: 'h@h.com' })).body.data;
+    const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${hh.api_key}`)
       .send({ title: 'T1', industry: '互联网', created_for_employer_id: emp.id });
@@ -41,8 +33,10 @@ describe('POST /v1/headhunter/jobs', () => {
   });
 
   it('不指定 created_for_employer_id 也允许 (任何 employer 可 claim)', async () => {
-    const hh = await registerHeadhunter();
-    const res = await request(createApp())
+    const app = createApp();
+    const hh = (await request(app).post('/v1/auth/register')
+      .send({ user_type: 'headhunter', name: 'H1', contact: 'h@h.com' })).body.data;
+    const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${hh.api_key}`)
       .send({ title: 'T2' });
@@ -51,8 +45,10 @@ describe('POST /v1/headhunter/jobs', () => {
   });
 
   it('employer 调 POST /v1/headhunter/jobs → 403', async () => {
-    const emp = await registerEmployer();
-    const res = await request(createApp())
+    const app = createApp();
+    const emp = (await request(app).post('/v1/auth/register')
+      .send({ user_type: 'employer', name: 'E1', contact: 'e@e.com' })).body.data;
+    const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${emp.api_key}`)
       .send({ title: 'T3' });

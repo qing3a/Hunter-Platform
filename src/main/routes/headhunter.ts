@@ -64,6 +64,19 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
     anonymized_candidate_id: z.string().min(1),
   });
 
+  // v009: 猎头代雇主建岗 (spec §5.1)
+  const CreateJobForEmployerSchema = z.object({
+    title: z.string().min(1).max(200),
+    description: z.string().max(5000).optional(),
+    required_skills: z.array(z.string().min(1).max(100)).max(20).optional(),
+    salary_min: z.number().int().positive().optional(),
+    salary_max: z.number().int().positive().optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+    deadline: z.string().optional(),
+    industry: z.string().max(100).optional(),
+    created_for_employer_id: z.string().min(1).optional(),
+  });
+
   router.post('/recommendations', (req, res, next) => {
     try {
       const parsed = RecommendSchema.safeParse(req.body);
@@ -124,6 +137,24 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       });
 
       res.json({ ok: true, data });
+    } catch (e) { next(e); }
+  });
+
+  // v009: 猎头代雇主建岗 (POST /v1/headhunter/jobs)
+  router.post('/jobs', (req, res, next) => {
+    try {
+      const parsed = CreateJobForEmployerSchema.safeParse(req.body);
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const job = handler.createJobForEmployer((req as typeof req & { user?: User }).user!, parsed.data);
+      res.json({ ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // v009: 列出我创建的 job (GET /v1/headhunter/jobs)
+  router.get('/jobs', (req, res, next) => {
+    try {
+      const list = handler.listMyCreatedJobs((req as typeof req & { user?: User }).user!);
+      res.json({ ok: true, data: list });
     } catch (e) { next(e); }
   });
 
