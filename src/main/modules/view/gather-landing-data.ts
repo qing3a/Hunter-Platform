@@ -137,10 +137,10 @@ export function gatherLandingData(db: DB): LandingData {
     .map(([industry, candidates]) => ({ industry, candidates }))
     .sort((a, b) => b.candidates.length - a.candidates.length);
 
-  // 4) Recent jobs (top 5)
+  // 4) Recent jobs (top 5) — 隐藏未认领的 (v009)
   const jobRows = db.prepare(`
     SELECT title, industry, salary_min, salary_max, required_skills_json
-    FROM jobs WHERE status = 'open'
+    FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL
     ORDER BY created_at DESC LIMIT 5
   `).all() as Array<{
     title: string; industry: string | null;
