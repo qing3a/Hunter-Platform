@@ -10,6 +10,9 @@ import { employerSection } from './employer-section.js';
 import { headhunterSection } from './headhunter-section.js';
 import { candidateSection } from './candidate-section.js';
 import { footer } from './footer.js';
+import { jobCategoryNav } from './job-category-nav.js';
+import { featuredJobs } from './featured-jobs.js';
+import { hotCompanies } from './hot-companies.js';
 import type { LandingData } from '../../gather-landing-data.js';
 
 export function renderLanding(data: LandingData): string {
@@ -18,6 +21,9 @@ export function renderLanding(data: LandingData): string {
       ${nav(data)}
       ${roleAnchors()}
       ${hero(data)}
+      ${jobCategoryNav(data)}
+      ${featuredJobs(data)}
+      ${hotCompanies(data)}
       ${stats(data)}
       ${rankings(data)}
       ${employerSection(data)}
