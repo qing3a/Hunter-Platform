@@ -20,4 +20,7 @@ export const ROUTE_VIEW_MAP: Record<string, ViewMapping> = {
   // Read endpoints that produce user-scoped views
   'GET /v1/users/{id}/status':            { type: 'user-quota', idFrom: 'params.id' },
   'GET /v1/users/{id}/history':           { type: 'audit',     idFrom: 'params.id' },
+
+  // Array response: each element gets its own view_url
+  'GET /v1/employer/talent':              { type: 'candidate', idFrom: 'data[*].anonymized_id' },
 };
