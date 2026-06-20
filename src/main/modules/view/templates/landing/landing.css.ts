@@ -177,4 +177,192 @@ main { max-width: 880px; margin: 0 auto; padding: 24px; }
   .role-anchors { gap: 6px; padding: 12px; }
   .role-anchor { padding: 6px 10px; font-size: 13px; }
 }
+
+/* ===== v4: 职位分类导航 ===== */
+.job-category-nav .job-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.job-category-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 12px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1a202c;
+  transition: all 0.2s;
+}
+.job-category-item:hover {
+  background: #edf2f7;
+  border-color: #14b8a6;
+  transform: translateY(-2px);
+}
+.job-category-emoji {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.job-category-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.job-category-count {
+  font-size: 12px;
+  color: #718096;
+}
+
+/* ===== v4: 精选/热招职位 ===== */
+.featured-jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+.featured-job-card {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.featured-job-card:hover {
+  border-color: #14b8a6;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.1);
+}
+.featured-job-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-urgent {
+  background: #fc8181;
+  color: #ffffff;
+}
+.badge-hot {
+  background: #f6ad55;
+  color: #ffffff;
+}
+.featured-job-salary {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14b8a6;
+  margin-left: auto;
+}
+.featured-job-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 6px;
+}
+.featured-job-meta {
+  font-size: 13px;
+  color: #4a5568;
+  margin-bottom: 10px;
+}
+.featured-job-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.featured-jobs-more {
+  margin-top: 16px;
+  text-align: right;
+  color: #a0aec0;
+  font-size: 13px;
+}
+
+/* ===== v4: 热门企业 ===== */
+.hot-companies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+.hot-company-card {
+  padding: 16px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.hot-company-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.hot-company-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a202c;
+}
+.hot-company-count {
+  font-size: 12px;
+  color: #14b8a6;
+  background: #f0fdfa;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.hot-company-jobs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hot-company-job {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #4a5568;
+}
+.hot-company-job-title {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hot-company-job-salary {
+  color: #14b8a6;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.hot-company-more {
+  margin-top: 12px;
+  text-align: right;
+  color: #a0aec0;
+  font-size: 12px;
+}
+
+/* ===== v4: 响应式 ===== */
+@media (max-width: 1023px) {
+  .hot-companies-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  .featured-jobs-grid {
+    grid-template-columns: 1fr;
+  }
+  .hot-companies-grid {
+    grid-template-columns: 1fr;
+  }
+  .job-category-nav .job-category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 `.trim();
