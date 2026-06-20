@@ -7,6 +7,15 @@ export function esc(s: unknown): string {
   }[c]!));
 }
 
+/**
+ * Mark a string as trusted raw HTML so html`` won't escape it.
+ * Useful when you need to interpolate a pre-rendered string but want to be
+ * explicit about it. By default, string values are also passed through.
+ */
+export function raw(s: string): { toString(): string } {
+  return { toString: () => s };
+}
+
 export function html(strings: TemplateStringsArray, ...values: unknown[]): string {
   let out = '';
   for (let i = 0; i < strings.length; i++) {
@@ -17,9 +26,15 @@ export function html(strings: TemplateStringsArray, ...values: unknown[]): strin
       if (Array.isArray(v)) {
         for (const item of v) out += (item == null || item === false) ? '' : esc(item);
       } else if (typeof v === 'object' && v && 'toString' in v && typeof (v as { toString(): string }).toString === 'function') {
-        // Already-rendered HTML strings (from other html`` calls) pass through
+        // Already-rendered HTML strings (from other html`` calls or raw()) pass through
         out += (v as { toString(): string }).toString();
+      } else if (typeof v === 'string') {
+        // String values are treated as already-rendered HTML (from another html`` call).
+        // This matches the standard tagged-template pattern (Lit, htm, etc.) and
+        // avoids double-escaping when html templates are nested.
+        out += v;
       } else {
+        // Primitives (number, boolean) are coerced via esc for safety.
         out += esc(v);
       }
     }

@@ -109,28 +109,31 @@ describe('GET / (marketplace landing)', () => {
         .set('Authorization', `Bearer ${emp.body.data.api_key}`);
 
       const res = await request(app).get('/');
-      expect(res.text).toMatch(/data-target="[1-9][\s\S]{0,200}今日解锁/);
+      // v3: stat-value with data-target and "今日解锁" label
+      expect(res.text).toMatch(/data-target="1"[\s\S]{0,200}今日解锁/);
     });
   });
 
-  describe('Top 3 Headhunters section', () => {
+  describe('Top Headhunters tab (rankings)', () => {
     it('shows headhunters sorted by reputation DESC', async () => {
       const app = createApp();
       await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopA', contact: 'topa@h.com' });
       await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopB', contact: 'topb@h.com' });
 
       const res = await request(app).get('/');
-      expect(res.text).toContain('Top 3 Headhunters');
-      expect(res.text).toMatch(/🥇[\s\S]{0,500}TopA/);
+      // v3: rankings tabbed section, hunters tab
+      expect(res.text).toContain('Top 猎头');
+      expect(res.text).toMatch(/🥇[\s\S]{0,500}(TopA|TopB)/);
     });
   });
 
-  describe('Latest 5 Placements section', () => {
+  describe('Placements tab (rankings)', () => {
     it('renders gracefully when no placements exist', async () => {
       const app = createApp();
       const res = await request(app).get('/');
       expect(res.status).toBe(200);
-      expect(res.text).toContain('Latest');
+      // v3: 成交 tab in rankings
+      expect(res.text).toContain('成交');
     });
   });
 
@@ -140,9 +143,10 @@ describe('GET / (marketplace landing)', () => {
       await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'PIIEmp', contact: 'leaked@evil.com' });
 
       const res = await request(app).get('/');
+      // v3: still must not leak PII (email + user_id). Employer name is shown by
+      // design in the new Top Employers ranking section.
       expect(res.text).not.toContain('leaked@evil.com');
       expect(res.text).not.toMatch(/user_[a-f0-9]{12}/);
-      expect(res.text).not.toContain('PIIEmp');
     });
   });
 

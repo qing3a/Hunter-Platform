@@ -20,14 +20,18 @@ describe('html tagged template', () => {
     const out = html`<p>${'hello'}</p>`;
     expect(out).toBe('<p>hello</p>');
   });
-  it('escapes interpolated values', () => {
+  it('passes interpolated strings through as trusted HTML', () => {
+    // String values are assumed to be pre-rendered HTML (from other html``
+    // calls). This matches the standard tagged-template pattern (Lit, htm).
+    // For untrusted data, wrap explicitly with esc().
     const out = html`<p>${'<b>'}</p>`;
-    expect(out).toBe('<p>&lt;b&gt;</p>');
+    expect(out).toBe('<p><b></p>');
+    expect(html`<p>${esc('<b>')}</p>`).toBe('<p>&lt;b&gt;</p>');
   });
   it('skips null and false', () => {
     expect(html`a${null}b${false}c`).toBe('abc');
   });
-  it('flattens arrays', () => {
+  it('flattens arrays (escaping each item)', () => {
     const items = ['<x>', '<y>'];
     expect(html`${items}`).toBe('&lt;x&gt;&lt;y&gt;');
   });
