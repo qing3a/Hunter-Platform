@@ -29,7 +29,6 @@ export async function main(): Promise<void> {
   const env = loadEnv();
   console.log('[hunter-platform] starting in API-only mode (HTTP only, no desktop client)');
   const server = await startApiServer({ port: env.PORT });
-  console.log(`Hunter platform API listening on port ${env.PORT}`);
 
   const shutdown = (signal: string) => {
     console.log(`[hunter-platform] received ${signal}, shutting down...`);
