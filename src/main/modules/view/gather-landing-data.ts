@@ -72,6 +72,19 @@ export interface FeaturedJob {
   created_at: string;
 }
 
+export interface HotCompanyRecentJob {
+  title: string;
+  salary_min: number | null;
+  salary_max: number | null;
+}
+
+export interface HotCompany {
+  id: string;
+  name: string;
+  openJobCount: number;
+  recentJobs: HotCompanyRecentJob[];
+}
+
 export type HealthStatus = 'healthy' | 'degraded' | 'down';
 
 export interface LandingData {
@@ -93,6 +106,7 @@ export interface LandingData {
   hotSkills: SkillCount[];
   industryNav: IndustryNavItem[];
   featuredJobs: FeaturedJob[];
+  hotCompanies: HotCompany[];
   healthStatus: HealthStatus;
 }
 
@@ -351,6 +365,41 @@ export function gatherLandingData(db: DB): LandingData {
     console.error('Featured jobs query failed:', e);
   }
 
+  // 17) Hot companies (v4 SQL C) — top 4 employers by open job count, with their 3 most recent jobs
+  let hotCompanies: HotCompany[] = [];
+  try {
+    const topRows = db.prepare(`
+      SELECT u.id, u.name, COUNT(j.id) AS open_job_count
+      FROM users u
+      INNER JOIN jobs j ON j.employer_id = u.id
+      WHERE u.user_type = 'employer'
+        AND u.status = 'active'
+        AND j.status = 'open'
+      GROUP BY u.id
+      ORDER BY open_job_count DESC
+      LIMIT 4
+    `).all() as Array<{ id: string; name: string; open_job_count: number }>;
+
+    const recentStmt = db.prepare(`
+      SELECT title, salary_min, salary_max
+      FROM jobs
+      WHERE employer_id = ? AND status = 'open'
+      ORDER BY created_at DESC
+      LIMIT 3
+    `);
+
+    hotCompanies = topRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      openJobCount: r.open_job_count,
+      recentJobs: (recentStmt.all(r.id) as Array<{
+        title: string; salary_min: number | null; salary_max: number | null;
+      }>),
+    }));
+  } catch (e) {
+    console.error('Hot companies query failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
@@ -358,7 +407,7 @@ export function gatherLandingData(db: DB): LandingData {
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
     topEmployers, topIndustries, hotSkills,
-    industryNav, featuredJobs,
+    industryNav, featuredJobs, hotCompanies,
     healthStatus,
   };
 }
