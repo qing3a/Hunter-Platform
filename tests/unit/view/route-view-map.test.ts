@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { ROUTE_VIEW_MAP } from '../../../src/main/modules/view/route-view-map';
 
 describe('route-view-map config', () => {
-  it('contains all 8 expected mappings', () => {
+  it('contains all 9 expected mappings', () => {
     expect(Object.keys(ROUTE_VIEW_MAP).sort()).toEqual([
+      'GET /v1/employer/talent',
       'GET /v1/users/{id}/history',
       'GET /v1/users/{id}/status',
       'POST /v1/candidate/recommendations/{id}/approve-unlock',
