@@ -1,6 +1,6 @@
 import type { DB } from '../../db/connection.js';
 import { createUsersRepo } from '../../db/repositories/users.js';
-import { createRateLimit } from '../rate-limit/bucket.js';
+import { createRegisterIpRateLimiter } from '../rate-limit/register-limiter.js';
 import { generateApiKey } from '../auth/api-key.js';
 import { QUOTA_PER_DAY } from '../../../shared/constants.js';
 import type { UserType, User } from '../../../shared/types.js';
@@ -9,14 +9,14 @@ import { randomUUID } from 'node:crypto';
 
 export function createRegisterHandler(db: DB) {
   const users = createUsersRepo(db);
-  const rl = createRateLimit(db);
+  const ipLimiter = createRegisterIpRateLimiter(db);
   // F3: contact uniqueness is per (user_type, contact) — the same email can
   // be registered as both a candidate and an employer. We still re-use the
   // same contact within the same role for 24h (warm-up cooldown).
   const findByContactInRoleStmt = db.prepare(
     "SELECT id FROM users WHERE user_type = ? AND contact = ? AND created_at > datetime('now', '-1 day') AND status != 'deleted'"
   );
-  // Cross-role collision: only meaningful when the contact is in active use
+  // Cross-role collision: only meaningful if the contact is in active use
   // (i.e. recent) — old deactivated accounts shouldn't block fresh signups.
   const findActiveContactAnyRoleStmt = db.prepare(
     "SELECT user_type FROM users WHERE contact = ? AND status = 'active' LIMIT 1"
@@ -24,11 +24,8 @@ export function createRegisterHandler(db: DB) {
 
   return {
     handle(userType: UserType, name: string, contact: string | undefined, agentEndpoint: string | undefined, clientIp: string, isProduction: boolean): User & { api_key: string } {
-      // 1. IP 限流：1h 内同 IP 最多 5 次（除非 RATE_LIMIT_ENABLED=false）
-      if (process.env.RATE_LIMIT_ENABLED !== 'false') {
-        const rlResult = rl.check(`ip:${clientIp}`, [{ windowSeconds: 3600, limit: 5 }]);
-        if (!rlResult.allowed) throw Errors.rateLimited('IP register rate limit exceeded');
-      }
+      // 1. IP rate limit (5/hour/IP, kill switch via RATE_LIMIT_ENABLED=false)
+      ipLimiter.checkOrThrow(clientIp);
 
       // 2. contact uniqueness
       if (contact) {
