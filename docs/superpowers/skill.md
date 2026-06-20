@@ -1087,6 +1087,8 @@ rec = post('/v1/headhunter/recommendations', {
 
 > ⚠️ **不返回** name / phone / email 等 PII——这些必须通过 unlock 流程异步推送。
 
+> 💡 **每个元素自动带 `view_url`**：数组中每个 `AnonymizedCandidate` 元素都会注入一个单次有效的 `view_url`，agent 可直接访问预览脱敏画像，无需再调 `POST /v1/views/candidate/{id}`。
+
 ### 15.3 query 参数（v1.2 起共 7 个）
 
 ✅ **query 参数共 7 个**（v1.2 新增 `min_salary` / `max_salary`）：
