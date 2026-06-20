@@ -92,7 +92,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 | Method | Path | 描述 | 配额 |
 |--------|------|------|------|
 | POST | `/v1/auth/register` | 注册（三角色之一） | 0 |
-| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key 24h 内仍可用） | 1 |
+| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key 24h 内仍可用）。响应字段：`data.new_api_key`（**不是** `api_key`） | 1 |
 | GET  | `/v1/users/{id}/status` | 用户状态（配额/待办） | 1 |
 | GET  | `/v1/users/{id}/history` | 操作历史（支持 `?limit= ≤200` 和 `?since=ISO`） | 1 |
 | GET  | `/v1/health` | 健康检查 | 0 |
@@ -263,7 +263,7 @@ unlocked ──placement_created──▶ placed (终态)
 | `INSUFFICIENT_QUOTA` | 429 | 每日配额耗尽 | 等 UTC 0 自动重置 |
 | `RATE_LIMITED` | 429 | 突发限流（1s/1min/1h 桶） | 严格按 `Retry-After` 等待 |
 | `DUPLICATE_REQUEST` | 409 | 重复推荐/重复请求 | 换 job_id 或候选人 ID |
-| `CONTACT_TAKEN` | 409 | 同 role 24h 内 contact 重复 / 跨 role 已被 active 账号占用 | 换 contact 或等待 24h |
+| `CONTACT_TAKEN` | 409 | **同 role 24h 内** contact 重复 / **跨 role 立即**被 active 账号占用 | 同 role：等 24h 或换 contact；跨 role：**必须换 contact**（无宽限期） |
 | `NOT_IMPLEMENTED` | 501 | 端点占位（v2 启用） | 不要 retry，等版本升级 |
 | `INVALID_CHARSET` | 400 | 请求体非 UTF-8（GBK 等） | **重发为 UTF-8**（见 §4.3）|
 | `INVALID_CONTENT_TYPE` | 400 | Content-Type 非 application/json | 加正确的 Content-Type |
@@ -338,7 +338,11 @@ curl -X POST url --data-binary @req.json -H "Content-Type: application/json; cha
 | 浏览 / 列表类 | 1 |
 | 注册 / 健康检查 | 0 |
 
-UTC 0 自动重置（`/v1/cron` 任务）。
+UTC 0 自动重置（内部 `node-cron` 任务，**无 HTTP 端点**）。
+
+> ⚠️ **注册后第 1 个 24h 的边界情况**：`quota_reset_at` 初始值 = `created_at + 24h`（滚动 24h）。
+> 经过第 1 个 UTC 0 后，cron 任务把 `quota_reset_at` 重置为下一个 UTC 0 点，与其他用户对齐。
+> `GET /v1/users/{id}/status` 始终返回当前 `quota_reset_at`，agent 应当信任该字段而非本地估算。
 
 ### 5.3 突发限流（sliding-window-counter）
 
