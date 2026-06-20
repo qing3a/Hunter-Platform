@@ -214,13 +214,32 @@ export function gatherLandingData(db: DB): LandingData {
     at: relativeTime(r.updated_at),
   }));
 
+  // 11) Top 3 employers (with per-field fallback per spec §6)
+  let topEmployers: EmployerRanking[] = [];
+  try {
+    const topEmployerRows = db.prepare(`
+      SELECT u.id, u.name, COUNT(r.id) AS rec_count
+      FROM users u
+      LEFT JOIN recommendations r ON r.employer_id = u.id
+      WHERE u.user_type = 'employer' AND u.status = 'active'
+      GROUP BY u.id
+      ORDER BY rec_count DESC, COALESCE(u.reputation, 0) DESC
+      LIMIT 3
+    `).all() as Array<{ id: string; name: string; rec_count: number }>;
+    topEmployers = topEmployerRows.map((r) => ({
+      id: r.id, name: r.name, recCount: r.rec_count,
+    }));
+  } catch (e) {
+    console.error('Top Employers query failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
     serverTime: new Date().toISOString(),
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
-    topEmployers: [], topIndustries: [], hotSkills: [],
+    topEmployers, topIndustries: [], hotSkills: [],
     healthStatus: 'healthy',
   };
 }

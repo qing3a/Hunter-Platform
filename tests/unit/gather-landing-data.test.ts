@@ -29,3 +29,45 @@ describe('gatherLandingData - basic fields', () => {
     expect(data.serverTime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 });
+
+describe('gatherLandingData - topEmployers', () => {
+  let db: ReturnType<typeof openDb>;
+  beforeEach(() => {
+    db = openDb(':memory:');
+    runMigrations(db);
+  });
+
+  it('returns empty array when no employers exist', () => {
+    const data = gatherLandingData(db);
+    expect(data.topEmployers).toEqual([]);
+  });
+
+  it('ranks employers by recommendation count DESC', () => {
+    // Setup: create 2 employers + headhunter + job + private candidate + anonymized candidate + recommendations
+    db.exec(`
+      INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
+      VALUES
+        ('u_cand', 'candidate', 'C1', 'c@c.com', 'active', 50, 'hash_c1', 'prefix_c1', datetime('now'), datetime('now'), datetime('now')),
+        ('u_e1', 'employer', 'Boss Inc', 'e1@e.com', 'active', 80, 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now')),
+        ('u_e2', 'employer', 'Acme', 'e2@e.com', 'active', 90, 'hash_e2', 'prefix_e2', datetime('now'), datetime('now'), datetime('now')),
+        ('u_h1', 'headhunter', 'HH1', 'h@h.com', 'active', 70, 'hash_h1', 'prefix_h1', datetime('now'), datetime('now'), datetime('now'));
+      INSERT INTO candidates_private (id, headhunter_id, candidate_user_id, name_enc, phone_enc, email_enc, created_at, updated_at)
+      VALUES ('cp1', 'u_h1', 'u_cand', 'n', 'p', 'e', datetime('now'), datetime('now'));
+      INSERT INTO candidates_anonymized (id, source_private_id, source_headhunter_id, is_public_pool, unlock_status, created_at, updated_at)
+      VALUES ('c1', 'cp1', 'u_h1', 0, 'locked', datetime('now'), datetime('now'));
+      INSERT INTO jobs (id, employer_id, title, status, created_at, updated_at)
+      VALUES ('j1', 'u_e1', 'J1', 'open', datetime('now'), datetime('now')),
+             ('j2', 'u_e2', 'J2', 'open', datetime('now'), datetime('now')),
+             ('j3', 'u_e2', 'J3', 'open', datetime('now'), datetime('now'));
+      INSERT INTO recommendations (id, job_id, anonymized_candidate_id, employer_id, headhunter_id, status, created_at, updated_at)
+      VALUES ('r1', 'j1', 'c1', 'u_e1', 'u_h1', 'pending', datetime('now'), datetime('now')),
+             ('r2', 'j2', 'c1', 'u_e2', 'u_h1', 'pending', datetime('now'), datetime('now')),
+             ('r3', 'j3', 'c1', 'u_e2', 'u_h1', 'pending', datetime('now'), datetime('now'));
+    `);
+    const data = gatherLandingData(db);
+    expect(data.topEmployers).toEqual([
+      { id: 'u_e2', name: 'Acme', recCount: 2 },
+      { id: 'u_e1', name: 'Boss Inc', recCount: 1 },
+    ]);
+  });
+});
