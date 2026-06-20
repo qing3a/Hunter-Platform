@@ -45,9 +45,23 @@ export function createCommissionHandler(db: DB) {
       const job = jobs.findById(input.job_id);
       if (!job || job.employer_id !== employer.id) throw Errors.forbidden('Not your job');
 
+      // v009: 猎头代雇主建岗场景下, 70% 给推荐者, 30% 给建岗猎头
+      // 同人 (creator == recommender) 时 100% 给本人
+      // creator 覆盖原 referral chain (即使 rec.referrer_headhunter_id 存在)
+      let referrerForCommission: string | null = null;
+      if (job.source_headhunter_id !== null) {
+        if (job.source_headhunter_id === rec.headhunter_id) {
+          referrerForCommission = null;  // 同人: 100%
+        } else {
+          referrerForCommission = job.source_headhunter_id;  // 跨人: 30% 给建岗者
+        }
+      } else {
+        referrerForCommission = rec.referrer_headhunter_id;  // 雇主直发: 老逻辑
+      }
+
       const commission = calculateCommission({
         annual_salary: input.annual_salary,
-        referrer_headhunter_id: rec.referrer_headhunter_id,
+        referrer_headhunter_id: referrerForCommission,
       });
 
       const now = new Date().toISOString();
@@ -56,7 +70,7 @@ export function createCommissionHandler(db: DB) {
         job_id: input.job_id,
         candidate_user_id: findCandidateUserId(input.anonymized_candidate_id),
         primary_headhunter_id: rec.headhunter_id,
-        referrer_headhunter_id: rec.referrer_headhunter_id,
+        referrer_headhunter_id: referrerForCommission,
         anonymized_candidate_id: input.anonymized_candidate_id,
         annual_salary: input.annual_salary,
         platform_fee: commission.platform_fee,
