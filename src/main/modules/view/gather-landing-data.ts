@@ -233,13 +233,31 @@ export function gatherLandingData(db: DB): LandingData {
     console.error('Top Employers query failed:', e);
   }
 
+  // 12) Top 3 industries (with per-field fallback per spec §6)
+  let topIndustries: IndustryRanking[] = [];
+  try {
+    const topIndustryRows = db.prepare(`
+      SELECT industry, COUNT(*) AS cand_count
+      FROM candidates_anonymized
+      WHERE is_public_pool = 1 AND industry IS NOT NULL
+      GROUP BY industry
+      ORDER BY cand_count DESC
+      LIMIT 3
+    `).all() as Array<{ industry: string; cand_count: number }>;
+    topIndustries = topIndustryRows.map((r) => ({
+      industry: r.industry, candCount: r.cand_count,
+    }));
+  } catch (e) {
+    console.error('Top Industries query failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
     serverTime: new Date().toISOString(),
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
-    topEmployers, topIndustries: [], hotSkills: [],
+    topEmployers, topIndustries, hotSkills: [],
     healthStatus: 'healthy',
   };
 }
