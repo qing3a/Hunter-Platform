@@ -57,6 +57,8 @@ export type ApiResponse<T> =
   | { ok: false; error: { code: ErrorCode; message: string; details?: Record<string, unknown> } };
 
 export interface AnonymizedCandidate {
+  /** Optional: present on persisted candidates, absent on freshly-desensitized pre-insert values. */
+  anonymized_id?: string;
   industry: string | null;
   title_level: string | null;
   years_experience: number | null;
