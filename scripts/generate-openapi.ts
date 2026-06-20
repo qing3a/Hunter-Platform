@@ -128,8 +128,16 @@ function loadExistingOpenApi(): any {
   return JSON.parse(fs.readFileSync(OPENAPI_PATH, 'utf8'));
 }
 
-function main(): void {
-  const isCheck = process.argv.includes('--check');
+export interface CheckResult {
+  ok: boolean;
+  scannedCount: number;
+  declaredCount: number;
+  dangling: string[];
+  /** Routes scanned in code but not yet declared in openapi.json. Forward coverage gap. */
+  forwardMissing: string[];
+}
+
+export function runCheck(): CheckResult {
   const scanned = scanRoutesDir();
   for (const d of DIRECT_MOUNTS) {
     scanned.push({ method: d.method, fullPath: d.path, source: `server.ts:${d.path}` });
@@ -145,35 +153,61 @@ function main(): void {
     unique.push(r);
   }
 
+  // Reverse-direction check (CRITICAL): every path declared in openapi.json
+  // must still exist in code. This catches "dangling" specs where a route
+  // was removed/renamed in code but the openapi.json wasn't updated.
+  const spec = loadExistingOpenApi();
+  const declared = new Set<string>();
+  for (const [p, ops] of Object.entries(spec.paths ?? {})) {
+    for (const m of Object.keys(ops as any)) {
+      declared.add(`${m.toUpperCase()} ${p}`);
+    }
+  }
+  const scannedSet = new Set<string>();
+  for (const r of unique) scannedSet.add(`${r.method.toUpperCase()} ${r.fullPath}`);
+
+  const dangling = [...declared].filter((d) => !scannedSet.has(d) && !KNOWN_LEGACY_PATHS.has(d));
+
+  // Forward coverage: routes in code but not in spec (informational; tracked
+  // in skill.md §C). Not a hard failure — newly added routes take time to document.
+  const forwardMissing = unique
+    .map((r) => `${r.method.toUpperCase()} ${r.fullPath}`)
+    .filter((k) => !declared.has(k));
+
+  return {
+    ok: dangling.length === 0,
+    scannedCount: unique.length,
+    declaredCount: declared.size,
+    dangling,
+    forwardMissing,
+  };
+}
+
+function main(): void {
+  const isCheck = process.argv.includes('--check');
+  const scanned = scanRoutesDir();
+  for (const d of DIRECT_MOUNTS) {
+    scanned.push({ method: d.method, fullPath: d.path, source: `server.ts:${d.path}` });
+  }
+  const seen = new Set<string>();
+  const unique: ScannedRoute[] = [];
+  for (const r of scanned) {
+    const key = `${r.method.toUpperCase()} ${r.fullPath}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(r);
+  }
   console.log(`Scanned ${unique.length} unique routes (${DIRECT_MOUNTS.length} direct mounts + ${scanned.length - DIRECT_MOUNTS.length} from router files).`);
 
   if (isCheck) {
-    // Reverse-direction check (CRITICAL): every path declared in openapi.json
-    // must still exist in code. This catches "dangling" specs where a route
-    // was removed/renamed in code but the openapi.json wasn't updated.
-    //
-    // The forward direction (code → spec) is NOT enforced here, because the
-    // hard constraint says we must not modify openapi.json schema content.
-    // Newly added routes that aren't yet documented are tracked in
-    // skill.md §C ("未声明的端点") instead.
-    const spec = loadExistingOpenApi();
-    const declared = new Set<string>();
-    for (const [p, ops] of Object.entries(spec.paths ?? {})) {
-      for (const m of Object.keys(ops as any)) {
-        declared.add(`${m.toUpperCase()} ${p}`);
-      }
-    }
-    const scanned = new Set<string>();
-    for (const r of unique) scanned.add(`${r.method.toUpperCase()} ${r.fullPath}`);
-
-    const dangling = [...declared].filter((d) => !scanned.has(d) && !KNOWN_LEGACY_PATHS.has(d));
-    if (dangling.length === 0) {
-      console.log(`✅ No dangling paths in openapi.json (all ${declared.size} declared routes exist in code).`);
-      console.log(`ℹ️  Forward coverage: ${unique.length - declared.size > 0 ? unique.length - declared.size : 0} routes scanned but not yet in openapi.json (tracked in skill.md §C).`);
+    const result = runCheck();
+    if (result.ok) {
+      console.log(`✅ No dangling paths in openapi.json (all ${result.declaredCount} declared routes exist in code).`);
+      console.log(`ℹ️  Forward coverage: ${result.forwardMissing.length} routes scanned but not yet in openapi.json (tracked in skill.md §C).`);
       process.exit(0);
     } else {
-      console.error(`❌ ${dangling.length} paths in openapi.json are NOT in code (dangling):`);
-      for (const d of dangling) console.error(`   ${d}`);
+      console.error(`❌ ${result.dangling.length} paths in openapi.json are NOT in code (dangling):`);
+      for (const d of result.dangling) console.error(`   ${d}`);
       process.exit(1);
     }
   }
