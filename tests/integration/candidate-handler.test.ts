@@ -25,7 +25,7 @@ describe('candidate handler', () => {
     jobs = createJobsRepo(db);
     recs = createRecommendationsRepo(db);
     audit = createUnlockAuditLogRepo(db);
-    candidate = createCandidateHandler(db);
+    candidate = createCandidateHandler(db, Buffer.alloc(32, 1));
     const now = '2026-06-17T00:00:00Z';
     users.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });

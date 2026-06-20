@@ -4,7 +4,7 @@ import path from 'node:path';
 
 describe('commission handler', () => {
   const testDb = path.join(__dirname, '../../tmp/comm-handler.db');
-  let db: any, users: any, priv: any, anon: any, jobs: any, recs: any, places: any, handler: any;
+  let db: any, users: any, priv: any, anon: any, jobs: any, recs: any, places: any, handler: any, decrypt: any;
 
   beforeEach(async () => {
     try { fs.unlinkSync(testDb); } catch {}
@@ -19,13 +19,15 @@ describe('commission handler', () => {
     const { createRecommendationsRepo } = await import('../../src/main/db/repositories/recommendations');
     const { createPlacementsRepo } = await import('../../src/main/db/repositories/placements');
     const { createCommissionHandler } = await import('../../src/main/modules/commission/handler');
+    const _decrypt = await import('../../src/main/modules/crypto/aes-gcm');
+    decrypt = _decrypt.decrypt;
     users = createUsersRepo(db);
     priv = createCandidatesPrivateRepo(db);
     anon = createCandidatesAnonymizedRepo(db);
     jobs = createJobsRepo(db);
     recs = createRecommendationsRepo(db);
     places = createPlacementsRepo(db);
-    handler = createCommissionHandler(db);
+    handler = createCommissionHandler(db, Buffer.alloc(32, 1));
     const now = '2026-06-17T00:00:00Z';
     users.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
@@ -72,7 +74,7 @@ describe('commission handler', () => {
       "SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h1'"
     ).all() as any[];
     expect(rows.length).toBe(1);
-    const payload = JSON.parse(Buffer.from(rows[0].payload_enc, 'base64').toString('utf8'));
+    const payload = JSON.parse(decrypt(Buffer.alloc(32, 1), rows[0].payload_enc));
     expect(payload.placement_id).toBe(p.id);
     expect(payload.job_id).toBe('j1');
     expect(payload.anonymized_candidate_id).toBe('ca_1');

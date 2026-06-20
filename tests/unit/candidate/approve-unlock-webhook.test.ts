@@ -28,7 +28,7 @@ describe('candidate approveUnlock webhook', () => {
     recs = createRecommendationsRepo(db);
     const audit = createUnlockAuditLogRepo(db);
     webhooks = createWebhookQueueRepo(db);
-    candidate = createCandidateHandler(db);
+    candidate = createCandidateHandler(db, Buffer.alloc(32, 1));
 
     users.insert({ id: 'emp_1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-20T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'hh_1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-20T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
