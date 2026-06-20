@@ -28,9 +28,10 @@ CREATE TABLE jobs_new (
   created_at               TEXT NOT NULL,
   updated_at               TEXT NOT NULL,
   -- 一致性约束: 要么是雇主直发，要么是猎头代发
+  -- (spec 2026-06-20 §1 语义: 不会"雇主直发+source=猎头", 也不会"猎头建+雇主ID空")
   CHECK (
     (source_headhunter_id IS NULL AND employer_id IS NOT NULL) OR
-    (source_headhunter_id IS NOT NULL)
+    (source_headhunter_id IS NOT NULL AND employer_id IS NULL)
   )
 );
 
