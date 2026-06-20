@@ -42,6 +42,7 @@ const MOUNT_PREFIXES: Record<string, string | null> = {
   'headhunter.ts': '/v1/headhunter',
   'employer.ts':   '/v1/employer',
   'candidate.ts':  '/v1/candidate',
+  'admin.ts':      '/v1/admin',
   'landing.ts':    null,
 };
 
@@ -57,6 +58,7 @@ const EXTRA_ROUTE_FILES: Record<string, string> = {
 // Each entry: { method, path, description }.
 const DIRECT_MOUNTS: Array<{ method: string; path: string; description: string }> = [
   { method: 'get',  path: '/v1/health',       description: '健康检查' },
+  { method: 'get',  path: '/v1/admin/ping',   description: 'Admin 健康检查（无需鉴权）' },
   { method: 'get',  path: '/metrics',         description: 'Prometheus 指标（无 /v1 前缀）' },
   { method: 'get',  path: '/v1/metrics',      description: 'Prometheus 指标' },
   { method: 'get',  path: '/v1/skill.md',     description: '本文档（Markdown）' },

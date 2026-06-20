@@ -21,6 +21,11 @@
         "type": "http",
         "scheme": "bearer",
         "description": "API key issued by POST /v1/auth/register. Pass as `Authorization: Bearer hp_live_...`."
+      },
+      "AdminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Admin shared password (ADMIN_PASSWORD env var, bcrypt-hashed server-side). Pass as `Authorization: Bearer <ADMIN_PASSWORD>`."
       }
     },
     "schemas": {
@@ -293,6 +298,281 @@
           "200": {
             "description": "ok"
           }
+        }
+      }
+    },
+    "/v1/admin/ping": {
+      "get": {
+        "summary": "Admin health check (public)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "ok"
+          }
+        }
+      }
+    },
+    "/v1/admin/dashboard/stats": {
+      "get": {
+        "summary": "Platform dashboard statistics",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "Dashboard stats" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/users": {
+      "get": {
+        "summary": "List users (admin)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "user_type", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "User list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/users/{id}/suspend": {
+      "post": {
+        "summary": "Suspend user",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": { "reason": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User suspended" },
+          "400": { "description": "Invalid params" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/v1/admin/users/{id}/unsuspend": {
+      "post": {
+        "summary": "Unsuspend user",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "User unsuspended" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/v1/admin/users/{id}/adjust-quota": {
+      "post": {
+        "summary": "Adjust user quota",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["new_quota"],
+                "properties": { "new_quota": { "type": "integer", "minimum": 0, "maximum": 100000 } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Quota adjusted" },
+          "400": { "description": "Invalid params" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/v1/admin/candidates": {
+      "get": {
+        "summary": "List candidates (admin)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "in_pool", "in": "query", "schema": { "type": "boolean" } },
+          { "name": "unlock_status", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Candidate list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/candidates/{id}/remove-from-pool": {
+      "post": {
+        "summary": "Remove candidate from public pool",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Removed" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Candidate not found" }
+        }
+      }
+    },
+    "/v1/admin/audit": {
+      "get": {
+        "summary": "List unlock audit log entries",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "actor_user_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "recommendation_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Audit list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/webhooks/dead-letter": {
+      "get": {
+        "summary": "List dead-letter webhook deliveries",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Dead-letter list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/webhooks/{id}/retry": {
+      "post": {
+        "summary": "Retry a dead-letter webhook",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": { "description": "Retry queued" },
+          "400": { "description": "Invalid params" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Delivery not found" },
+          "409": { "description": "Invalid state" }
+        }
+      }
+    },
+    "/v1/admin/rate-limit/buckets": {
+      "get": {
+        "summary": "List rate-limit buckets",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "user_id", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Bucket list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/rate-limit/users/{id}/clear": {
+      "post": {
+        "summary": "Clear rate-limit buckets for a user",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Buckets cleared" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/config": {
+      "get": {
+        "summary": "Read platform config (desensitization + commission)",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "Config object" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/config/{key}": {
+      "put": {
+        "summary": "Update a config key (desensitization|commission)",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "key", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Saved" },
+          "400": { "description": "Unknown key" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/placements": {
+      "get": {
+        "summary": "List placements",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending_payment", "paid", "cancelled"] } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Placement list" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/placements/{id}/mark-paid": {
+      "post": {
+        "summary": "Mark placement as paid",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Marked paid" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Placement not found" }
+        }
+      }
+    },
+    "/v1/admin/placements/{id}/cancel": {
+      "post": {
+        "summary": "Cancel a placement",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Cancelled" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Placement not found" },
+          "409": { "description": "Invalid state" }
+        }
+      }
+    },
+    "/v1/admin/placements/summary": {
+      "get": {
+        "summary": "Placement summary stats",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "Summary" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/admin-log": {
+      "get": {
+        "summary": "List admin action log entries",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Admin log list" },
+          "401": { "description": "Unauthorized" }
         }
       }
     },
