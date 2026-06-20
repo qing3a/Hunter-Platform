@@ -27,6 +27,9 @@ describe('gatherLandingData - basic fields', () => {
     expect(data.uptimePercent).toBe(99.9);
     expect(data.healthStatus).toBe('healthy');
     expect(data.serverTime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(data.industryNav).toEqual([]);
+    expect(data.featuredJobs).toEqual([]);
+    expect(data.hotCompanies).toEqual([]);
   });
 });
 
