@@ -15,6 +15,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 6, description: 'users.api_key_expires_at column for rotate-key grace period', file: 'migrations/v006_api_key_grace_period.sql' },
   { version: 7, description: 'users prev_api_key_* slot for rotated-key grace period', file: 'migrations/v007_grace_period_slot.sql' },
   { version: 8, description: 'GDPR soft-delete: relax users.name/contact and candidates_private PII columns to nullable', file: 'migrations/v008_gdpr_nullable.sql' },
+  { version: 9, description: 'Headhunter-created jobs: jobs.employer_id nullable + source_headhunter_id/created_for_employer_id + CHECK constraint', file: 'migrations/v009_headhunter_created_jobs.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
