@@ -1853,6 +1853,284 @@
           "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
+    },
+    "/v1/headhunter/jobs": {
+      "post": {
+        "summary": "Create a job on behalf of an employer (headhunter-only)",
+        "description": "猎头为雇主建岗。job 入库后 employer_id=NULL, source_headhunter_id=caller, status=open,priority=normal。雇主事后通过 GET /v1/employer/pending-claims + POST /v1/employer/claim-jobs/{id} 认领,或 POST /v1/employer/reject-jobs/{id} 拒绝。扣 caller 的 create_job 配额(5)。",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 5000
+                  },
+                  "salary_min": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "salary_max": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "industry": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high",
+                      "urgent"
+                    ]
+                  },
+                  "required_skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 20
+                  },
+                  "created_for_employer_id": {
+                    "type": "string",
+                    "description": "Optional. If set, only this employer can claim. If null/omitted, any employer can claim."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "description": "Insufficient quota",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Err"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List jobs created by caller (headhunter-only)",
+        "description": "返回 source_headhunter_id=caller 的所有 job(含未认领/已认领/已关闭)。",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/v1/employer/pending-claims": {
+      "get": {
+        "summary": "List pending-claim jobs (employer-only)",
+        "description": "返回 status=open AND employer_id IS NULL AND (created_for_employer_id=me OR created_for_employer_id IS NULL) 的 job。未认领的 job 在公开页隐藏,只有创建猎头和被指定的雇主(或任何 employer,当 created_for_employer_id=NULL)能看到。",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/v1/employer/claim-jobs/{id}": {
+      "post": {
+        "summary": "Claim a headhunter-created job (employer-only)",
+        "description": "认领成功后 job.employer_id=caller,公开页可见。Idempotent: 同一 employer 重复 claim 自己的 job 返回 200 no-op。已认领给别人的 job 返回 409 INVALID_STATE。无权认领(创建猎头指定了别的雇主)的 job 返回 403 FORBIDDEN。",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Invalid state (job already claimed, closed, or filled)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Err"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/employer/reject-jobs/{id}": {
+      "post": {
+        "summary": "Reject a pending-claim job (employer-only)",
+        "description": "拒绝后 job.status=closed,永久下线。雇主可以传 reason(可选, max 500 字符),记录到 action_history 审计日志。",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "Invalid state (job already closed or filled)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Err"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
