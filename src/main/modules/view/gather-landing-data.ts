@@ -132,14 +132,25 @@ function relativeTime(iso: string): string {
 }
 
 export function gatherLandingData(db: DB): LandingData {
+  // Demo data policy:
+  // - In dev (NODE_ENV !== 'production'): landing shows ALL data including demo_*
+  // - In prod (NODE_ENV === 'production'): landing hides demo_* data
+  //   (but demo_* rows still exist in DB and are queryable via API endpoints)
+  // Filter is applied to ALL queries that read jobs/users in this module,
+  // since gatherLandingData is only used by routes/landing.ts (the public homepage).
+  const isProd = process.env.NODE_ENV === 'production';
+  const demoJobsFilter = isProd ? `AND id NOT LIKE 'demo_%'` : '';
+  const demoUsersFilter = isProd ? `AND id NOT LIKE 'demo_%'` : '';
+
   // 1) Open jobs count
   const openJobsCount = (db.prepare(
-    `SELECT COUNT(*) as c FROM jobs WHERE status = 'open'`
+    `SELECT COUNT(*) as c FROM jobs WHERE status = 'open' ${demoJobsFilter}`
   ).get() as { c: number }).c;
 
   // 2) Public candidates count
   const publicCandidatesCount = (db.prepare(
-    `SELECT COUNT(*) as c FROM candidates_anonymized WHERE is_public_pool = 1`
+    `SELECT COUNT(*) as c FROM candidates_anonymized WHERE is_public_pool = 1
+     ${isProd ? "AND id NOT LIKE 'demo_%'" : ''}`
   ).get() as { c: number }).c;
 
   // 3) Industry groups (top 5 per industry)
@@ -147,6 +158,7 @@ export function gatherLandingData(db: DB): LandingData {
     SELECT id, industry, title_level, years_experience, salary_range, education_tier, skills_json
     FROM candidates_anonymized
     WHERE is_public_pool = 1 AND industry IS NOT NULL
+      ${isProd ? "AND id NOT LIKE 'demo_%'" : ''}
     ORDER BY industry, created_at DESC
   `).all() as Array<{
     id: string; industry: string; title_level: string | null;
@@ -173,7 +185,7 @@ export function gatherLandingData(db: DB): LandingData {
   // 4) Recent jobs (top 5) — 隐藏未认领的 (v009)
   const jobRows = db.prepare(`
     SELECT title, industry, salary_min, salary_max, required_skills_json
-    FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL
+    FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL ${demoJobsFilter}
     ORDER BY created_at DESC LIMIT 5
   `).all() as Array<{
     title: string; industry: string | null;
@@ -189,7 +201,7 @@ export function gatherLandingData(db: DB): LandingData {
   // 5) Active users by type
   const userRows = db.prepare(`
     SELECT user_type, COUNT(*) as c FROM users
-    WHERE status = 'active' AND user_type IN ('headhunter', 'employer')
+    WHERE status = 'active' AND user_type IN ('headhunter', 'employer') ${demoUsersFilter}
     GROUP BY user_type
   `).all() as Array<{ user_type: string; c: number }>;
   let activeEmployerCount = 0;
@@ -213,13 +225,14 @@ export function gatherLandingData(db: DB): LandingData {
 
   // 8) Total candidates
   const totalCandidates = (db.prepare(
-    `SELECT COUNT(*) as c FROM candidates_anonymized`
+    `SELECT COUNT(*) as c FROM candidates_anonymized
+     ${isProd ? "WHERE id NOT LIKE 'demo_%'" : ''}`
   ).get() as { c: number }).c;
 
   // 9) Top 3 headhunters
   const topHeadhunterRows = db.prepare(
     `SELECT id, name, reputation FROM users
-     WHERE user_type = 'headhunter' AND status = 'active'
+     WHERE user_type = 'headhunter' AND status = 'active' ${demoUsersFilter}
      ORDER BY reputation DESC LIMIT 3`
   ).all() as Array<{ id: string; name: string; reputation: number }>;
   const topHeadhunters: HeadhunterRanking[] = topHeadhunterRows.map((r, i) => ({
@@ -255,6 +268,7 @@ export function gatherLandingData(db: DB): LandingData {
       FROM users u
       LEFT JOIN recommendations r ON r.employer_id = u.id
       WHERE u.user_type = 'employer' AND u.status = 'active'
+        ${isProd ? "AND u.id NOT LIKE 'demo_%'" : ''}
       GROUP BY u.id
       ORDER BY rec_count DESC, COALESCE(u.reputation, 0) DESC
       LIMIT 3
@@ -273,6 +287,7 @@ export function gatherLandingData(db: DB): LandingData {
       SELECT industry, COUNT(*) AS cand_count
       FROM candidates_anonymized
       WHERE is_public_pool = 1 AND industry IS NOT NULL
+        AND id NOT LIKE 'demo_%'
       GROUP BY industry
       ORDER BY cand_count DESC
       LIMIT 3
@@ -288,7 +303,7 @@ export function gatherLandingData(db: DB): LandingData {
   let hotSkills: SkillCount[] = [];
   try {
     const skillJobRows = db.prepare(
-      `SELECT required_skills_json FROM jobs WHERE status = 'open'`
+      `SELECT required_skills_json FROM jobs WHERE status = 'open' ${demoJobsFilter}`
     ).all() as Array<{ required_skills_json: string | null }>;
     const skillCounts = new Map<string, number>();
     for (const r of skillJobRows) {
@@ -318,7 +333,7 @@ export function gatherLandingData(db: DB): LandingData {
     const rows = db.prepare(`
       SELECT industry, COUNT(*) as job_count
       FROM jobs
-      WHERE status = 'open' AND industry IS NOT NULL
+      WHERE status = 'open' AND industry IS NOT NULL ${demoJobsFilter}
       GROUP BY industry
       ORDER BY job_count DESC
       LIMIT 20
@@ -338,6 +353,7 @@ export function gatherLandingData(db: DB): LandingData {
       FROM jobs j
       LEFT JOIN users u ON j.employer_id = u.id
       WHERE j.status = 'open' AND j.employer_id IS NOT NULL
+        ${isProd ? "AND j.id NOT LIKE 'demo_%'" : ''}
       ORDER BY
         CASE j.priority
           WHEN 'urgent' THEN 0
@@ -375,6 +391,7 @@ export function gatherLandingData(db: DB): LandingData {
       WHERE u.user_type = 'employer'
         AND u.status = 'active'
         AND j.status = 'open'
+        ${isProd ? "AND u.id NOT LIKE 'demo_%' AND j.id NOT LIKE 'demo_%'" : ''}
       GROUP BY u.id
       ORDER BY open_job_count DESC
       LIMIT 4
@@ -384,6 +401,7 @@ export function gatherLandingData(db: DB): LandingData {
       SELECT title, salary_min, salary_max
       FROM jobs
       WHERE employer_id = ? AND status = 'open'
+        ${isProd ? "AND id NOT LIKE 'demo_%'" : ''}
       ORDER BY created_at DESC
       LIMIT 3
     `);
