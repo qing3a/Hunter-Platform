@@ -29,6 +29,8 @@ import { createViewUrlInjector } from './modules/view/injector.js';
 import { createViewsRouter } from './modules/view/views-endpoint.js';
 import { createLandingRouter } from './routes/landing.js';
 import { createUtf8OnlyMiddleware } from './modules/encoding/index.js';
+import { createAdminAuthMiddleware } from './modules/admin/auth.js';
+import { createAdminRouter } from './routes/admin.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -172,6 +174,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/users', createUsersRouter(db));
   app.use('/v1/config', createConfigRouter(db));
   app.use('/v1/market', createMarketRouter(db));
+  app.use('/v1/admin', createAdminAuthMiddleware(), createAdminRouter(db));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
