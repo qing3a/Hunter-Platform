@@ -27,14 +27,14 @@ export interface UploadCandidateInput {
 
 export interface CreateJobForEmployerInput {
   title: string;
-  description?: string;
-  required_skills?: string[];
-  salary_min?: number;
-  salary_max?: number;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  deadline?: string;
-  industry?: string;
-  created_for_employer_id?: string;
+  description?: string | undefined;
+  required_skills?: string[] | undefined;
+  salary_min?: number | undefined;
+  salary_max?: number | undefined;
+  priority?: 'low' | 'normal' | 'high' | 'urgent' | undefined;
+  deadline?: string | undefined;
+  industry?: string | undefined;
+  created_for_employer_id?: string | undefined;
 }
 
 export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {

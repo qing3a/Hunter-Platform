@@ -277,5 +277,65 @@ export function createEmployerHandler(db: DB) {
       }
       return { __audit: { target_type: 'recommendation', target_id: input.recommendation_id } };
     },
+
+    // v009: 雇主"待认领"列表 (spec §5.1, §5.2)
+    listPendingClaims(user: User): Job[] {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers');
+      return jobs.findPendingClaims(user.id);
+    },
+
+    // v009: 雇主认领 (spec §5.2)
+    claimJob(user: User, input: { job_id: string }): Job {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can claim jobs');
+
+      // 先校验: 存在 + 未认领 + 属于自己 (created_for_employer_id=me 或 null)
+      const job = jobs.findById(input.job_id);
+      if (!job) throw Errors.notFound('Job not found');
+      if (job.status !== 'open') throw Errors.invalidState(`Cannot claim job in status ${job.status}`);
+      if (job.employer_id !== null && job.employer_id !== user.id) {
+        throw Errors.invalidState('Job already claimed by another employer');
+      }
+      // idempotent: 已经是自己
+      if (job.employer_id === user.id) return job;
+
+      // 权限校验: created_for_employer_id 必须 = me 或 null
+      if (job.created_for_employer_id !== null && job.created_for_employer_id !== user.id) {
+        throw Errors.forbidden('Job not pending for you');
+      }
+
+      const claimed = jobs.claimByEmployer(input.job_id, user.id);
+      if (!claimed) throw Errors.invalidState('Claim race: job no longer available');
+      return claimed;
+    },
+
+    // v009: 雇主拒绝 (spec §5.3)
+    rejectJob(user: User, input: { job_id: string; reason?: string }): { status: string } {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can reject jobs');
+
+      const job = jobs.findById(input.job_id);
+      if (!job) throw Errors.notFound('Job not found');
+      if (job.status !== 'open') throw Errors.invalidState(`Cannot reject job in status ${job.status}`);
+      if (job.employer_id !== null && job.employer_id !== user.id) {
+        throw Errors.forbidden('Not your job to reject');
+      }
+      if (job.created_for_employer_id !== null && job.created_for_employer_id !== user.id && job.employer_id === null) {
+        throw Errors.forbidden('Job not pending for you');
+      }
+
+      db.exec('BEGIN');
+      try {
+        jobs.updateStatus(input.job_id, 'closed');
+        // 写 action_history
+        db.prepare(`
+          INSERT INTO action_history (user_id, action_type, target_type, target_id, request_summary_json, status, created_at)
+          VALUES (?, 'reject_job', 'job', ?, ?, 'success', ?)
+        `).run(user.id, input.job_id, JSON.stringify({ reason: input.reason ?? null }), new Date().toISOString());
+        db.exec('COMMIT');
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+      }
+      return { status: 'closed' };
+    },
   };
 }
