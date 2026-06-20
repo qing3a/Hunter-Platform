@@ -58,8 +58,52 @@ describe('commission handler', () => {
 
   it('createPlacement rejects duplicate (P1#4)', () => {
     const e: any = { id: 'e1', user_type: 'employer' };
-    handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 1_000_000 });
-    expect(() => handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 1_000_000 })).toThrow();
+    handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
+    expect(() => handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).toThrow();
+  });
+
+  // Bug #4 from external test report: placement_created webhook is not enqueued.
+  // After createPlacement, the primary headhunter should receive a webhook so their
+  // agent knows to expect a commission / next step.
+  it('createPlacement enqueues placement_created webhook for primary headhunter', () => {
+    const e: any = { id: 'e1', user_type: 'employer' };
+    const p = handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
+    const rows = db.prepare(
+      "SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h1'"
+    ).all() as any[];
+    expect(rows.length).toBe(1);
+    const payload = JSON.parse(Buffer.from(rows[0].payload_enc, 'base64').toString('utf8'));
+    expect(payload.placement_id).toBe(p.id);
+    expect(payload.job_id).toBe('j1');
+    expect(payload.anonymized_candidate_id).toBe('ca_1');
+    expect(payload.annual_salary).toBe(600000);
+    expect(payload.platform_fee).toBe(p.platform_fee);
+    expect(payload.status).toBe('pending_payment');
+    expect(rows[0].contains_pii).toBe(0);
+  });
+
+  it('createPlacement also enqueues webhook for referrer headhunter when present', () => {
+    // Insert a referrer headhunter and update the recommendation to point at them
+    const now = '2026-06-17T00:00:00Z';
+    users.insert({ id: 'h2', user_type: 'headhunter', name: 'H2', contact: null, agent_endpoint: null, api_key_hash: 'h2b', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    db.prepare("UPDATE recommendations SET referrer_headhunter_id = 'h2' WHERE id = 'r1'").run();
+    const e: any = { id: 'e1', user_type: 'employer' };
+    handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
+    const h1Rows = db.prepare("SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h1'").all() as any[];
+    const h2Rows = db.prepare("SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h2'").all() as any[];
+    expect(h1Rows.length).toBe(1);
+    expect(h2Rows.length).toBe(1);
+  });
+
+  it('createPlacement rolls back webhook on UNIQUE constraint failure', () => {
+    // If placement insert fails (duplicate), the webhook must NOT be enqueued —
+    // otherwise the headhunter would be told about a non-existent placement.
+    const e: any = { id: 'e1', user_type: 'employer' };
+    handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
+    expect(() => handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).toThrow();
+    // Still only 1 row from the first (successful) call
+    const rows = db.prepare("SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created'").all() as any[];
+    expect(rows.length).toBe(1);
   });
 
   it('markPaid transitions pending_payment → paid', () => {

@@ -4,6 +4,7 @@ import { createPlacementsRepo, type Placement } from '../../db/repositories/plac
 import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
 import { createAdminActionLogRepo } from '../../db/repositories/admin-action-log.js';
 import { createJobsRepo } from '../../db/repositories/jobs.js';
+import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { calculateCommission } from './calculator.js';
 import { Errors } from '../../errors.js';
 import type { User } from '../../../shared/types.js';
@@ -19,6 +20,7 @@ export function createCommissionHandler(db: DB) {
   const recs = createRecommendationsRepo(db);
   const jobs = createJobsRepo(db);
   const adminLog = createAdminActionLogRepo(db);
+  const webhooks = createWebhookQueueRepo(db);
 
   function findCandidateUserId(anonymizedId: string): string {
     // candidates_anonymized has source_private_id (FK to candidates_private.candidate_user_id)
@@ -74,6 +76,37 @@ export function createCommissionHandler(db: DB) {
         }
         throw e;
       }
+
+      // Bug #4: emit placement_created webhook to the headhunter (and referrer if any)
+      // so their agent knows to expect a commission / next step. Payload contains no
+      // PII (no name / phone / email of the candidate).
+      const payload = {
+        placement_id: placement.id,
+        job_id: placement.job_id,
+        anonymized_candidate_id: placement.anonymized_candidate_id,
+        annual_salary: placement.annual_salary,
+        platform_fee: placement.platform_fee,
+        primary_share: placement.primary_share,
+        referrer_share: placement.referrer_share,
+        status: placement.status,
+        created_at: placement.created_at,
+      };
+      const payload_enc = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
+      webhooks.enqueue({
+        target_user_id: placement.primary_headhunter_id,
+        event_type: 'placement_created',
+        payload_enc,
+        contains_pii: 0,
+      });
+      if (placement.referrer_headhunter_id) {
+        webhooks.enqueue({
+          target_user_id: placement.referrer_headhunter_id,
+          event_type: 'placement_created',
+          payload_enc,
+          contains_pii: 0,
+        });
+      }
+
       return placement;
     },
 
