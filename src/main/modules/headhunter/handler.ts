@@ -10,7 +10,7 @@ import { encrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { desensitize } from '../desensitize/engine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
-import type { User, AnonymizedCandidate, Recommendation } from '../../../shared/types.js';
+import type { User, AnonymizedCandidate, Recommendation, Job } from '../../../shared/types.js';
 
 export interface UploadCandidateInput {
   candidate_user_id: string;
@@ -25,10 +25,23 @@ export interface UploadCandidateInput {
   skills?: string[] | undefined;
 }
 
+export interface CreateJobForEmployerInput {
+  title: string;
+  description?: string;
+  required_skills?: string[];
+  salary_min?: number;
+  salary_max?: number;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  deadline?: string;
+  industry?: string;
+  created_for_employer_id?: string;
+}
+
 export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
   const priv = createCandidatesPrivateRepo(db);
   const anon = createCandidatesAnonymizedRepo(db);
   const users = createUsersRepo(db);
+  const jobsRepo = createJobsRepo(db);
   const quota = createQuotaManager(db);
 
   return {
@@ -201,6 +214,58 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
       }
       const recs = createRecommendationsRepo(db);
       return recs.listByHeadhunter(user.id, opts);
+    },
+
+    // v009: 猎头代雇主建岗 (spec §5.1)
+    createJobForEmployer(user: User, input: CreateJobForEmployerInput): Job {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can create jobs on behalf of employers');
+
+      const qResult = quota.tryConsume(user.id, QUOTA_COSTS.create_job);
+      if (!qResult.ok) {
+        if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
+        if (qResult.reason === 'FORBIDDEN') throw Errors.forbidden('User suspended');
+        throw Errors.notFound('User not found');
+      }
+
+      // 可选: 校验 created_for_employer_id 指向 employer
+      if (input.created_for_employer_id) {
+        const target = users.findById(input.created_for_employer_id);
+        if (!target) throw Errors.notFound('Target employer not found');
+        if (target.user_type !== 'employer') {
+          throw Errors.forbidden('created_for_employer_id must point to an employer');
+        }
+      }
+
+      // 校验 salary_min <= salary_max
+      if (input.salary_min != null && input.salary_max != null && input.salary_min > input.salary_max) {
+        throw Errors.invalidParams('salary_min cannot exceed salary_max');
+      }
+
+      const now = new Date().toISOString();
+      const job: Job = {
+        id: `job_${randomUUID().slice(0, 12)}`,
+        employer_id: null,                          // 关键: 未认领
+        source_headhunter_id: user.id,              // 关键: 标记建岗者
+        created_for_employer_id: input.created_for_employer_id ?? null,
+        title: input.title,
+        description: input.description ?? null,
+        required_skills: input.required_skills ?? [],
+        salary_min: input.salary_min ?? null,
+        salary_max: input.salary_max ?? null,
+        status: 'open',
+        priority: input.priority ?? 'normal',
+        deadline: input.deadline ?? null,
+        industry: input.industry ?? null,
+        created_at: now,
+        updated_at: now,
+      };
+      jobsRepo.insert(job);
+      return job;
+    },
+
+    listMyCreatedJobs(user: User): Job[] {
+      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters');
+      return jobsRepo.findBySourceHeadhunter(user.id);
     },
   };
 }
