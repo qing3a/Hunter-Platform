@@ -49,6 +49,8 @@ export function createEmployerHandler(db: DB) {
       const job: Job = {
         id: `job_${randomUUID().slice(0, 12)}`,
         employer_id: user.id,
+        source_headhunter_id: null,         // v009: 雇主直发, 没有 source_hh
+        created_for_employer_id: null,      // v009: 雇主直发, 没有 created_for
         title: input.title,
         description: input.description ?? null,
         required_skills: input.required_skills ?? [],

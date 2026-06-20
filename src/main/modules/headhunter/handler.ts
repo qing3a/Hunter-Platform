@@ -134,6 +134,11 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
       const job = jobs.findById(input.job_id);
       if (!job) throw Errors.notFound('Job not found');
       if (job.status !== 'open') throw Errors.invalidParams('Job is not open');
+      // v009: 未认领的 job 不允许被推荐 (recommendation.employer_id NOT NULL, 且
+      // spec §5.4 决策 "未认领就 unlock" 禁止)
+      if (job.employer_id === null) {
+        throw Errors.invalidState('Cannot recommend to unclaimed job');
+      }
 
       const recs = createRecommendationsRepo(db);
       const existing = recs.findByCandidateAndJob(input.anonymized_candidate_id, input.job_id);

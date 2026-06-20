@@ -3,10 +3,12 @@ import type { Job, JobStatus } from '../../../shared/types.js';
 
 export function createJobsRepo(db: DB) {
   const insertStmt = db.prepare(`
-    INSERT INTO jobs (id, employer_id, title, description, requirements, required_skills_json,
+    INSERT INTO jobs (id, employer_id, source_headhunter_id, created_for_employer_id,
+                      title, description, requirements, required_skills_json,
                       salary_min, salary_max, status, priority, deadline, industry,
                       created_at, updated_at)
-    VALUES (@id, @employer_id, @title, @description, @requirements, @required_skills_json_col,
+    VALUES (@id, @employer_id, @source_headhunter_id, @created_for_employer_id,
+            @title, @description, @requirements, @required_skills_json_col,
             @salary_min, @salary_max, @status, @priority, @deadline, @industry,
             @created_at, @updated_at)
   `);
@@ -30,6 +32,9 @@ export function createJobsRepo(db: DB) {
       const params: Record<string, unknown> = {
         id: job.id,
         employer_id: job.employer_id,
+        // v009: 默认 null 兼容旧调用方, 但调用方应该显式提供
+        source_headhunter_id: job.source_headhunter_id ?? null,
+        created_for_employer_id: job.created_for_employer_id ?? null,
         title: job.title,
         description: job.description,
         requirements: null,
@@ -70,17 +75,43 @@ export function createJobsRepo(db: DB) {
       let rows: any[];
       if (opts.industry) {
         rows = db.prepare(
-          "SELECT * FROM jobs WHERE status = 'open' AND industry = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+          "SELECT * FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL AND industry = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
         ).all(opts.industry, limit, offset) as any[];
       } else {
         rows = db.prepare(
-          "SELECT * FROM jobs WHERE status = 'open' ORDER BY created_at DESC LIMIT ? OFFSET ?"
+          "SELECT * FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL ORDER BY created_at DESC LIMIT ? OFFSET ?"
         ).all(limit, offset) as any[];
       }
       return rows.map(hydrate);
     },
     updateStatus(id: string, status: JobStatus): void {
       updateStatusStmt.run(status, new Date().toISOString(), id);
+    },
+    findPendingClaims(employerId: string): Job[] {
+      const rows = db.prepare(
+        `SELECT * FROM jobs
+         WHERE status = 'open' AND employer_id IS NULL
+           AND (created_for_employer_id = ? OR created_for_employer_id IS NULL)
+         ORDER BY created_at DESC`
+      ).all(employerId) as any[];
+      return rows.map(hydrate);
+    },
+    findBySourceHeadhunter(headhunterId: string): Job[] {
+      const rows = db.prepare(
+        `SELECT * FROM jobs WHERE source_headhunter_id = ? ORDER BY created_at DESC`
+      ).all(headhunterId) as any[];
+      return rows.map(hydrate);
+    },
+    claimByEmployer(jobId: string, employerId: string): Job | undefined {
+      // Atomic claim: only update if still unclaimed and open
+      const result = db.prepare(
+        `UPDATE jobs
+         SET employer_id = ?, updated_at = ?
+         WHERE id = ? AND status = 'open' AND employer_id IS NULL
+           AND (created_for_employer_id = ? OR created_for_employer_id IS NULL)`
+      ).run(employerId, new Date().toISOString(), jobId, employerId);
+      if (result.changes === 0) return undefined;
+      return this.findById(jobId);
     },
   };
 }
