@@ -21,8 +21,14 @@ describe('package.json identity', () => {
 });
 
 describe('package.json scripts', () => {
-  it('scripts.dev uses tsx with --env-file=.env (API default)', () => {
-    expect(pkg.scripts.dev).toBe('tsx --env-file=.env src/main/index.ts');
+  it('scripts.dev loads the API entry with --env-file (tsx as command OR loader)', () => {
+    // Asserts semantic invariants, not the exact command string.
+    // History: locked in after the v1.0 API-only repositioning.
+    // Acceptable forms: "tsx --env-file=.env src/main/index.ts" (legacy)
+    //                  "node --env-file=.env --import tsx src/main/index.ts" (current)
+    expect(pkg.scripts.dev).toContain('--env-file=.env');
+    expect(pkg.scripts.dev).toContain('src/main/index.ts');
+    expect(pkg.scripts.dev).toMatch(/tsx/);
   });
 
   it('scripts.build no longer invokes electron-vite', () => {
@@ -39,8 +45,10 @@ describe('package.json scripts', () => {
     expect(pkg.scripts.package).toBeUndefined();
   });
 
-  it('scripts.api:dev uses --env-file=.env', () => {
-    expect(pkg.scripts['api:dev']).toBe('tsx --env-file=.env src/main/index.ts');
+  it('scripts.api:dev loads the API entry with --env-file (tsx as command OR loader)', () => {
+    expect(pkg.scripts['api:dev']).toContain('--env-file=.env');
+    expect(pkg.scripts['api:dev']).toContain('src/main/index.ts');
+    expect(pkg.scripts['api:dev']).toMatch(/tsx/);
   });
 });
 
