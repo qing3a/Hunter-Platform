@@ -44,10 +44,6 @@ pnpm build           # tsc → out/main/
 pnpm start           # node --env-file=.env out/main/index.js
 ```
 
-## 可选 Admin UI（实验性 / 不推荐生产）
+## 运维 / 管理
 
-`src/preload/` 和 `src/renderer/` 中保留了 Electron + React Admin UI 源码，但默认不构建、不启动。如需试用：
-
-```bash
-pnpm exec electron .
-```
+通过 `POST /v1/admin/*` HTTP 端点管理平台。需要 `ADMIN_PASSWORD_HASH` 环境变量配置管理员密码（bcrypt 哈希）。详见 [docs/superpowers/skill.md §X](docs/superpowers/skill.md)。
