@@ -55,6 +55,11 @@ export interface SkillCount {
   count: number;
 }
 
+export interface IndustryNavItem {
+  industry: string;
+  jobCount: number;
+}
+
 export type HealthStatus = 'healthy' | 'degraded' | 'down';
 
 export interface LandingData {
@@ -74,6 +79,7 @@ export interface LandingData {
   topEmployers: EmployerRanking[];
   topIndustries: IndustryRanking[];
   hotSkills: SkillCount[];
+  industryNav: IndustryNavItem[];
   healthStatus: HealthStatus;
 }
 
@@ -279,6 +285,22 @@ export function gatherLandingData(db: DB): LandingData {
     healthStatus = 'degraded';
   }
 
+  // 15) Industry nav — top 20 industries by open job count (v4 SQL A)
+  let industryNav: IndustryNavItem[] = [];
+  try {
+    const rows = db.prepare(`
+      SELECT industry, COUNT(*) as job_count
+      FROM jobs
+      WHERE status = 'open' AND industry IS NOT NULL
+      GROUP BY industry
+      ORDER BY job_count DESC
+      LIMIT 20
+    `).all() as Array<{ industry: string; job_count: number }>;
+    industryNav = rows.map((r) => ({ industry: r.industry, jobCount: r.job_count }));
+  } catch (e) {
+    console.error('Industry nav query failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
@@ -286,6 +308,7 @@ export function gatherLandingData(db: DB): LandingData {
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
     topEmployers, topIndustries, hotSkills,
+    industryNav,
     healthStatus,
   };
 }
