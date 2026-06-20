@@ -33,6 +33,11 @@ const CreatePlacementSchema = z.object({
   annual_salary: z.number().int().positive(),
 });
 
+// v009: claim / reject / pending
+const RejectJobSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
 export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const handler = createEmployerHandler(db);
@@ -123,6 +128,37 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
         res.locals.ahTargetId = audit.target_id;
       }
       res.json({ ok: true, data: { status: 'unlocked' } });
+    } catch (e) { next(e); }
+  });
+
+  // v009: 待认领列表 (spec §5.1)
+  router.get('/pending-claims', (req, res, next) => {
+    try {
+      const list = handler.listPendingClaims((req as typeof req & { user?: User }).user!);
+      res.json({ ok: true, data: list });
+    } catch (e) { next(e); }
+  });
+
+  // v009: claim (spec §5.2)
+  router.post('/claim-jobs/:id', (req, res, next) => {
+    try {
+      const job_id = String(req.params.id);
+      if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
+      const job = handler.claimJob((req as typeof req & { user?: User }).user!, { job_id });
+      res.json({ ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // v009: reject (spec §5.3)
+  router.post('/reject-jobs/:id', (req, res, next) => {
+    try {
+      const parsed = RejectJobSchema.safeParse(req.body ?? {});
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const result = handler.rejectJob(
+        (req as typeof req & { user?: User }).user!,
+        { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
+      );
+      res.json({ ok: true, data: result });
     } catch (e) { next(e); }
   });
 

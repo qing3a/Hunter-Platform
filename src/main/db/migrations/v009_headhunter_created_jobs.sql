@@ -27,11 +27,14 @@ CREATE TABLE jobs_new (
   required_skills_json     TEXT,
   created_at               TEXT NOT NULL,
   updated_at               TEXT NOT NULL,
-  -- 一致性约束: 要么是雇主直发，要么是猎头代发
-  -- (spec 2026-06-20 §1 语义: 不会"雇主直发+source=猎头", 也不会"猎头建+雇主ID空")
+  -- 一致性约束: 只拒绝"孤儿 job" (既无 source_hh 也无 employer)
+  -- 其他状态都是合法的:
+  --   (source_hh NULL, employer_id NOT NULL) - 雇主直发
+  --   (source_hh NOT NULL, employer_id NULL) - 猎头建, 未认领
+  --   (source_hh NOT NULL, employer_id NOT NULL) - 猎头建, 已认领
   CHECK (
     (source_headhunter_id IS NULL AND employer_id IS NOT NULL) OR
-    (source_headhunter_id IS NOT NULL AND employer_id IS NULL)
+    (source_headhunter_id IS NOT NULL)
   )
 );
 

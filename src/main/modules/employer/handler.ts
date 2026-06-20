@@ -309,7 +309,7 @@ export function createEmployerHandler(db: DB) {
     },
 
     // v009: 雇主拒绝 (spec §5.3)
-    rejectJob(user: User, input: { job_id: string; reason?: string }): { status: string } {
+    rejectJob(user: User, input: { job_id: string; reason?: string | null }): { status: string } {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can reject jobs');
 
       const job = jobs.findById(input.job_id);
