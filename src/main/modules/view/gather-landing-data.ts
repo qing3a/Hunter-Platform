@@ -60,6 +60,18 @@ export interface IndustryNavItem {
   jobCount: number;
 }
 
+export interface FeaturedJob {
+  id: string;
+  title: string;
+  industry: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  required_skills: string[];
+  company_name: string | null;
+  created_at: string;
+}
+
 export type HealthStatus = 'healthy' | 'degraded' | 'down';
 
 export interface LandingData {
@@ -80,6 +92,7 @@ export interface LandingData {
   topIndustries: IndustryRanking[];
   hotSkills: SkillCount[];
   industryNav: IndustryNavItem[];
+  featuredJobs: FeaturedJob[];
   healthStatus: HealthStatus;
 }
 
@@ -301,6 +314,43 @@ export function gatherLandingData(db: DB): LandingData {
     console.error('Industry nav query failed:', e);
   }
 
+  // 16) Featured jobs (v4 SQL B) — top 10 open jobs by priority then created_at
+  let featuredJobs: FeaturedJob[] = [];
+  try {
+    const rows = db.prepare(`
+      SELECT j.id, j.title, j.industry, j.salary_min, j.salary_max,
+             j.priority, j.required_skills_json, j.created_at,
+             u.name AS company_name
+      FROM jobs j
+      LEFT JOIN users u ON j.employer_id = u.id
+      WHERE j.status = 'open' AND j.employer_id IS NOT NULL
+      ORDER BY
+        CASE j.priority
+          WHEN 'urgent' THEN 0
+          WHEN 'high'   THEN 1
+          WHEN 'normal' THEN 2
+          ELSE 3
+        END,
+        j.created_at DESC
+      LIMIT 10
+    `).all() as Array<{
+      id: string; title: string; industry: string | null;
+      salary_min: number | null; salary_max: number | null;
+      priority: string; required_skills_json: string | null;
+      created_at: string; company_name: string | null;
+    }>;
+    featuredJobs = rows.map((r) => ({
+      id: r.id, title: r.title, industry: r.industry,
+      salary_min: r.salary_min, salary_max: r.salary_max,
+      priority: r.priority as FeaturedJob['priority'],
+      required_skills: safeParseSkills(r.required_skills_json),
+      company_name: r.company_name,
+      created_at: r.created_at,
+    }));
+  } catch (e) {
+    console.error('Featured jobs query failed:', e);
+  }
+
   return {
     openJobsCount, publicCandidatesCount, industryGroups, recentJobs,
     activeEmployerCount, activeHeadhunterCount,
@@ -308,7 +358,7 @@ export function gatherLandingData(db: DB): LandingData {
     todayUnlocks, todayPlacements, totalCandidates,
     uptimePercent: 99.9, topHeadhunters, latestPlacements,
     topEmployers, topIndustries, hotSkills,
-    industryNav,
+    industryNav, featuredJobs,
     healthStatus,
   };
 }
