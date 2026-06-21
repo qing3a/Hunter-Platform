@@ -147,6 +147,8 @@ export interface WebhookDeliveryRecord {
   next_retry_at: string | null;
   last_error: string | null;
   delivered_at: string | null;
+  /** W3C `traceparent` to propagate as outbound header (v012). NULL if no trace active at enqueue time. */
+  traceparent: string | null;
   created_at: string;
   updated_at: string;
 }

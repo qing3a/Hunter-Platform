@@ -10,6 +10,7 @@ import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
+import { getTraceparentFromContext } from '../../telemetry.js';
 
 export interface ViewOpportunity {
   recommendation_id: string;
@@ -111,6 +112,7 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
           event_type: 'notify_unlock_approved',
           payload_enc: encrypt(encryptionKey, JSON.stringify(approvePayload)),
           contains_pii: 0,
+          traceparent: getTraceparentFromContext() ?? null,
         });
         db.exec('COMMIT');
       } catch (e) {

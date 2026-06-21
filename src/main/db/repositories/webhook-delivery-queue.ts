@@ -7,6 +7,8 @@ export interface WebhookQueueInsert {
   payload_enc: string;
   contains_pii: 0 | 1;
   max_attempts?: number;
+  /** W3C `traceparent` header value to propagate to the recipient. NULL if no trace active. */
+  traceparent?: string | null;
 }
 
 export function createWebhookQueueRepo(db: DB) {
@@ -14,8 +16,8 @@ export function createWebhookQueueRepo(db: DB) {
     INSERT INTO webhook_delivery_queue (target_user_id, event_type, payload_enc, contains_pii,
                                         status, attempt_count, max_attempts,
                                         next_retry_at, last_error, delivered_at,
-                                        created_at, updated_at)
-    VALUES (?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?)
+                                        traceparent, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 'pending', 0, ?, NULL, NULL, NULL, ?, ?, ?)
   `);
   const fetchPendingStmt = db.prepare(`
     SELECT * FROM webhook_delivery_queue
@@ -47,7 +49,7 @@ export function createWebhookQueueRepo(db: DB) {
       const now = new Date().toISOString();
       const result = insertStmt.run(
         input.target_user_id, input.event_type, input.payload_enc, input.contains_pii,
-        input.max_attempts ?? 3, now, now,
+        input.max_attempts ?? 3, input.traceparent ?? null, now, now,
       );
       return Number(result.lastInsertRowid);
     },

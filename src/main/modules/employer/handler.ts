@@ -7,6 +7,7 @@ import { createCandidatesAnonymizedRepo } from '../../db/repositories/candidates
 import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
 import { createUnlockAuditLogRepo } from '../../db/repositories/unlock-audit-log.js';
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
+import { getTraceparentFromContext } from '../../telemetry.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { assertTransition } from '../unlock/state-machine.js';
@@ -191,6 +192,7 @@ export function createEmployerHandler(db: DB) {
           event_type: 'notify_unlock_request',
           payload_enc: payloadEnc,
           contains_pii: 0,
+          traceparent: getTraceparentFromContext() ?? null,
         });
         db.exec('COMMIT');
       } catch (e) {
@@ -264,6 +266,7 @@ export function createEmployerHandler(db: DB) {
             event_type: 'deliver_contact',
             payload_enc: payloadEnc,
             contains_pii: 1,
+            traceparent: getTraceparentFromContext() ?? null,
           });
         } finally {
           if (nameBuf) zeroMemory(nameBuf);

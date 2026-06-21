@@ -9,6 +9,7 @@ import { calculateCommission } from './calculator.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
 import type { User } from '../../../shared/types.js';
+import { getTraceparentFromContext } from '../../telemetry.js';
 
 export interface CreatePlacementInput {
   anonymized_candidate_id: string;
@@ -107,11 +108,13 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
         created_at: placement.created_at,
       };
       const payload_enc = encrypt(encryptionKey, JSON.stringify(payload));
+      const placementTraceparent = getTraceparentFromContext() ?? null;
       webhooks.enqueue({
         target_user_id: placement.primary_headhunter_id,
         event_type: 'placement_created',
         payload_enc,
         contains_pii: 0,
+        traceparent: placementTraceparent,
       });
       if (placement.referrer_headhunter_id) {
         webhooks.enqueue({
@@ -119,6 +122,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
           event_type: 'placement_created',
           payload_enc,
           contains_pii: 0,
+          traceparent: placementTraceparent,
         });
       }
 

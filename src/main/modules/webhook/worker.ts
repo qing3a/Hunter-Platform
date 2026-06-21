@@ -47,7 +47,18 @@ export function createWebhookWorker(db: DB, defaultOpts: { batchSize?: number } 
           const timestamp = String(Math.floor(Date.now() / 1000));
           const signature = sign(opts.hmacSecret, body, timestamp);
 
-          await postJson(user.agent_endpoint, body, { 'X-Hunter-Signature': signature, 'X-Hunter-Timestamp': timestamp, 'X-Hunter-Event': rec.event_type }, timeoutMs);
+          // Propagate the originating trace to the recipient's Agent.
+          // rec.traceparent is set at enqueue time (Task 6) from the
+          // active OTel context, so the recipient sees the same trace
+          // id we wrote to action_history.trace_id.
+          const headers: Record<string, string> = {
+            'X-Hunter-Signature': signature,
+            'X-Hunter-Timestamp': timestamp,
+            'X-Hunter-Event': rec.event_type,
+          };
+          if (rec.traceparent) headers['traceparent'] = rec.traceparent;
+
+          await postJson(user.agent_endpoint, body, headers, timeoutMs);
 
           queue.markSuccess(rec.id);
           delivered++;
