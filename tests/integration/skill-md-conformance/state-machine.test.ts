@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { freshApp, cleanupDb, ConformanceClient } from './_setup';
+import { freshApp, cleanupDb, ConformanceClient, adminAuthHeader } from './_setup';
 
 describe('skill.md: state machine invalid transitions (Phase 3)', () => {
   let client: ConformanceClient;
@@ -86,5 +86,19 @@ describe('skill.md: state machine invalid transitions (Phase 3)', () => {
     expect(r.data.error.code).toBe('INVALID_STATE');
   });
 
-  it.todo('admin.suspend on already-suspended user → 409 (Phase 3 H1 regression) — depends on Task 6 admin auth helper');
+  it('admin.suspend on already-suspended user → 409 (Phase 3 H1 regression)', async () => {
+    // Suspend once
+    const suspend1 = await client.request({
+      method: 'POST', path: `/v1/admin/users/${client.ids.get('candidate')}/suspend`, auth: adminAuthHeader(),
+      body: { reason: 'test' },
+    });
+    expect(suspend1.status).toBe(200);
+    // Try again — should 409
+    const suspend2 = await client.request({
+      method: 'POST', path: `/v1/admin/users/${client.ids.get('candidate')}/suspend`, auth: adminAuthHeader(),
+      body: { reason: 'second time' },
+    });
+    expect(suspend2.status).toBe(409);
+    expect(suspend2.data.error.code).toBe('INVALID_STATE');
+  });
 });
