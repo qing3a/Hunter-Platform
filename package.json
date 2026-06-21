@@ -29,6 +29,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@opentelemetry/sdk-trace-node": "^1.25.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
