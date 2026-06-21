@@ -1258,6 +1258,138 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 ---
 
+## 🎯 角色能力清单（自动生成 — 不要手改）
+
+<!-- CAPABILITIES_START -->
+## 🎯 角色能力清单（自动生成 — 不要手改）
+
+> 这一节由 `pnpm capabilities:doc` 从 `src/main/capabilities/*.ts` 自动生成。
+> 修改流程: 编辑 capability 文件 → 跑 `pnpm capabilities:doc` → commit。
+
+### 认证 (auth) — 2 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/auth/register` | `auth.register` | 0 | — | db.users.insert; issue_api_key |
+| POST | `/v1/auth/rotate-key` | `auth.rotate_key` | 0 | user.status === "active" | db.users.update(api_key_hash) |
+
+> - `auth.register`: 注册新账号(返回 api_key,只此一次)。
+> - `auth.rotate_key`: 轮换 api_key(旧 key 立即失效,无 grace period)。
+
+### 猎头 (headhunter) — 8 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/headhunter/candidates` | `headhunter.upload_candidate` | 5 | user.status === "active" | consume_quota(5); db.candidates_private.insert… |
+| POST | `/v1/headhunter/recommendations` | `headhunter.recommend_candidate` | 5 | user.status === "active" | consume_quota(5); db.recommendations.insert |
+| POST | `/v1/headhunter/recommendations/:id/withdraw` | `headhunter.withdraw_recommendation` | 1 | user.status === "active"; flow.recommendation.withdraw | consume_quota(1); db.recommendations.updateStatus(withdrawn) |
+| POST | `/v1/headhunter/candidates/:id/publish-to-pool` | `headhunter.publish_to_pool` | 2 | user.status === "active" | consume_quota(2); db.candidates_anonymized.update(is_public_pool=1) |
+| GET | `/v1/headhunter/recommendations` | `headhunter.list_recommendations` | 0 | user.status === "active" | db.recommendations.listByUser |
+| GET | `/v1/headhunter/candidates` | `headhunter.list_candidates` | 0 | user.status === "active" | db.candidates_anonymized.listBySource |
+| POST | `/v1/headhunter/jobs` | `headhunter.create_job` | 5 | user.status === "active" | consume_quota(5); db.jobs.insert |
+| GET | `/v1/headhunter/jobs` | `headhunter.list_jobs` | 0 | user.status === "active" | db.jobs.listBySource |
+
+> - `headhunter.upload_candidate`: 上传候选人简历(加密入库,生成脱敏版本)。
+> - `headhunter.recommend_candidate`: 把已上传的候选人推荐给指定 job(状态: pending)。
+> - `headhunter.withdraw_recommendation`: 撤回已提交的推荐(只在 pending / employer_interested 状态可撤回)。
+> - `headhunter.publish_to_pool`: 把候选人公开到公共池(让其他猎头/雇主可见)。
+> - `headhunter.list_recommendations`: 列出我提交过的所有推荐。
+> - `headhunter.list_candidates`: 列出我上传过的所有候选人(脱敏预览)。
+> - `headhunter.create_job`: 猎头代雇主建岗(用 create_for_employer_id)。
+> - `headhunter.list_jobs`: 列出我建过的所有 job。
+
+### 雇主 (employer) — 10 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/employer/placements` | `employer.create_placement` | 0 | user.status === "active"; flow.recommendation.place | db.placements.insert; webhook: placement_created |
+| GET | `/v1/employer/placements` | `employer.list_placements` | 0 | user.status === "active" | db.placements.listByUser |
+| POST | `/v1/employer/jobs` | `employer.create_job` | 5 | user.status === "active" | consume_quota(5); db.jobs.insert |
+| GET | `/v1/employer/jobs` | `employer.list_jobs` | 0 | user.status === "active" | db.jobs.listByEmployer |
+| GET | `/v1/employer/talent` | `employer.browse_talent` | 1 | user.status === "active" | consume_quota(1); db.candidates_anonymized.listPublicPool |
+| POST | `/v1/employer/recommendations/:id/express-interest` | `employer.express_interest` | 3 | user.status === "active"; flow.recommendation.express_interest | consume_quota(3); webhook: notify_unlock_request |
+| POST | `/v1/employer/recommendations/:id/unlock-contact` | `employer.unlock_contact` | 5 | user.status === "active"; flow.recommendation.unlock | consume_quota(5); webhook: deliver_contact (PII) |
+| GET | `/v1/employer/pending-claims` | `employer.list_pending_claims` | 0 | user.status === "active" | db.jobs.listPendingClaims |
+| POST | `/v1/employer/claim-jobs/:id` | `employer.claim_job` | 0 | user.status === "active"; flow.job.claim | db.jobs.updateStatus(claimed) |
+| POST | `/v1/employer/reject-jobs/:id` | `employer.reject_job` | 0 | user.status === "active"; flow.job.reject | db.jobs.updateStatus(closed) |
+
+> - `employer.create_placement`: 创建 placement 记录(标记候选人入职成功,平台费按 commission_split 计算)。
+> - `employer.list_placements`: 列出我创建的 placement 记录。
+> - `employer.create_job`: 创建 job(开放给猎头推荐候选人)。
+> - `employer.list_jobs`: 列出我创建过的所有 job。
+> - `employer.browse_talent`: 浏览公共池中的脱敏候选人(雇主可以预览行业/职级/年限)。
+> - `employer.express_interest`: 对某条 recommendation 表达兴趣(触发 unlock 请求,通知候选人)。
+> - `employer.unlock_contact`: 解锁候选人联系方式(候选人已 approve_unlock 后才能调)。
+> - `employer.list_pending_claims`: 列出我发布的、等待我 claim 或 reject 的 job(从猎头代建过来的)。
+> - `employer.claim_job`: 认领一个由猎头代建的 job(把 job 状态从 open 变为 claimed)。
+> - `employer.reject_job`: 拒绝一个由猎头代建的 job(关闭该 job)。
+
+### 候选人 (candidate) — 6 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| GET | `/v1/candidate/opportunities` | `candidate.view_opportunities` | 1 | user.status === "active" | consume_quota(1); db.recommendations.listByCandidate |
+| GET | `/v1/candidate/access-log` | `candidate.access_log` | 0 | user.status === "active" | db.unlock_audit.listByCandidate |
+| GET | `/v1/candidate/export-my-data` | `candidate.export_my_data` | 0 | user.status === "active" | db.dump.candidate |
+| POST | `/v1/candidate/recommendations/:id/approve-unlock` | `candidate.approve_unlock` | 3 | user.status === "active"; flow.recommendation.approve_unlock | consume_quota(3); webhook: notify_unlock_approved |
+| POST | `/v1/candidate/recommendations/:id/reject-unlock` | `candidate.reject_unlock` | 1 | user.status === "active"; flow.recommendation.reject_candidate | consume_quota(1); db.recommendations.updateStatus(rejected_candidate) |
+| POST | `/v1/candidate/delete-my-data` | `candidate.delete_my_data` | 0 | user.status === "active"; flow.user.delete | db.candidates_private.clear; db.users.markDeleted |
+
+> - `candidate.view_opportunities`: 列出所有雇主对我表达过兴趣的推荐(解锁请求列表)。
+> - `candidate.access_log`: 查询谁看过我的脱敏数据(解锁审计日志)。
+> - `candidate.export_my_data`: 导出我所有个人数据(GDPR data portability)。
+> - `candidate.approve_unlock`: 批准雇主解锁我的联系方式(状态: employer_interested → candidate_approved)。
+> - `candidate.reject_unlock`: 拒绝雇主解锁我的联系方式。
+> - `candidate.delete_my_data`: GDPR right-to-be-forgotten(清空 PII,保留脱敏数据)。
+
+### 管理员 (admin) — 20 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| GET | `/v1/admin/ping` | `admin.ping` | 0 | — | — |
+| GET | `/v1/admin/dashboard/stats` | `admin.dashboard_stats` | 0 | — | db.aggregate.stats |
+| GET | `/v1/admin/users` | `admin.list_users` | 0 | — | db.users.listAll |
+| POST | `/v1/admin/users/:id/suspend` | `admin.suspend_user` | 0 | flow.user.suspend | db.users.updateStatus(suspended); admin_action_log: suspend_user |
+| POST | `/v1/admin/users/:id/unsuspend` | `admin.unsuspend_user` | 0 | flow.user.unsuspend | db.users.updateStatus(active); admin_action_log: unsuspend_user |
+| POST | `/v1/admin/users/:id/adjust-quota` | `admin.adjust_user_quota` | 0 | — | db.users.updateQuota; admin_action_log: adjust_quota |
+| GET | `/v1/admin/candidates` | `admin.list_candidates` | 0 | — | db.candidates_anonymized.listAll |
+| POST | `/v1/admin/candidates/:id/remove-from-pool` | `admin.remove_from_pool` | 0 | — | db.candidates_anonymized.update(is_public_pool=0) |
+| GET | `/v1/admin/audit` | `admin.audit_log` | 0 | — | db.unlock_audit.list |
+| GET | `/v1/admin/webhooks/dead-letter` | `admin.webhook_dead_letter` | 0 | — | db.webhook_deliveries.listDeadLetter |
+| POST | `/v1/admin/webhooks/:id/retry` | `admin.retry_webhook` | 0 | — | db.webhook_deliveries.update(status=pending) |
+| GET | `/v1/admin/rate-limit/buckets` | `admin.rate_limit_buckets` | 0 | — | db.rate_limit.listBuckets |
+| POST | `/v1/admin/rate-limit/users/:id/clear` | `admin.clear_user_rate_limit` | 0 | — | db.rate_limit.clearUser |
+| GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.getAll |
+| PUT | `/v1/admin/config/:key` | `admin.put_config` | 0 | — | db.config.set; admin_action_log: config_change |
+| GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
+| POST | `/v1/admin/placements/:id/mark-paid` | `admin.mark_placement_paid` | 0 | — | db.placements.updateStatus(paid) |
+| POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
+| GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
+| GET | `/v1/admin/admin-log` | `admin.admin_log` | 0 | — | db.admin_action_log.list |
+
+> - `admin.ping`: Admin 健康检查 ping。
+> - `admin.dashboard_stats`: 平台总览统计(用户/候选人/job/placement 数)。
+> - `admin.list_users`: 列出所有用户(支持过滤 user_type / status)。
+> - `admin.suspend_user`: 暂停某个用户的账号。
+> - `admin.unsuspend_user`: 恢复被暂停的账号。
+> - `admin.adjust_user_quota`: 调整用户的每日配额上限。
+> - `admin.list_candidates`: 列出所有脱敏候选人(管理员视图,含 PII 关联)。
+> - `admin.remove_from_pool`: 把候选人从公共池移除(违规内容处理)。
+> - `admin.audit_log`: 查看平台 audit_log(谁在什么时间调用了什么 endpoint)。
+> - `admin.webhook_dead_letter`: 列出 webhook dead-letter 队列(投递失败待重试的事件)。
+> - `admin.retry_webhook`: 手动重试 dead-letter 中的某个 webhook 投递。
+> - `admin.rate_limit_buckets`: 查看当前所有 rate-limit bucket 状态(per-user + per-second/minute/hour)。
+> - `admin.clear_user_rate_limit`: 清空某个用户的 rate-limit bucket(解除误限)。
+> - `admin.get_config`: 读取平台动态配置。
+> - `admin.put_config`: 写入/覆盖平台动态配置项。
+> - `admin.list_placements`: 列出所有 placement 记录(管理员视图)。
+> - `admin.mark_placement_paid`: 把 placement 标记为已支付(财务确认)。
+> - `admin.cancel_placement`: 取消一个 placement(候选人未入职等异常情况)。
+> - `admin.placements_summary`: placement 总览统计(count / pending / paid / cancelled / total revenue)。
+> - `admin.admin_log`: 查看 admin 操作日志(谁在什么时间做了什么管理动作)。
+
+<!-- CAPABILITIES_END -->
+
 ## 📚 附录 A. v1 范围
 
 - ✅ 注册 / 认证 / 三角色基础

@@ -18,7 +18,8 @@
     "api:dev": "node --env-file=.env --import tsx src/main/index.ts",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
-    "capabilities:check": "tsx scripts/check-capabilities.ts"
+    "capabilities:check": "tsx scripts/check-capabilities.ts",
+    "capabilities:doc": "tsx scripts/generate-skill-capabilities.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
