@@ -7,6 +7,13 @@ import { createHeadhunterHandler } from '../modules/headhunter/handler.js';
 import { createCandidatesAnonymizedRepo } from '../db/repositories/candidates-anonymized.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import {
+  UploadCandidateResponseSchema, RecommendResponseSchema,
+  WithdrawResponseSchema, PublishResponseSchema,
+  ListRecommendationsResponseSchema, ListMyCandidatesResponseSchema,
+  CreateJobForEmployerResponseSchema, ListMyCreatedJobsResponseSchema,
+} from '../schemas/headhunter.js';
 import type { User } from '../../shared/types.js';
 import { QUOTA_COSTS } from '../../shared/constants.js';
 
@@ -45,7 +52,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
         res.locals.ahResSummary = audit.res_summary;
       }
       // 不向 API 客户端暴露 __audit
-      res.json({ ok: true, data: { anonymized_id: result.anonymized_id, preview: result.preview } });
+      respond(res, UploadCandidateResponseSchema, { ok: true, data: { anonymized_id: result.anonymized_id, preview: result.preview } });
     } catch (e) { next(e); }
   });
 
@@ -82,7 +89,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = RecommendSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       const rec = handler.recommendCandidate((req as typeof req & { user?: User }).user!, parsed.data as any);
-      res.json({ ok: true, data: rec });
+      respond(res, RecommendResponseSchema, { ok: true, data: rec });
     } catch (e) { next(e); }
   });
 
@@ -91,7 +98,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = WithdrawSchema.safeParse({ recommendation_id: req.params.id });
       if (!parsed.success) throw Errors.invalidParams('Invalid request body');
       handler.withdrawRecommendation((req as typeof req & { user?: User }).user!, parsed.data);
-      res.json({ ok: true, data: { status: 'withdrawn' } });
+      respond(res, WithdrawResponseSchema, { ok: true, data: { status: 'withdrawn' } });
     } catch (e) { next(e); }
   });
 
@@ -100,14 +107,14 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = PublishSchema.safeParse({ anonymized_candidate_id: req.params.id });
       if (!parsed.success) throw Errors.invalidParams('Invalid request body');
       handler.publishToPool((req as typeof req & { user?: User }).user!, parsed.data);
-      res.json({ ok: true, data: { published: true } });
+      respond(res, PublishResponseSchema, { ok: true, data: { published: true } });
     } catch (e) { next(e); }
   });
 
   router.get('/recommendations', (req, res, next) => {
     try {
       const list = handler.listMyRecommendations((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
-      res.json({ ok: true, data: list });
+      respond(res, ListRecommendationsResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -136,7 +143,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
         };
       });
 
-      res.json({ ok: true, data });
+      respond(res, ListMyCandidatesResponseSchema, { ok: true, data });
     } catch (e) { next(e); }
   });
 
@@ -146,15 +153,15 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = CreateJobForEmployerSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       const job = handler.createJobForEmployer((req as typeof req & { user?: User }).user!, parsed.data);
-      res.json({ ok: true, data: job });
+      respond(res, CreateJobForEmployerResponseSchema, { ok: true, data: job });
     } catch (e) { next(e); }
   });
 
   // v009: 列出我创建的 job (GET /v1/headhunter/jobs)
   router.get('/jobs', (req, res, next) => {
     try {
-      const list = handler.listMyCreatedJobs((req as typeof req & { user?: User }).user!);
-      res.json({ ok: true, data: list });
+const list = handler.listMyCreatedJobs((req as typeof req & { user?: User }).user!);
+    respond(res, ListMyCreatedJobsResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
