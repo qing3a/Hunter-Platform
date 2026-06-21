@@ -64,16 +64,16 @@ export class ConformanceClient {
     let data: any = null;
     try { data = res.body; } catch { data = null; }
 
-    // Schema validation
-    if (opts.schema && data && data.ok && data.data !== undefined) {
-      const result = opts.schema.safeParse(data.data);
+    // Schema validation — schema is the full envelope shape (e.g. EnvelopeSchema(z.object({...})))
+    if (opts.schema && data && data.ok) {
+      const result = opts.schema.safeParse(data);
       if (!result.success) {
         throw new Error(
           `Schema mismatch at ${opts.method} ${opts.path}:\n` +
           result.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`).join('\n')
         );
       }
-      data.data = result.data;  // replace with parsed (strips unknown fields by default)
+      data = result.data;  // replace with parsed (strips unknown fields by default)
     }
 
     return {
