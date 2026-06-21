@@ -3,6 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { startTelemetry, shutdownTelemetry, traceContextMiddleware } from './telemetry.js';
+import { capabilityResolverMiddleware } from './middleware/capability-resolver.js';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
@@ -56,6 +57,11 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // action_history matches the x-trace-id response header. Safe to use when
   // no SDK is started (becomes a no-op via OTel's NoopSpan).
   app.use(traceContextMiddleware());
+
+  // Capability resolver (Phase 4): attaches req._capability so respond()
+  // can stamp x-capability-name response header. Mounted after trace so
+  // any future capability-aware spans can correlate with x-trace-id.
+  app.use(capabilityResolverMiddleware());
 
   // Render layer: /view/* HTML routes (public — token IS the auth)
   const viewRepo = createViewTokenRepo(db);
