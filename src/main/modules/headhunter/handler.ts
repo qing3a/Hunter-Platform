@@ -7,6 +7,7 @@ import { createRecommendationsRepo } from '../../db/repositories/recommendations
 import { createJobsRepo } from '../../db/repositories/jobs.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { encrypt, zeroMemory } from '../crypto/aes-gcm.js';
+import { withSpanSync } from '../../telemetry.js';
 import { desensitize } from '../desensitize/engine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
@@ -130,6 +131,11 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
     },
 
     recommendCandidate(user: User, input: { anonymized_candidate_id: string; job_id: string; commission_split?: { hunter: number; referrer: number }; referrer_headhunter_id?: string }): Recommendation {
+      return withSpanSync('headhunter.recommend', {
+        'headhunter.id': user.id,
+        'job.id': input.job_id,
+        'anonymized_candidate.id': input.anonymized_candidate_id,
+      }, (span) => {
       if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can recommend');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.recommend_candidate);
@@ -175,7 +181,9 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
         updated_at: now,
       };
       recs.insert(rec);
+      span.setAttribute('recommendation.id', rec.id);
       return rec;
+      });
     },
 
     withdrawRecommendation(user: User, input: { recommendation_id: string }): void {

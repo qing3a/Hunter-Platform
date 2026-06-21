@@ -9,7 +9,7 @@ import { calculateCommission } from './calculator.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
 import type { User } from '../../../shared/types.js';
-import { getTraceparentFromContext } from '../../telemetry.js';
+import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 
 export interface CreatePlacementInput {
   anonymized_candidate_id: string;
@@ -37,6 +37,12 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
 
   return {
     createPlacement(employer: User, input: CreatePlacementInput): Placement {
+      return withSpanSync('employer.create_placement', {
+        'employer.id': employer.id,
+        'job.id': input.job_id,
+        'anonymized_candidate.id': input.anonymized_candidate_id,
+        'placement.annual_salary': input.annual_salary,
+      }, (span) => {
       if (employer.user_type !== 'employer') throw Errors.forbidden('Only employers can create placements');
 
       const rec = recs.findByCandidateAndJob(input.anonymized_candidate_id, input.job_id);
@@ -93,6 +99,8 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
         throw e;
       }
 
+      span.setAttribute('placement.id', placement.id);
+
       // Bug #4: emit placement_created webhook to the headhunter (and referrer if any)
       // so their agent knows to expect a commission / next step. Payload contains no
       // PII (no name / phone / email of the candidate).
@@ -127,6 +135,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
       }
 
       return placement;
+      });
     },
 
     markPaid(adminUserId: string, placementId: string): Placement {

@@ -7,7 +7,7 @@ import { createCandidatesAnonymizedRepo } from '../../db/repositories/candidates
 import { createRecommendationsRepo } from '../../db/repositories/recommendations.js';
 import { createUnlockAuditLogRepo } from '../../db/repositories/unlock-audit-log.js';
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
-import { getTraceparentFromContext } from '../../telemetry.js';
+import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
 import { assertTransition } from '../unlock/state-machine.js';
@@ -207,6 +207,10 @@ export function createEmployerHandler(db: DB) {
       input: { recommendation_id: string },
       ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string },
     ): { __audit: { target_type: 'recommendation'; target_id: string } } {
+      return withSpanSync('employer.unlock', {
+        'employer.id': user.id,
+        'recommendation.id': input.recommendation_id,
+      }, () => {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can unlock contact');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.unlock_contact);
@@ -279,6 +283,7 @@ export function createEmployerHandler(db: DB) {
         throw e;
       }
       return { __audit: { target_type: 'recommendation', target_id: input.recommendation_id } };
+      });
     },
 
     // v009: 雇主"待认领"列表 (spec §5.1, §5.2)
@@ -289,6 +294,10 @@ export function createEmployerHandler(db: DB) {
 
     // v009: 雇主认领 (spec §5.2)
     claimJob(user: User, input: { job_id: string }): Job {
+      return withSpanSync('employer.claim', {
+        'employer.id': user.id,
+        'job.id': input.job_id,
+      }, () => {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can claim jobs');
 
       // 先校验: 存在 + 属于自己 (created_for_employer_id=me 或 null)
@@ -311,10 +320,16 @@ export function createEmployerHandler(db: DB) {
       const claimed = jobs.claimByEmployer(input.job_id, user.id);
       if (!claimed) throw Errors.invalidState('Claim race: job no longer available');
       return claimed;
+      });
     },
 
     // v009: 雇主拒绝 (spec §5.3)
     rejectJob(user: User, input: { job_id: string; reason?: string | null }): { status: string } {
+      return withSpanSync('employer.reject', {
+        'employer.id': user.id,
+        'job.id': input.job_id,
+        'reject.reason': input.reason ?? '',
+      }, () => {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can reject jobs');
 
       const job = jobs.findById(input.job_id);
@@ -343,6 +358,7 @@ export function createEmployerHandler(db: DB) {
         throw e;
       }
       return { status: 'closed' };
+      });
     },
   };
 }

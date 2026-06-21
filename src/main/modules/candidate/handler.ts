@@ -10,7 +10,7 @@ import { assertTransition } from '../unlock/state-machine.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
-import { getTraceparentFromContext } from '../../telemetry.js';
+import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 
 export interface ViewOpportunity {
   recommendation_id: string;
@@ -73,6 +73,10 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
     },
 
     approveUnlock(user: User, input: { recommendation_id: string }, ctx: { ip?: string; userAgent?: string } = {}): void {
+      withSpanSync('candidate.approve_unlock', {
+        'candidate.id': user.id,
+        'recommendation.id': input.recommendation_id,
+      }, () => {
       if (user.user_type !== 'candidate') throw Errors.forbidden('Only candidates can approve unlock');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.approve_unlock);
@@ -119,9 +123,14 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
         db.exec('ROLLBACK');
         throw e;
       }
+      });
     },
 
     rejectUnlock(user: User, input: { recommendation_id: string }, ctx: { ip?: string; userAgent?: string } = {}): void {
+      withSpanSync('candidate.reject_unlock', {
+        'candidate.id': user.id,
+        'recommendation.id': input.recommendation_id,
+      }, () => {
       if (user.user_type !== 'candidate') throw Errors.forbidden('Only candidates can reject unlock');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.reject_unlock);
@@ -155,6 +164,7 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
         db.exec('ROLLBACK');
         throw e;
       }
+      });
     },
   };
 }
