@@ -2,6 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { startTelemetry, shutdownTelemetry } from './telemetry.js';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
@@ -273,6 +274,15 @@ function startWebhookWorkerBackground(db: DB, env: ReturnType<typeof loadEnv>): 
  * - Electron main (hybrid mode: API + BrowserWindow)
  */
 export async function startApiServer(opts: { port?: number } = {}): Promise<http.Server> {
+  // Initialize OTel SDK. dev → console exporter, prod → OTLP via env var.
+  // In test (NODE_ENV=test), skip — tests don't need telemetry output.
+  if (process.env.NODE_ENV !== 'test') {
+    await startTelemetry({
+      exporter: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ? 'otlp' : 'console',
+      serviceName: 'hunter-platform',
+    });
+  }
+
   const env = loadEnv();
   const db = openDb(env.DATABASE_PATH);
   runMigrations(db);
@@ -285,10 +295,11 @@ export async function startApiServer(opts: { port?: number } = {}): Promise<http
   return new Promise((resolve) => {
     const server = app.listen(opts.port ?? env.PORT, () => {
       console.log(`Hunter platform API listening on port ${opts.port ?? env.PORT}`);
-      // Graceful shutdown — stops background loops
-      server.on('close', () => {
+      // Graceful shutdown — stops background loops + flushes OTel spans
+      server.on('close', async () => {
         stopMetricsRefresh();
         stopScheduler();
+        await shutdownTelemetry();
       });
       resolve(server);
     });
