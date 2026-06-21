@@ -5,6 +5,43 @@
 
 ---
 
+## 📝 最近升级（按时间倒序）
+
+### 2026-06-22 — Post-Phase 1 Review 修复
+
+针对 Phase 1 的 19 个 commit 做了一轮 code review，修复了：
+
+- **[CRITICAL C1] 移除 auth middleware 死代码** — `prev_api_key_*` 字段是 v006/v007 引入的 24h grace 机制残留，Bug 1 修复（rotate-key 立即失效）后已不再使用，但代码里仍保留着查询分支。删除 SQL 里的 `OR (prev_api_key_*)` 子句和 `tryVerify` 里的 prev 分支，**任何未来 reversion 必须显式改 auth middleware**——schema-only flip 不会再无声激活 grace。tripwire 注释已写入文件。
+- **[HIGH H2] makeStrict() 扩展递归** — 之前只递归 `ZodObject`/`ZodArray`，`ZodUnion` / `ZodDiscriminatedUnion` / `ZodOptional` / `ZodNullable` 不递归。strict mode 实际只在叶子 object 生效。补全 4 个 case。
+- **[HIGH H3] schema-coverage test 去歧义** — regex 在字符串字面量里会误匹配。改为先 strip 注释和字符串再匹配。
+- **[MEDIUM M2] JobSchema 去重** — 之前在 `schemas/headhunter.ts` 和 `schemas/employer.ts` 重复定义（仅 1 行差异），抽到 `schemas/common.ts`。
+- **[MEDIUM M4] respond() 注释对齐实际行为** — 之前注释说"fall back to permissive send"但代码实际 throw。删了 `console.error`（被错误中间件重复 log）+ 改注释。
+
+### 2026-06-21 — Phase 0 (Bug Fixes) + Phase 1 (Structured Output)
+
+**Phase 0**: 修复了 7 个 AI 测试报告里的 bug
+
+| Bug | 修复 |
+|---|---|
+| 1. rotate-key 不立即失效 | `rotateApiKey()` 单 SQL 原子写,旧 key 立即失效 (无 grace) |
+| 2. claim-jobs 不改状态 | 加 `jobs.status='claimed'` 状态(v010 migration) |
+| 3. reject-jobs 在已 claim 的 job 仍成功 | 状态机 `status != 'open'` → 409 INVALID_STATE |
+| 4. delete-my-data DELETE/POST 不匹配 | openapi 同步到 POST |
+| 5. views/audit GET 路由缺失 | 已存在(POST),doc 同步 |
+| 6. admin/ping 无鉴权 | 移到 admin router,继承 `createAdminAuthMiddleware` |
+| 7. export-my-data 泄露第三方 PII | 区分 self-submitted vs third-party,第三方 PII 脱敏 |
+
+**Phase 1**: 全部 58 个 endpoint 走 zod 响应 schema
+
+- `respond(res, schema, payload, opts)` helper + 递归 `makeStrict()` 校验
+- 强制 0 裸 `res.json` (schema-coverage test 守护)
+- `EnvelopeSchema(dataSchema)` 统一 `{ ok: true, data: T }` 形状
+- 测试基线: **595/595 通过 (116 test files)**
+
+下次升级 (Phase 2, 计划中): OpenTelemetry trace_id 串联,详见 `docs/superpowers/plans/2026-06-21-opentelemetry-trace-id.md`
+
+---
+
 ## 📖 0. 业务模型（先读这一节）
 
 ### 0.1 价值流
@@ -70,7 +107,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
      https://api.hunter-platform.com/v1/users/{id}/status
 ```
 
-> ⚠️ **API key 只在注册时返回一次**，丢失后只能 `POST /v1/auth/rotate_key` 轮换（v2 起可用）。
+> ⚠️ **API key 只在注册时返回一次**，丢失后只能 `POST /v1/auth/rotate-key` 轮换（v2 起可用）。
 
 ### 1.1 字段命名约定
 
@@ -92,7 +129,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 | Method | Path | 描述 | 配额 |
 |--------|------|------|------|
 | POST | `/v1/auth/register` | 注册（三角色之一） | 0 |
-| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key 24h 内仍可用）。响应字段：`data.new_api_key`（**不是** `api_key`） | 1 |
+| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key **立即失效**，无 grace period）。响应字段：`data.new_api_key`（**不是** `api_key`） | 1 |
 | GET  | `/v1/users/{id}/status` | 用户状态（配额/待办） | 1 |
 | GET  | `/v1/users/{id}/history` | 操作历史（支持 `?limit= ≤200` 和 `?since=ISO`） | 1 |
 | GET  | `/v1/health` | 健康检查 | 0 |
@@ -689,7 +726,7 @@ def callback():
 
 ### 12.1 注册
 
-- ⚠️ **API key 只返回一次** — 注册后立刻持久化到安全存储（建议加密）。丢失后只能 `rotate_key`（v2）。
+- ⚠️ **API key 只返回一次** — 注册后立刻持久化到安全存储（建议加密）。丢失后只能 `POST /v1/auth/rotate-key`（v2）。
 - ⚠️ **同一 IP 5/h 限流** — 多角色测试时换 IP 或等待。
 
 ### 12.2 上传候选人
@@ -1063,7 +1100,7 @@ rec = post('/v1/headhunter/recommendations', {
 | 429 RATE_LIMITED | status 或 `Retry-After` | 严格 `sleep(retry_after)`，**不要立即重试** |
 | 409 INVALID_STATE | status 字段被并发改 | `GET /v1/users/{id}/status` → 按当前状态分支 |
 | 409 DUPLICATE_REQUEST | 推荐过 | 换 job_id 或 anonymized_candidate_id |
-| 401 UNAUTHORIZED | api_key 失效 | `POST /v1/auth/rotate-key`（旧 key 24h grace） |
+| 401 UNAUTHORIZED | api_key 失效 | `POST /v1/auth/rotate-key`（旧 key **立即失效**，拿到新 key 后旧 key 不可再用） |
 | webhook 没收到 | history 一直不更新 | 检查 `agent_endpoint` 可达性 + HMAC + 时间戳 < 300s |
 | view_url 410 Gone | 已访问过 | 重新走完整流程拿新 token |
 
@@ -1167,6 +1204,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 | 版本 | 日期 | 变化 |
 |------|------|------|
+| v1.4 | 2026-06-22 | **Phase 0 + Phase 1**: 修复 7 个 bug (rotate-key 立即失效 / claim 状态机 / admin/ping 鉴权 / PII 脱敏 等); 全部 endpoint 走 zod 响应 schema; 595 tests pass |
 | v1.3 | 2026-06 | 新增 `GET /v1/market/jobs` 公共端点；13 项 skill.md polish |
 | v1.2 | 2026-06 | `GET /v1/employer/talent` 新增 `min_salary`/`max_salary` query 参数 |
 | v1.1 | 2026-06 | API-only 模式；新增 `/v1/auth/rotate-key`、`/v1/candidate/delete-my-data`、`/v1/users/{id}/history` |
