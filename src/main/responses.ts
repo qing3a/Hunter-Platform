@@ -10,7 +10,20 @@ export { EnvelopeSchema };
 /**
  * Recursively clone a zod schema and apply `.strict()` to all ZodObject
  * nodes so that unknown keys cause a parse failure (instead of being
- * silently stripped).
+ * silently stripped). Recurses into:
+ *  - ZodObject:           apply .strict() to the cloned object
+ *  - ZodArray:            recurse into the element type
+ *  - ZodUnion:            recurse into each option
+ *  - ZodDiscriminatedUnion: recurse into each option
+ *  - ZodOptional / ZodNullable: recurse into the unwrapped inner type
+ *  - ZodEffects (e.g. .refine()): returned as-is — no key concept
+ *  - ZodString / ZodNumber / ZodLiteral / ZodEnum / ZodDate: returned as-is
+ *
+ * Without recursing into Optional/Nullable, a field like
+ *   { foo: z.string().optional() }
+ * gets a stale .optional() wrapping a fresh string type — which still
+ * works in practice but means the resulting schema's type identity drifts
+ * from the input. The recursion normalizes everything below the object.
  */
 function makeStrict<T extends ZodTypeAny>(schema: T): T {
   if (schema instanceof z.ZodObject) {
@@ -24,6 +37,29 @@ function makeStrict<T extends ZodTypeAny>(schema: T): T {
   if (schema instanceof z.ZodArray) {
     return z.array(makeStrict(schema.element)) as unknown as T;
   }
+  if (schema instanceof z.ZodUnion) {
+    return z.union(
+      (schema as unknown as { options: ZodTypeAny[] }).options.map((opt) => makeStrict(opt))
+    ) as unknown as T;
+  }
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    const opts = (schema as unknown as { options: Record<string, ZodTypeAny> }).options;
+    const newOpts: Record<string, ZodTypeAny> = {};
+    for (const [key, value] of Object.entries(opts)) {
+      newOpts[key] = makeStrict(value);
+    }
+    return z.discriminatedUnion(
+      (schema as unknown as { discriminator: string }).discriminator,
+      newOpts as any,
+    ) as unknown as T;
+  }
+  if (schema instanceof z.ZodOptional) {
+    return z.optional(makeStrict((schema as unknown as { _def: { innerType: ZodTypeAny } })._def.innerType)) as unknown as T;
+  }
+  if (schema instanceof z.ZodNullable) {
+    return z.nullable(makeStrict((schema as unknown as { _def: { innerType: ZodTypeAny } })._def.innerType)) as unknown as T;
+  }
+  // ZodEffects, ZodString, ZodNumber, ZodLiteral, ZodEnum, ZodDate, etc. — no key concept, return as-is.
   return schema;
 }
 
