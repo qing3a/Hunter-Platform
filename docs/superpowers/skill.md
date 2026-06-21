@@ -7,6 +7,19 @@
 
 ## 📝 最近升级（按时间倒序）
 
+### 2026-06-22 — Phase 4: Domain Capability Sets
+
+每个 endpoint 的"业务能力"（含前置条件、配额、副作用）现在集中声明在 `src/main/capabilities/*.ts` 里，handler / OpenAPI / skill.md / 运行时 discovery endpoint 都从这一处派生。
+
+- 46 capabilities 在 5 个文件里声明：`auth`（2）+ `headhunter`（8）+ `employer`（10）+ `candidate`（6）+ `admin`（20）。admin 全 quota_cost=0（IP 限流，不走每日配额）
+- `GET /v1/capabilities`（公开）— 列出所有 capability 集（无配额信息）
+- `GET /v1/capabilities/me`（需鉴权）— 返回当前用户每个能力的 `available` 状态 + 剩余配额
+- 每个 endpoint 响应新增 `x-capability-name: <name>` header（由 `capabilityResolverMiddleware` 在 `respond()` 里 stamp）
+- `pnpm capabilities:check` — CI 守门：路由与 capability 声明不一致（缺/多）就失败
+- `pnpm capabilities:doc` — 重新生成"角色能力清单"段，自动检测幂等
+
+每个 capability 声明包含: `name`、`description`、`method`、`path`、`response_schema`、`quota_cost`、`preconditions`、`effects`。这让 handler / OpenAPI / skill.md / discovery endpoint 都从同一处生成——新增 endpoint 时改一个文件就够。
+
 ### 2026-06-22 — Phase 2: OpenTelemetry + trace_id 串联
 
 每个 HTTP 响应都带 `x-trace-id` header（32 字符 hex，W3C Trace ID 格式）。Agent 客户端应在报错日志里带上这个 ID，以便支持方直接定位到对应的 span / `action_history.trace_id` / webhook delivery。
@@ -1410,6 +1423,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 | 版本 | 日期 | 变化 |
 |------|------|------|
+| v1.7 | 2026-06-22 | **Phase 4**: Domain Capability Sets。46 capabilities 在 `src/main/capabilities/{auth,headhunter,employer,candidate,admin}.ts` 声明（5 文件 / 5 角色）。`GET /v1/capabilities`（公开）+ `GET /v1/capabilities/me`（鉴权）。`x-capability-name` 响应头。`pnpm capabilities:check` CI 守门；`pnpm capabilities:doc` 自动生成 skill.md 角色能力段。641 tests pass |
 | v1.6 | 2026-06-22 | **Phase 3**: 显式状态机。recommendation / job / user 三个 flow 集中到 `src/main/flows/`。删除旧 `modules/unlock/state-machine.ts`。622 tests pass |
 | v1.5 | 2026-06-22 | **Phase 2**: OpenTelemetry + trace_id 串联; x-trace-id 响应头; action_history.trace_id (v011); webhook traceparent (v012); 7 个业务 span; 600 tests pass |
 | v1.4 | 2026-06-22 | **Phase 0 + Phase 1**: 修复 7 个 bug (rotate-key 立即失效 / claim 状态机 / admin/ping 鉴权 / PII 脱敏 等); 全部 endpoint 走 zod 响应 schema; 595 tests pass |
