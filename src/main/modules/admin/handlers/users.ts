@@ -2,6 +2,7 @@
 import type { DB } from '../../../db/connection.js';
 import { createUsersRepo } from '../../../db/repositories/users.js';
 import { Errors } from '../../../errors.js';
+import { userFlow, applyTransition } from '../../../flows/index.js';
 
 export function createAdminUsersHandler(db: DB) {
   const users = createUsersRepo(db);
@@ -19,16 +20,20 @@ export function createAdminUsersHandler(db: DB) {
     suspend(user_id: string, reason: string): { user_id: string; status: string; reason: string } {
       const u = users.findById(user_id);
       if (!u) throw Errors.notFound('User not found');
-      db.prepare("UPDATE users SET status = 'suspended', updated_at = ? WHERE id = ?")
-        .run(new Date().toISOString(), user_id);
-      return { user_id, status: 'suspended', reason };
+      // State-machine check: active → suspended
+      const result = applyTransition(userFlow, u.status, 'suspend', { user_id, reason });
+      db.prepare("UPDATE users SET status = ?, updated_at = ? WHERE id = ?")
+        .run(result.next, new Date().toISOString(), user_id);
+      return { user_id, status: result.next, reason };
     },
     unsuspend(user_id: string): { user_id: string; status: string } {
       const u = users.findById(user_id);
       if (!u) throw Errors.notFound('User not found');
-      db.prepare("UPDATE users SET status = 'active', updated_at = ? WHERE id = ?")
-        .run(new Date().toISOString(), user_id);
-      return { user_id, status: 'active' };
+      // State-machine check: suspended → active
+      const result = applyTransition(userFlow, u.status, 'unsuspend', { user_id });
+      db.prepare("UPDATE users SET status = ?, updated_at = ? WHERE id = ?")
+        .run(result.next, new Date().toISOString(), user_id);
+      return { user_id, status: result.next };
     },
     adjustQuota(user_id: string, new_quota: number): { user_id: string; new_quota: number } {
       if (new_quota < 0 || new_quota > 100000) throw Errors.invalidParams('quota must be 0-100000');
