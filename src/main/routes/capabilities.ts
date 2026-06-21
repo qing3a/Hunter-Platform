@@ -6,41 +6,7 @@ import { getAllCapabilitySets, getCapabilitiesForRole } from '../capabilities/in
 import { canInvoke, type Capability } from '../capabilities/types.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
-import { z } from 'zod';
-import { EnvelopeSchema } from '../schemas/common.js';
-
-const CapabilitiesResponseSchema = EnvelopeSchema(z.object({
-  sets: z.array(z.object({
-    role: z.string(),
-    capabilities: z.array(z.object({
-      name: z.string(),
-      description: z.string(),
-      method: z.enum(['GET', 'POST', 'PUT', 'DELETE']),
-      path: z.string(),
-      quota_cost: z.number().int(),
-      preconditions: z.array(z.string()),
-      effects: z.array(z.string()),
-    })),
-  })),
-}));
-
-const MeCapabilitiesResponseSchema = EnvelopeSchema(z.object({
-  user_id: z.string(),
-  user_type: z.string(),
-  status: z.string(),
-  quota_per_day: z.number().int(),
-  quota_used: z.number().int(),
-  quota_remaining: z.number().int(),
-  capabilities: z.array(z.object({
-    name: z.string(),
-    description: z.string(),
-    method: z.string(),
-    path: z.string(),
-    quota_cost: z.number().int(),
-    available: z.boolean(),
-    reason: z.string().optional(),
-  })),
-}));
+import { CapabilitiesResponseSchema, MeCapabilitiesResponseSchema } from '../schemas/capabilities.js';
 
 function describeCapability(c: Capability) {
   return {

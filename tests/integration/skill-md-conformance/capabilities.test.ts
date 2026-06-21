@@ -1,48 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { freshApp, cleanupDb, ConformanceClient, z_ } from './_setup';
+import { freshApp, cleanupDb, ConformanceClient } from './_setup';
 import { createRequire } from 'node:module';
+import {
+  CapabilitiesResponseSchema,
+  MeCapabilitiesResponseSchema,
+} from '../../../src/main/schemas/capabilities';
 
 const nodeRequire = createRequire(import.meta.url);
 const { DatabaseSync } = nodeRequire('node:sqlite') as typeof import('node:sqlite');
-
-// Inline zod schemas — mirrors src/main/routes/capabilities.ts. Constraint
-// #1 forbids touching src/, so we re-declare here. If src/main/schemas/capabilities.ts
-// ever exists, replace with import.
-const EnvelopeSchema = <T extends z_.ZodTypeAny>(inner: T) =>
-  z_.object({ ok: z_.literal(true), data: inner });
-
-const CapabilitiesResponseSchema = EnvelopeSchema(z_.object({
-  sets: z_.array(z_.object({
-    role: z_.string(),
-    capabilities: z_.array(z_.object({
-      name: z_.string(),
-      description: z_.string(),
-      method: z_.enum(['GET', 'POST', 'PUT', 'DELETE']),
-      path: z_.string(),
-      quota_cost: z_.number().int(),
-      preconditions: z_.array(z_.string()),
-      effects: z_.array(z_.string()),
-    })),
-  })),
-}));
-
-const MeCapabilitiesResponseSchema = EnvelopeSchema(z_.object({
-  user_id: z_.string(),
-  user_type: z_.string(),
-  status: z_.string(),
-  quota_per_day: z_.number().int(),
-  quota_used: z_.number().int(),
-  quota_remaining: z_.number().int(),
-  capabilities: z_.array(z_.object({
-    name: z_.string(),
-    description: z_.string(),
-    method: z_.string(),
-    path: z_.string(),
-    quota_cost: z_.number().int(),
-    available: z_.boolean(),
-    reason: z_.string().optional(),
-  })),
-}));
 
 describe('skill.md: capabilities (Phase 4)', () => {
   let client: ConformanceClient;

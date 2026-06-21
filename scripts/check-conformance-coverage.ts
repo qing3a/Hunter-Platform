@@ -1,8 +1,7 @@
 /**
  * pnpm conformance:check — fail if any capability declared in
  * src/main/capabilities/ has no corresponding test in
- * tests/integration/skill-md-conformance/ (other than the auto-generated
- * _generated.test.ts which is allowed to be stubs).
+ * tests/integration/skill-md-conformance/.
  *
  * Strategy: parse each scenario file looking for capability names in test
  * descriptions OR in HTTP method+path patterns matching capabilities.
@@ -19,7 +18,6 @@ const CONFORMANCE_DIR = path.join(__dirname, '../tests/integration/skill-md-conf
 function collectTestMentions(): Set<string> {
   const mentioned = new Set<string>();
   for (const file of fs.readdirSync(CONFORMANCE_DIR).filter((f) => f.endsWith('.test.ts'))) {
-    if (file === '_generated.test.ts') continue;  // skip stubs
     const src = fs.readFileSync(path.join(CONFORMANCE_DIR, file), 'utf8');
     // Look for capability names appearing as strings
     for (const set of getAllCapabilitySets()) {

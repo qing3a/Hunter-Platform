@@ -1,25 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { freshApp, cleanupDb, ConformanceClient, adminAuthHeader, z_ } from './_setup';
-
-// Inline zod schemas — mirrors src/main/schemas/admin.ts. Constraint #1
-// forbids touching src/.
-const PingResponseSchema = z_.object({
-  ok: z_.literal(true),
-  data: z_.object({
-    message: z_.string(),
-    admin_id: z_.string().optional(),
-  }),
-});
-
-const ListUsersResponseSchema = z_.object({
-  ok: z_.literal(true),
-  data: z_.array(z_.object({
-    id: z_.string(),
-    user_type: z_.string(),
-    status: z_.string(),
-    created_at: z_.string(),
-  })),
-});
+import { freshApp, cleanupDb, ConformanceClient, adminAuthHeader } from './_setup';
+import { PingResponseSchema, ListUsersResponseSchema } from '../../../src/main/schemas/admin';
 
 describe('skill.md: admin endpoints', () => {
   let client: ConformanceClient;
@@ -38,7 +19,7 @@ describe('skill.md: admin endpoints', () => {
     expect(r.status).toBe(401);
   });
 
-  it('GET /v1/admin/ping with valid admin auth returns pong', async () => {
+  it('GET /v1/admin/ping with valid admin auth returns pong (validates PingResponseSchema)', async () => {
     const r = await client.request({
       method: 'GET', path: '/v1/admin/ping', auth: adminAuthHeader(),
       schema: PingResponseSchema,
@@ -53,7 +34,7 @@ describe('skill.md: admin endpoints', () => {
     expect(r.status).toBe(401);
   });
 
-  it('GET /v1/admin/users returns user list with valid admin auth', async () => {
+  it('GET /v1/admin/users returns user list with valid admin auth (validates ListUsersResponseSchema)', async () => {
     const r = await client.request({
       method: 'GET', path: '/v1/admin/users', auth: adminAuthHeader(),
       schema: ListUsersResponseSchema,
