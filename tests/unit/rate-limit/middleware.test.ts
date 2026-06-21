@@ -28,12 +28,31 @@ describe('rate-limit middleware', () => {
     reputation: 50, status: 'active', created_at: 'x', updated_at: 'x',
   };
 
+  // IMPORTANT: Isolate RATE_LIMIT_ENABLED from the surrounding shell environment.
+  // The project's .env file sets RATE_LIMIT_ENABLED=false for dev convenience, but
+  // some shells (MINGW64 bash, fish with auto-source, etc.) propagate that env var
+  // into vitest child processes. The kill-switch branch in middleware.ts short-
+  // circuits BEFORE any real rate-limit logic, so the top-level tests below would
+  // silently emit unlimited headers and never reach the 429/soft-warning/req.user/
+  // DB fail-open paths they assert on.
+  //
+  // Pattern: the kill-switch `describe` block at the bottom of this file already
+  // saves/restores this env var per-test; we apply the same isolation at the
+  // outer level so the non-kill-switch tests are deterministic.
+  const originalEnv = process.env.RATE_LIMIT_ENABLED;
+
   beforeEach(() => {
     try { fs.unlinkSync(testDbPath); } catch { /* ignore */ }
     db = openDb(testDbPath);
     runMigrations(db);
+    process.env.RATE_LIMIT_ENABLED = 'true';
   });
-  afterEach(() => { db.close(); try { fs.unlinkSync(testDbPath); } catch { /* ignore */ } });
+  afterEach(() => {
+    db.close();
+    try { fs.unlinkSync(testDbPath); } catch { /* ignore */ }
+    if (originalEnv === undefined) delete process.env.RATE_LIMIT_ENABLED;
+    else process.env.RATE_LIMIT_ENABLED = originalEnv;
+  });
 
   it('allows request under limit and calls next() with headers set', () => {
     const mw = createRateLimitMiddleware(db);
