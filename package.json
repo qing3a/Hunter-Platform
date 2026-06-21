@@ -14,6 +14,7 @@
     "start": "node --env-file=.env out/main/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:schemas": "vitest run tests/unit/schema-coverage.test.ts",
     "api:dev": "node --env-file=.env --import tsx src/main/index.ts",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check"
