@@ -72,14 +72,21 @@ export function createJobsRepo(db: DB) {
     listPublic(opts: { industry?: string; limit?: number; offset?: number } = {}): Job[] {
       const limit = opts.limit ?? 50;
       const offset = opts.offset ?? 0;
+      // Include both 'open' (unclaimed) and 'claimed' (post-claim, still active)
+      // so the public marketplace reflects jobs employers are actively working on.
+      // 'paused' / 'closed' / 'filled' are filtered out.
       let rows: any[];
       if (opts.industry) {
         rows = db.prepare(
-          "SELECT * FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL AND industry = ? ORDER BY created_at DESC LIMIT ? OFFSET ?"
+          `SELECT * FROM jobs
+           WHERE status IN ('open','claimed') AND employer_id IS NOT NULL AND industry = ?
+           ORDER BY created_at DESC LIMIT ? OFFSET ?`
         ).all(opts.industry, limit, offset) as any[];
       } else {
         rows = db.prepare(
-          "SELECT * FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL ORDER BY created_at DESC LIMIT ? OFFSET ?"
+          `SELECT * FROM jobs
+           WHERE status IN ('open','claimed') AND employer_id IS NOT NULL
+           ORDER BY created_at DESC LIMIT ? OFFSET ?`
         ).all(limit, offset) as any[];
       }
       return rows.map(hydrate);
@@ -103,10 +110,12 @@ export function createJobsRepo(db: DB) {
       return rows.map(hydrate);
     },
     claimByEmployer(jobId: string, employerId: string): Job | undefined {
-      // Atomic claim: only update if still unclaimed and open
+      // Atomic claim: only update if still unclaimed and open.
+      // Status flips from 'open' → 'claimed' so the state machine can guard
+      // reject/close transitions and external observers can see ownership change.
       const result = db.prepare(
         `UPDATE jobs
-         SET employer_id = ?, updated_at = ?
+         SET employer_id = ?, status = 'claimed', updated_at = ?
          WHERE id = ? AND status = 'open' AND employer_id IS NULL
            AND (created_for_employer_id = ? OR created_for_employer_id IS NULL)`
       ).run(employerId, new Date().toISOString(), jobId, employerId);

@@ -71,7 +71,7 @@ export interface AnonymizedCandidate {
 // M2: Jobs, Recommendations, Webhooks
 // ============================================================
 
-export type JobStatus = 'open' | 'paused' | 'closed' | 'filled';
+export type JobStatus = 'open' | 'claimed' | 'paused' | 'closed' | 'filled';
 export type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
 
 export interface Job {
