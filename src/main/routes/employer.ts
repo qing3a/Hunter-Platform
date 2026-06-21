@@ -6,6 +6,14 @@ import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
 import { createCommissionHandler } from '../modules/commission/handler.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import {
+  CreatePlacementResponseSchema, ListPlacementsResponseSchema,
+  CreateJobResponseSchema, ListMyJobsResponseSchema,
+  BrowseTalentResponseSchema, ExpressInterestResponseSchema,
+  UnlockContactResponseSchema, PendingClaimsResponseSchema,
+  ClaimJobResponseSchema, RejectJobResponseSchema,
+} from '../schemas/employer.js';
 import type { User } from '../../shared/types.js';
 
 const CreateJobSchema = z.object({
@@ -51,14 +59,14 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = CreatePlacementSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       const placement = commissionHandler.createPlacement((req as typeof req & { user?: User }).user!, parsed.data);
-      res.json({ ok: true, data: placement });
+      respond(res, CreatePlacementResponseSchema, { ok: true, data: placement });
     } catch (e) { next(e); }
   });
 
   router.get('/placements', (req, res, next) => {
     try {
       const list = commissionHandler.listPlacements((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
-      res.json({ ok: true, data: list });
+      respond(res, ListPlacementsResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -67,14 +75,14 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       const parsed = CreateJobSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       const job = handler.createJob((req as typeof req & { user?: User }).user!, parsed.data as any);
-      res.json({ ok: true, data: job });
+      respond(res, CreateJobResponseSchema, { ok: true, data: job });
     } catch (e) { next(e); }
   });
 
   router.get('/jobs', (req, res, next) => {
     try {
       const list = handler.listMyJobs((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
-      res.json({ ok: true, data: list });
+      respond(res, ListMyJobsResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -89,7 +97,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       if (req.query.min_salary) filters.min_salary = Number(req.query.min_salary);
       if (req.query.max_salary) filters.max_salary = Number(req.query.max_salary);
       const list = handler.browseTalent((req as typeof req & { user?: User }).user!, filters);
-      res.json({ ok: true, data: list });
+      respond(res, BrowseTalentResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -108,7 +116,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
         res.locals.ahTargetType = audit.target_type;
         res.locals.ahTargetId = audit.target_id;
       }
-      res.json({ ok: true, data: { status: 'employer_interested' } });
+      respond(res, ExpressInterestResponseSchema, { ok: true, data: { status: 'employer_interested' } });
     } catch (e) { next(e); }
   });
 
@@ -127,15 +135,15 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
         res.locals.ahTargetType = audit.target_type;
         res.locals.ahTargetId = audit.target_id;
       }
-      res.json({ ok: true, data: { status: 'unlocked' } });
+      respond(res, UnlockContactResponseSchema, { ok: true, data: { status: 'unlocked' } });
     } catch (e) { next(e); }
   });
 
   // v009: 待认领列表 (spec §5.1)
   router.get('/pending-claims', (req, res, next) => {
     try {
-      const list = handler.listPendingClaims((req as typeof req & { user?: User }).user!);
-      res.json({ ok: true, data: list });
+const list = handler.listPendingClaims((req as typeof req & { user?: User }).user!);
+    respond(res, PendingClaimsResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -145,7 +153,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
       const job_id = String(req.params.id);
       if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
       const job = handler.claimJob((req as typeof req & { user?: User }).user!, { job_id });
-      res.json({ ok: true, data: job });
+      respond(res, ClaimJobResponseSchema, { ok: true, data: job });
     } catch (e) { next(e); }
   });
 
@@ -158,7 +166,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
         (req as typeof req & { user?: User }).user!,
         { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
       );
-      res.json({ ok: true, data: result });
+      respond(res, RejectJobResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 
