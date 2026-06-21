@@ -288,15 +288,17 @@ export function createEmployerHandler(db: DB) {
     claimJob(user: User, input: { job_id: string }): Job {
       if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can claim jobs');
 
-      // 先校验: 存在 + 未认领 + 属于自己 (created_for_employer_id=me 或 null)
+      // 先校验: 存在 + 属于自己 (created_for_employer_id=me 或 null)
       const job = jobs.findById(input.job_id);
       if (!job) throw Errors.notFound('Job not found');
-      if (job.status !== 'open') throw Errors.invalidState(`Cannot claim job in status ${job.status}`);
       if (job.employer_id !== null && job.employer_id !== user.id) {
         throw Errors.invalidState('Job already claimed by another employer');
       }
-      // idempotent: 已经是自己
-      if (job.employer_id === user.id) return job;
+      // idempotent: 已经是自己 — return as-is (no DB write)
+      if (job.employer_id === user.id && job.status === 'claimed') return job;
+
+      // Only 'open' jobs can transition to 'claimed'
+      if (job.status !== 'open') throw Errors.invalidState(`Cannot claim job in status ${job.status}`);
 
       // 权限校验: created_for_employer_id 必须 = me 或 null
       if (job.created_for_employer_id !== null && job.created_for_employer_id !== user.id) {
@@ -314,6 +316,8 @@ export function createEmployerHandler(db: DB) {
 
       const job = jobs.findById(input.job_id);
       if (!job) throw Errors.notFound('Job not found');
+      // Only 'open' jobs can be rejected — once an employer has claimed it
+      // (status='claimed'), they must explicitly close/cancel it instead.
       if (job.status !== 'open') throw Errors.invalidState(`Cannot reject job in status ${job.status}`);
       if (job.employer_id !== null && job.employer_id !== user.id) {
         throw Errors.forbidden('Not your job to reject');
