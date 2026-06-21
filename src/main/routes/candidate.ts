@@ -7,6 +7,12 @@ import { createCandidateExport } from '../modules/candidate/export.js';
 import { createGdprHandler } from '../modules/candidate/gdpr-handler.js';
 import { createUnlockAuditLogRepo } from '../db/repositories/unlock-audit-log.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import {
+  ListOpportunitiesResponseSchema, AccessLogResponseSchema,
+  ExportMyDataResponseSchema, ApproveUnlockResponseSchema,
+  RejectUnlockResponseSchema, DeleteMyDataResponseSchema,
+} from '../schemas/candidate.js';
 import type { User } from '../../shared/types.js';
 
 export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
@@ -21,7 +27,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/opportunities', (req, res, next) => {
     try {
       const list = handler.viewOpportunities((req as typeof req & { user?: User }).user!, { status: req.query.status as any });
-      res.json({ ok: true, data: list });
+      respond(res, ListOpportunitiesResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -33,7 +39,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
       const limit = req.query.limit ? Number(req.query.limit) : 50;
       const offset = req.query.offset ? Number(req.query.offset) : 0;
       const list = audit.listByCandidate(user.id, { limit, offset });
-      res.json({ ok: true, data: list });
+      respond(res, AccessLogResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
@@ -41,7 +47,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
     try {
       const data = exporter.exportMyData((req as typeof req & { user?: User }).user!);
       res.setHeader('Content-Disposition', 'attachment; filename="my-data.json"');
-      res.json({ ok: true, data });
+      respond(res, ExportMyDataResponseSchema, { ok: true, data });
     } catch (e) { next(e); }
   });
 
@@ -52,7 +58,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
       if (ip) ctx.ip = ip;
       if (req.headers['user-agent']) ctx.userAgent = req.headers['user-agent'];
       handler.approveUnlock((req as typeof req & { user?: User }).user!, { recommendation_id: req.params.id }, ctx);
-      res.json({ ok: true, data: { status: 'candidate_approved' } });
+      respond(res, ApproveUnlockResponseSchema, { ok: true, data: { status: 'candidate_approved' } });
     } catch (e) { next(e); }
   });
 
@@ -63,7 +69,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
       if (ip) ctx.ip = ip;
       if (req.headers['user-agent']) ctx.userAgent = req.headers['user-agent'];
       handler.rejectUnlock((req as typeof req & { user?: User }).user!, { recommendation_id: req.params.id }, ctx);
-      res.json({ ok: true, data: { status: 'rejected_candidate' } });
+      respond(res, RejectUnlockResponseSchema, { ok: true, data: { status: 'rejected_candidate' } });
     } catch (e) { next(e); }
   });
 
@@ -81,7 +87,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
       res.locals.ahTargetType = 'user';
       res.locals.ahTargetId = user.id;
 
-      res.json({ ok: true, data: summary });
+      respond(res, DeleteMyDataResponseSchema, { ok: true, data: summary });
     } catch (e) { next(e); }
   });
 
