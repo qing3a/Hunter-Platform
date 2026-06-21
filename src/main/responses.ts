@@ -125,5 +125,12 @@ export function respond<T extends ZodTypeAny>(
   const traceId = getTraceIdFromContext();
   if (traceId) res.setHeader('x-trace-id', traceId);
 
+  // Stamp the response with the active capability name (Phase 4).
+  // External Agents and ops dashboards can grep logs for capability names
+  // instead of HTTP method+path. Set by capabilityResolverMiddleware
+  // (src/main/middleware/capability-resolver.ts).
+  const capability = (res.req as { _capability?: { name: string } })?._capability;
+  if (capability?.name) res.setHeader('x-capability-name', capability.name);
+
   res.json(result.data);
 }
