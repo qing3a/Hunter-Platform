@@ -34,6 +34,7 @@ import { createLandingRouter } from './routes/landing.js';
 import { createUtf8OnlyMiddleware } from './modules/encoding/index.js';
 import { createAdminAuthMiddleware } from './modules/admin/auth.js';
 import { createAdminRouter } from './routes/admin.js';
+import { createCapabilitiesRouter } from './routes/capabilities.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -219,6 +220,9 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
+
+  // Capabilities discovery endpoint (Phase 4). Public /v1/capabilities + auth /v1/capabilities/me.
+  app.use(createCapabilitiesRouter(db));
 
 // 404 JSON fallback — never let Express's default HTML leak out.
 // Skips /view/* (HTML pages render their own 404) and the well-known redirect /skill.md.
