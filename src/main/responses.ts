@@ -38,9 +38,10 @@ function makeStrict<T extends ZodTypeAny>(schema: T): T {
     return z.array(makeStrict(schema.element)) as unknown as T;
   }
   if (schema instanceof z.ZodUnion) {
-    return z.union(
-      (schema as unknown as { options: ZodTypeAny[] }).options.map((opt) => makeStrict(opt))
-    ) as unknown as T;
+    // z.union() expects a tuple type [ZodTypeAny, ZodTypeAny, ...], not ZodTypeAny[],
+    // so we cast through unknown. The runtime check is exactly the same.
+    const opts = (schema as unknown as { options: ZodTypeAny[] }).options.map((opt) => makeStrict(opt));
+    return (z.union as unknown as (o: ZodTypeAny[]) => ZodTypeAny)(opts) as T;
   }
   if (schema instanceof z.ZodDiscriminatedUnion) {
     const opts = (schema as unknown as { options: Record<string, ZodTypeAny> }).options;

@@ -1,25 +1,7 @@
 import { z } from 'zod';
-import { EnvelopeSchema, ISODateTime, IdString } from './common.js';
+import { EnvelopeSchema, ISODateTime, IdString, JobSchema } from './common.js';
 
 const SkillListSchema = z.array(z.string());
-
-const JobSchema = z.object({
-  id: IdString,
-  employer_id: IdString.nullable(),
-  source_headhunter_id: IdString.nullable(),
-  created_for_employer_id: IdString.nullable(),
-  title: z.string(),
-  description: z.string().nullable(),
-  required_skills: SkillListSchema,
-  salary_min: z.number().int().nullable(),
-  salary_max: z.number().int().nullable(),
-  status: z.enum(['open', 'claimed', 'paused', 'closed', 'filled']),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']),
-  deadline: z.string().nullable(),
-  industry: z.string().nullable(),
-  created_at: ISODateTime,
-  updated_at: ISODateTime,
-});
 
 const TalentPreviewSchema = z.object({
   anonymized_id: IdString,

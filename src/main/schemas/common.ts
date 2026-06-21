@@ -50,3 +50,29 @@ export const UserPublicSchema = z.object({
   status: z.enum(['active', 'suspended', 'deleted']),
   created_at: ISODateTime,
 });
+
+/**
+ * Job posting fields — used by headhunter (create-for-employer, list-my-created)
+ * and employer (create, list-mine, pending-claims, claim) endpoints. The single
+ * source of truth is here so a schema change applies to all callers at once.
+ *
+ * Status includes 'claimed' (added in v010 migration) — that state represents
+ * "employer has accepted responsibility for this job and is working on it".
+ */
+export const JobSchema = z.object({
+  id: IdString,
+  employer_id: IdString.nullable(),
+  source_headhunter_id: IdString.nullable(),
+  created_for_employer_id: IdString.nullable(),
+  title: z.string(),
+  description: z.string().nullable(),
+  required_skills: z.array(z.string()),
+  salary_min: z.number().int().nullable(),
+  salary_max: z.number().int().nullable(),
+  status: z.enum(['open', 'claimed', 'paused', 'closed', 'filled']),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']),
+  deadline: z.string().nullable(),
+  industry: z.string().nullable(),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
