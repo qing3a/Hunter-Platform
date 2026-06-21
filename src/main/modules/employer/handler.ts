@@ -10,7 +10,7 @@ import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-q
 import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
-import { recFlow, applyTransition } from '../../flows/index.js';
+import { recFlow, jobFlow, applyTransition } from '../../flows/index.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { SALARY_BANDS } from '../desensitize/mapping.js';
@@ -319,6 +319,11 @@ export function createEmployerHandler(db: DB) {
         throw Errors.forbidden('Job not pending for you');
       }
 
+      // State-machine check (defensive): claim requires open→claimed transition.
+      // The atomic claimByEmployer SQL already guards status='open', but the
+      // flow check makes the intent explicit and gives a uniform error shape.
+      applyTransition(jobFlow, job.status, 'claim', {});
+
       const claimed = jobs.claimByEmployer(input.job_id, user.id);
       if (!claimed) throw Errors.invalidState('Claim race: job no longer available');
       return claimed;
@@ -336,14 +341,19 @@ export function createEmployerHandler(db: DB) {
 
       const job = jobs.findById(input.job_id);
       if (!job) throw Errors.notFound('Job not found');
-      // Only 'open' jobs can be rejected — once an employer has claimed it
-      // (status='claimed'), they must explicitly close/cancel it instead.
-      if (job.status !== 'open') throw Errors.invalidState(`Cannot reject job in status ${job.status}`);
       if (job.employer_id !== null && job.employer_id !== user.id) {
         throw Errors.forbidden('Not your job to reject');
       }
       if (job.created_for_employer_id !== null && job.created_for_employer_id !== user.id && job.employer_id === null) {
         throw Errors.forbidden('Job not pending for you');
+      }
+
+      // State-machine check: reject only from 'open' (claimed employers must
+      // explicitly close the job, not reject it).
+      try {
+        applyTransition(jobFlow, job.status, 'reject', {});
+      } catch (e) {
+        throw Errors.invalidState(`Cannot reject job in status ${job.status}`);
       }
 
       db.exec('BEGIN');
