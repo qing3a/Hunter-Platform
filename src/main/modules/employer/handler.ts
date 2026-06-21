@@ -188,13 +188,16 @@ export function createEmployerHandler(db: DB) {
         };
         const payloadEnc = encrypt(ctx.encryptionKey, JSON.stringify(payload));
 
-        webhooks.enqueue({
-          target_user_id: priv.candidate_user_id,
-          event_type: 'notify_unlock_request',
-          payload_enc: payloadEnc,
-          contains_pii: 0,
-          traceparent: getTraceparentFromContext() ?? null,
-        });
+        // C1 fix: dispatch webhook declared in recFlow for this transition.
+        if (result.sideEffect?.kind === 'webhook') {
+          webhooks.enqueue({
+            target_user_id: result.sideEffect.target_user_id as string,
+            event_type: result.sideEffect.event_type as any,
+            payload_enc: payloadEnc,
+            contains_pii: (result.sideEffect.contains_pii as 0 | 1 | undefined) ?? 0,
+            traceparent: getTraceparentFromContext() ?? null,
+          });
+        }
         db.exec('COMMIT');
       } catch (e) {
         db.exec('ROLLBACK');
@@ -267,13 +270,17 @@ export function createEmployerHandler(db: DB) {
           };
           const payloadEnc = encrypt(ctx.encryptionKey, JSON.stringify(payload));
 
-          webhooks.enqueue({
-            target_user_id: user.id,
-            event_type: 'deliver_contact',
-            payload_enc: payloadEnc,
-            contains_pii: 1,
-            traceparent: getTraceparentFromContext() ?? null,
-          });
+          // C1 fix: dispatch webhook declared in recFlow for this transition.
+          // The 'unlock' event's side effect is 'deliver_contact' (contains_pii: 1).
+          if (transitionResult.sideEffect?.kind === 'webhook') {
+            webhooks.enqueue({
+              target_user_id: transitionResult.sideEffect.target_user_id as string,
+              event_type: transitionResult.sideEffect.event_type as any,
+              payload_enc: payloadEnc,
+              contains_pii: (transitionResult.sideEffect.contains_pii as 0 | 1 | undefined) ?? 1,
+              traceparent: getTraceparentFromContext() ?? null,
+            });
+          }
         } finally {
           if (nameBuf) zeroMemory(nameBuf);
           if (phoneBuf) zeroMemory(phoneBuf);
