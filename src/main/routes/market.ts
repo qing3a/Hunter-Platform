@@ -4,6 +4,8 @@ import type { DB } from '../db/connection.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
 import { createJobsRepo } from '../db/repositories/jobs.js';
 import { QUOTA_COSTS } from '../../shared/constants.js';
+import { respond } from '../responses.js';
+import { LeaderboardResponseSchema, JobsListResponseSchema } from '../schemas/market.js';
 
 export function createMarketRouter(db: DB): Router {
   const router = Router();
@@ -34,7 +36,7 @@ export function createMarketRouter(db: DB): Router {
       name: row.name,
       reputation: row.reputation,
     }));
-    res.json({ ok: true, data });
+    respond(res, LeaderboardResponseSchema, { ok: true, data });
   });
 
   // GET /v1/market/jobs — public job marketplace (v1.3)
@@ -58,7 +60,7 @@ export function createMarketRouter(db: DB): Router {
     if (industry !== undefined) listOpts.industry = industry;
     const jobs = createJobsRepo(db).listPublic(listOpts);
 
-    res.json({ ok: true, data: jobs });
+    respond(res, JobsListResponseSchema, { ok: true, data: jobs });
   });
 
   return router;

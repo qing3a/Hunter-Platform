@@ -4,6 +4,10 @@ import type { DB } from '../db/connection.js';
 import { loadIndustryMap, TITLE_LEVEL_PATTERNS, SALARY_BANDS } from '../modules/desensitize/mapping.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
 import { QUOTA_COSTS } from '../../shared/constants.js';
+import { respond } from '../responses.js';
+import {
+  IndustriesResponseSchema, TitleLevelsResponseSchema, SalaryBandsResponseSchema,
+} from '../schemas/config.js';
 
 export function createConfigRouter(db: DB): Router {
   const router = Router();
@@ -28,7 +32,7 @@ export function createConfigRouter(db: DB): Router {
       id: c.id,
       companies_count: (c.companies ?? []).length,
     }));
-    res.json({ ok: true, data });
+    respond(res, IndustriesResponseSchema, { ok: true, data });
   });
 
   // GET /v1/config/title_levels — list title-level regex patterns
@@ -44,7 +48,7 @@ export function createConfigRouter(db: DB): Router {
       code: t.level,
       match: t.regex.source,
     }));
-    res.json({ ok: true, data });
+    respond(res, TitleLevelsResponseSchema, { ok: true, data });
   });
 
   // GET /v1/config/salary_bands — list salary band buckets
@@ -56,7 +60,7 @@ export function createConfigRouter(db: DB): Router {
         return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
       }
     }
-    res.json({ ok: true, data: SALARY_BANDS });
+    respond(res, SalaryBandsResponseSchema, { ok: true, data: SALARY_BANDS });
   });
 
   return router;
