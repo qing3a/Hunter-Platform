@@ -1,3 +1,9 @@
+/**
+ * @deprecated Since v1.7, the conformance test is in vitest. Run:
+ *   pnpm test skill-md-conformance
+ * This CLI script is kept for manual `pnpm api:dev` smoke testing only.
+ * It will be removed in v1.8.
+ */
 import { ApiClient, AgentContext } from './client';
 import { Reporter } from './reporter';
 import * as s00 from './scenarios/00-public';

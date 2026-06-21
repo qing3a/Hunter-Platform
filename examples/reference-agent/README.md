@@ -1,5 +1,10 @@
 # Reference Agent
 
+> **⚠️ Deprecated (v1.7+):** The smoke test in this directory is superseded by
+> the vitest-native conformance test in `tests/integration/skill-md-conformance/`.
+> Run `pnpm test skill-md-conformance` instead. This CLI script is kept for
+> manual `pnpm api:dev` smoke testing. It will be removed in v1.8.
+
 A TypeScript script that exercises every endpoint documented in `docs/superpowers/skill.md`.
 
 Use cases:
