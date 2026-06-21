@@ -142,9 +142,10 @@ export function gatherLandingData(db: DB): LandingData {
   const demoJobsFilter = isProd ? `AND id NOT LIKE 'demo_%'` : '';
   const demoUsersFilter = isProd ? `AND id NOT LIKE 'demo_%'` : '';
 
-  // 1) Open jobs count
+  // 1) Open jobs count — includes both 'open' (unclaimed) and 'claimed' (post-claim)
+  // since a claimed job is still "live" and visible to candidates via the marketplace.
   const openJobsCount = (db.prepare(
-    `SELECT COUNT(*) as c FROM jobs WHERE status = 'open' ${demoJobsFilter}`
+    `SELECT COUNT(*) as c FROM jobs WHERE status IN ('open','claimed') ${demoJobsFilter}`
   ).get() as { c: number }).c;
 
   // 2) Public candidates count
@@ -182,10 +183,11 @@ export function gatherLandingData(db: DB): LandingData {
     .map(([industry, candidates]) => ({ industry, candidates }))
     .sort((a, b) => b.candidates.length - a.candidates.length);
 
-  // 4) Recent jobs (top 5) — 隐藏未认领的 (v009)
+  // 4) Recent jobs (top 5) — show open + claimed (live jobs). Hide paused/closed/filled
+  // and hide employer_id IS NULL (unclaimed headhunter-created jobs, v009).
   const jobRows = db.prepare(`
     SELECT title, industry, salary_min, salary_max, required_skills_json
-    FROM jobs WHERE status = 'open' AND employer_id IS NOT NULL ${demoJobsFilter}
+    FROM jobs WHERE status IN ('open','claimed') AND employer_id IS NOT NULL ${demoJobsFilter}
     ORDER BY created_at DESC LIMIT 5
   `).all() as Array<{
     title: string; industry: string | null;
@@ -303,7 +305,7 @@ export function gatherLandingData(db: DB): LandingData {
   let hotSkills: SkillCount[] = [];
   try {
     const skillJobRows = db.prepare(
-      `SELECT required_skills_json FROM jobs WHERE status = 'open' ${demoJobsFilter}`
+      `SELECT required_skills_json FROM jobs WHERE status IN ('open','claimed') ${demoJobsFilter}`
     ).all() as Array<{ required_skills_json: string | null }>;
     const skillCounts = new Map<string, number>();
     for (const r of skillJobRows) {
@@ -333,7 +335,7 @@ export function gatherLandingData(db: DB): LandingData {
     const rows = db.prepare(`
       SELECT industry, COUNT(*) as job_count
       FROM jobs
-      WHERE status = 'open' AND industry IS NOT NULL ${demoJobsFilter}
+      WHERE status IN ('open','claimed') AND industry IS NOT NULL ${demoJobsFilter}
       GROUP BY industry
       ORDER BY job_count DESC
       LIMIT 20
@@ -352,7 +354,7 @@ export function gatherLandingData(db: DB): LandingData {
              u.name AS company_name
       FROM jobs j
       LEFT JOIN users u ON j.employer_id = u.id
-      WHERE j.status = 'open' AND j.employer_id IS NOT NULL
+      WHERE j.status IN ('open','claimed') AND j.employer_id IS NOT NULL
         ${isProd ? "AND j.id NOT LIKE 'demo_%'" : ''}
       ORDER BY
         CASE j.priority
@@ -390,7 +392,7 @@ export function gatherLandingData(db: DB): LandingData {
       INNER JOIN jobs j ON j.employer_id = u.id
       WHERE u.user_type = 'employer'
         AND u.status = 'active'
-        AND j.status = 'open'
+        AND j.status IN ('open','claimed')
         ${isProd ? "AND u.id NOT LIKE 'demo_%' AND j.id NOT LIKE 'demo_%'" : ''}
       GROUP BY u.id
       ORDER BY open_job_count DESC
@@ -400,7 +402,7 @@ export function gatherLandingData(db: DB): LandingData {
     const recentStmt = db.prepare(`
       SELECT title, salary_min, salary_max
       FROM jobs
-      WHERE employer_id = ? AND status = 'open'
+      WHERE employer_id = ? AND status IN ('open','claimed')
         ${isProd ? "AND id NOT LIKE 'demo_%'" : ''}
       ORDER BY created_at DESC
       LIMIT 3
