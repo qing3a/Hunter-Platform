@@ -17,6 +17,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 8, description: 'GDPR soft-delete: relax users.name/contact and candidates_private PII columns to nullable', file: 'migrations/v008_gdpr_nullable.sql' },
   { version: 9, description: 'Headhunter-created jobs: jobs.employer_id nullable + source_headhunter_id/created_for_employer_id + CHECK constraint', file: 'migrations/v009_headhunter_created_jobs.sql' },
   { version: 10, description: 'Add jobs.status = claimed (employer has accepted the job)', file: 'migrations/v010_job_status_claimed.sql' },
+  { version: 11, description: 'Add trace_id to action_history (OTel correlation)', file: 'migrations/v011_action_history_trace_id.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
