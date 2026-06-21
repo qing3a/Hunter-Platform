@@ -19,7 +19,9 @@
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "openapi:check": "tsx scripts/generate-openapi.ts --check",
     "capabilities:check": "tsx scripts/check-capabilities.ts",
-    "capabilities:doc": "tsx scripts/generate-skill-capabilities.ts"
+    "capabilities:doc": "tsx scripts/generate-skill-capabilities.ts",
+    "conformance:gen": "tsx scripts/generate-skill-md-scenarios.ts",
+    "conformance:check": "tsx scripts/check-conformance-coverage.ts"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
