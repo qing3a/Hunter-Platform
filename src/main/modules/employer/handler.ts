@@ -326,11 +326,6 @@ export function createEmployerHandler(db: DB) {
         throw Errors.forbidden('Job not pending for you');
       }
 
-      // State-machine check (defensive): claim requires open→claimed transition.
-      // The atomic claimByEmployer SQL already guards status='open', but the
-      // flow check makes the intent explicit and gives a uniform error shape.
-      applyTransition(jobFlow, job.status, 'claim', {});
-
       const claimed = jobs.claimByEmployer(input.job_id, user.id);
       if (!claimed) throw Errors.invalidState('Claim race: job no longer available');
       return claimed;

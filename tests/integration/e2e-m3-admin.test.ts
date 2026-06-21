@@ -39,7 +39,7 @@ describe('M3 E2E: Admin dashboard + actions', () => {
   });
 
   it('admin flow: suspend user, see in list with new status', () => {
-    usersIpc.suspend('h1', 'policy violation');
+    usersIpc.suspend('admin', 'h1', 'policy violation');
     const list = usersIpc.list({ status: 'suspended' }) as any[];
     expect(list.some((u) => u.id === 'h1' && u.status === 'suspended')).toBe(true);
   });

@@ -62,11 +62,15 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
     try {
       const reason = typeof req.body?.reason === 'string' ? req.body.reason : '';
       if (!reason) throw Errors.invalidParams('reason is required');
-      respond(res, SuspendUserResponseSchema, { ok: true, data: users.suspend(req.params.id, reason) });
+      const adminUserId = (req as any).user?.id ?? 'admin';
+      respond(res, SuspendUserResponseSchema, { ok: true, data: users.suspend(adminUserId, req.params.id, reason) });
     } catch (e) { next(e); }
   });
   router.post('/users/:id/unsuspend', (req, res, next) => {
-    try { respond(res, UnsuspendUserResponseSchema, { ok: true, data: users.unsuspend(req.params.id) }); } catch (e) { next(e); }
+    try {
+      const adminUserId = (req as any).user?.id ?? 'admin';
+      respond(res, UnsuspendUserResponseSchema, { ok: true, data: users.unsuspend(adminUserId, req.params.id) });
+    } catch (e) { next(e); }
   });
   router.post('/users/:id/adjust-quota', (req, res, next) => {
     try {

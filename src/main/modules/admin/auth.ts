@@ -22,20 +22,27 @@ export function createAdminAuthMiddleware(): RequestHandler {
   if (!hash || hash.length < 20) {
     throw new Error('ADMIN_PASSWORD_HASH must be set (≥20 chars) before mounting admin routes');
   }
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ') || auth.length <= 7) {
-      return next(Errors.unauthorized('Admin auth requires "Authorization: Bearer <ADMIN_PASSWORD>"'));
-    }
-    const pwd = auth.slice(7);
-    // bcrypt is async; we use the callback form to keep this middleware sync-shaped.
-    bcrypt.compare(pwd, hash, (err, ok) => {
-      if (err) {
-        console.error('adminAuth: bcrypt error', err);
-        return next(Errors.internal('Admin auth backend error'));
+    return (req: Request, _res: Response, next: NextFunction): void => {
+      const auth = req.headers.authorization;
+      if (!auth || !auth.startsWith('Bearer ') || auth.length <= 7) {
+        return next(Errors.unauthorized('Admin auth requires "Authorization: Bearer <ADMIN_PASSWORD>"'));
       }
-      if (!ok) return next(Errors.unauthorized('Invalid admin password'));
-      next();
-    });
-  };
+      const pwd = auth.slice(7);
+      // bcrypt is async; we use the callback form to keep this middleware sync-shaped.
+      bcrypt.compare(pwd, hash, (err, ok) => {
+        if (err) {
+          console.error('adminAuth: bcrypt error', err);
+          return next(Errors.internal('Admin auth backend error'));
+        }
+        if (!ok) return next(Errors.unauthorized('Invalid admin password'));
+        // Synthetic admin user — there's only one shared password for now.
+        // When the project grows multi-admin support, replace this with a
+        // per-user admin record lookup keyed off the bearer token.
+        (req as Request & { user?: { id: string; user_type: string } }).user = {
+          id: 'admin',
+          user_type: 'admin',
+        };
+        next();
+      });
+    };
 }
