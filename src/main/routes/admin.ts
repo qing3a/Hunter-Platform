@@ -1,6 +1,17 @@
 import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import {
+  PingResponseSchema, DashboardStatsResponseSchema, ListUsersResponseSchema,
+  SuspendUserResponseSchema, UnsuspendUserResponseSchema, AdjustQuotaResponseSchema,
+  ListCandidatesResponseSchema, RemoveFromPoolResponseSchema, AuditListResponseSchema,
+  DeadLetterListResponseSchema, RetryWebhookResponseSchema,
+  RateLimitBucketsResponseSchema, ClearRateLimitResponseSchema,
+  ConfigGetResponseSchema, ConfigPutResponseSchema, AdminPlacementsListResponseSchema,
+  MarkPaidResponseSchema, CancelPlacementResponseSchema,
+  PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
+} from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
 import { createAdminAuditHandler } from '../modules/admin/handlers/audit.js';
@@ -23,13 +34,18 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const adminLog = createAdminAdminLogHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
 
-  // Health check is mounted separately in server.ts (no auth) before the
-  // auth-gated admin router. Keep /ping out of this router to avoid the
-  // auth middleware rejecting it.
+  // Ping — admin-gated liveness check. Returns the same shape as before so
+  // ops dashboards that hit this endpoint can keep using it; the difference
+  // is that callers must now provide the admin bearer token (the broader
+  // admin auth middleware is mounted in server.ts for the whole /v1/admin
+  // prefix).
+  router.get('/ping', (_req, res, next) => {
+    try { respond(res, PingResponseSchema, { ok: true, data: { message: 'admin pong' } }); } catch (e) { next(e); }
+  });
 
   // Dashboard
   router.get('/dashboard/stats', (_req, res, next) => {
-    try { res.json({ ok: true, data: dashboard.getStats() }); } catch (e) { next(e); }
+    try { respond(res, DashboardStatsResponseSchema, { ok: true, data: dashboard.getStats() }); } catch (e) { next(e); }
   });
 
   // Users
@@ -39,24 +55,24 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.user_type === 'string') filter.user_type = req.query.user_type;
       if (typeof req.query.status === 'string') filter.status = req.query.status;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      res.json({ ok: true, data: users.list(filter) });
+      respond(res, ListUsersResponseSchema, { ok: true, data: users.list(filter) });
     } catch (e) { next(e); }
   });
   router.post('/users/:id/suspend', (req, res, next) => {
     try {
       const reason = typeof req.body?.reason === 'string' ? req.body.reason : '';
       if (!reason) throw Errors.invalidParams('reason is required');
-      res.json({ ok: true, data: users.suspend(req.params.id, reason) });
+      respond(res, SuspendUserResponseSchema, { ok: true, data: users.suspend(req.params.id, reason) });
     } catch (e) { next(e); }
   });
   router.post('/users/:id/unsuspend', (req, res, next) => {
-    try { res.json({ ok: true, data: users.unsuspend(req.params.id) }); } catch (e) { next(e); }
+    try { respond(res, UnsuspendUserResponseSchema, { ok: true, data: users.unsuspend(req.params.id) }); } catch (e) { next(e); }
   });
   router.post('/users/:id/adjust-quota', (req, res, next) => {
     try {
       const new_quota = Number(req.body?.new_quota);
       if (!Number.isFinite(new_quota)) throw Errors.invalidParams('new_quota must be a number');
-      res.json({ ok: true, data: users.adjustQuota(req.params.id, new_quota) });
+      respond(res, AdjustQuotaResponseSchema, { ok: true, data: users.adjustQuota(req.params.id, new_quota) });
     } catch (e) { next(e); }
   });
 
@@ -68,11 +84,11 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       else if (req.query.in_pool === 'false' || req.query.in_pool === '0') filter.in_pool = false;
       if (typeof req.query.unlock_status === 'string') filter.unlock_status = req.query.unlock_status;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      res.json({ ok: true, data: candidates.list(filter) });
+      respond(res, ListCandidatesResponseSchema, { ok: true, data: candidates.list(filter) });
     } catch (e) { next(e); }
   });
   router.post('/candidates/:id/remove-from-pool', (req, res, next) => {
-    try { res.json({ ok: true, data: candidates.removeFromPool(req.params.id) }); } catch (e) { next(e); }
+    try { respond(res, RemoveFromPoolResponseSchema, { ok: true, data: candidates.removeFromPool(req.params.id) }); } catch (e) { next(e); }
   });
 
   // Audit
@@ -82,7 +98,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.actor_user_id === 'string') filter.actor_user_id = req.query.actor_user_id;
       if (typeof req.query.recommendation_id === 'string') filter.recommendation_id = req.query.recommendation_id;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      res.json({ ok: true, data: audit.list(filter) });
+      respond(res, AuditListResponseSchema, { ok: true, data: audit.list(filter) });
     } catch (e) { next(e); }
   });
 
@@ -90,14 +106,14 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/webhooks/dead-letter', (req, res, next) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
-      res.json({ ok: true, data: webhooks.listDeadLetter(limit) });
+      respond(res, DeadLetterListResponseSchema, { ok: true, data: webhooks.listDeadLetter(limit) });
     } catch (e) { next(e); }
   });
   router.post('/webhooks/:id/retry', (req, res, next) => {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) throw Errors.invalidParams('id must be a number');
-      res.json({ ok: true, data: webhooks.retry(id) });
+      respond(res, RetryWebhookResponseSchema, { ok: true, data: webhooks.retry(id) });
     } catch (e) { next(e); }
   });
 
@@ -105,19 +121,19 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/rate-limit/buckets', (req, res, next) => {
     try {
       const user_id = typeof req.query.user_id === 'string' ? req.query.user_id : undefined;
-      res.json({ ok: true, data: rateLimit.listBuckets(user_id) });
+      respond(res, RateLimitBucketsResponseSchema, { ok: true, data: rateLimit.listBuckets(user_id) });
     } catch (e) { next(e); }
   });
   router.post('/rate-limit/users/:id/clear', (req, res, next) => {
-    try { res.json({ ok: true, data: rateLimit.clearForUser(req.params.id) }); } catch (e) { next(e); }
+    try { respond(res, ClearRateLimitResponseSchema, { ok: true, data: rateLimit.clearForUser(req.params.id) }); } catch (e) { next(e); }
   });
 
   // Config
   router.get('/config', (_req, res, next) => {
-    try { res.json({ ok: true, data: config.get() }); } catch (e) { next(e); }
+    try { respond(res, ConfigGetResponseSchema, { ok: true, data: config.get() }); } catch (e) { next(e); }
   });
   router.put('/config/:key', (req, res, next) => {
-    try { res.json({ ok: true, data: config.set(req.params.key, req.body) }); } catch (e) { next(e); }
+    try { respond(res, ConfigPutResponseSchema, { ok: true, data: config.set(req.params.key, req.body) }); } catch (e) { next(e); }
   });
 
   // Placements
@@ -128,17 +144,17 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
         ? status : undefined;
       const filter: { status?: 'pending_payment' | 'paid' | 'cancelled' } = {};
       if (validStatus) filter.status = validStatus;
-      res.json({ ok: true, data: placements.list(filter) });
+      respond(res, AdminPlacementsListResponseSchema, { ok: true, data: placements.list(filter) });
     } catch (e) { next(e); }
   });
   router.post('/placements/:id/mark-paid', (req, res, next) => {
-    try { res.json({ ok: true, data: placements.markPaid('admin', req.params.id) }); } catch (e) { next(e); }
+    try { respond(res, MarkPaidResponseSchema, { ok: true, data: placements.markPaid('admin', req.params.id) }); } catch (e) { next(e); }
   });
   router.post('/placements/:id/cancel', (req, res, next) => {
-    try { res.json({ ok: true, data: placements.cancel('admin', req.params.id) }); } catch (e) { next(e); }
+    try { respond(res, CancelPlacementResponseSchema, { ok: true, data: placements.cancel('admin', req.params.id) }); } catch (e) { next(e); }
   });
   router.get('/placements/summary', (_req, res, next) => {
-    try { res.json({ ok: true, data: placements.summary() }); } catch (e) { next(e); }
+    try { respond(res, PlacementsSummaryResponseSchema, { ok: true, data: placements.summary() }); } catch (e) { next(e); }
   });
 
   // Admin log
@@ -147,7 +163,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
       const filter: { limit?: number } = {};
       if (limit !== undefined) filter.limit = limit;
-      res.json({ ok: true, data: adminLog.list(filter) });
+      respond(res, AdminLogListResponseSchema, { ok: true, data: adminLog.list(filter) });
     } catch (e) { next(e); }
   });
 

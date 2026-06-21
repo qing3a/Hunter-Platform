@@ -1,0 +1,136 @@
+import { z } from 'zod';
+import { EnvelopeSchema, ISODateTime, IdString, UserPublicSchema } from './common.js';
+
+const SuspendResultSchema = z.object({
+  user_id: IdString,
+  status: z.literal('suspended'),
+  reason: z.string(),
+});
+const UnsuspendResultSchema = z.object({
+  user_id: IdString,
+  status: z.literal('active'),
+});
+const AdjustQuotaResultSchema = z.object({
+  user_id: IdString,
+  new_quota: z.number().int(),
+});
+
+const AdminCandidateSchema = z.object({
+  anonymized_id: IdString,
+  candidate_user_id: IdString,
+  headhunter_id: IdString,
+  industry: z.string().nullable(),
+  title_level: z.string().nullable(),
+  is_public_pool: z.union([z.literal(0), z.literal(1)]),
+  unlock_status: z.string(),
+  created_at: ISODateTime,
+});
+
+const AuditItemSchema = z.object({
+  id: z.number().int(),
+  recommendation_id: IdString.nullable(),
+  actor_user_id: IdString.nullable(),
+  action: z.string(),
+  ip_address: z.string().nullable(),
+  user_agent: z.string().nullable(),
+  created_at: ISODateTime,
+});
+
+const DeadLetterItemSchema = z.object({
+  id: z.number().int(),
+  target_user_id: IdString,
+  event_type: z.string(),
+  attempt_count: z.number().int(),
+  last_error: z.string().nullable(),
+  next_retry_at: ISODateTime.nullable(),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const RateLimitBucketSchema = z.object({
+  user_id: IdString,
+  bucket_key: z.string(),
+  count: z.number().int(),
+  window_started_at: ISODateTime,
+});
+
+const AdminPlacementSchema = z.object({
+  id: IdString,
+  job_id: IdString,
+  employer_id: IdString,
+  anonymized_candidate_id: IdString,
+  primary_headhunter_id: IdString.nullable(),
+  referrer_headhunter_id: IdString.nullable(),
+  annual_salary: z.number().int(),
+  platform_fee: z.number().int(),
+  primary_share: z.number().int(),
+  referrer_share: z.number().int(),
+  status: z.enum(['pending_payment', 'paid', 'cancelled']),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const AdminLogItemSchema = z.object({
+  id: z.number().int(),
+  actor: z.string(),
+  action_type: z.string(),
+  target_type: z.string().nullable(),
+  target_id: z.string().nullable(),
+  reason: z.string().nullable(),
+  created_at: ISODateTime,
+});
+
+const DashboardStatsSchema = z.object({
+  total_users: z.number().int(),
+  total_candidates: z.number().int(),
+  total_jobs: z.number().int(),
+  open_jobs: z.number().int(),
+  active_placements: z.number().int(),
+  daily_quota_used: z.number().int(),
+  webhook_dead_letters: z.number().int(),
+});
+
+const ConfigEntrySchema = z.record(z.string(), z.unknown());
+
+const PlacementsSummarySchema = z.object({
+  total_count: z.number().int(),
+  pending_payment_count: z.number().int(),
+  paid_count: z.number().int(),
+  cancelled_count: z.number().int(),
+  total_revenue: z.number().int(),
+});
+
+export const PingResponseSchema = EnvelopeSchema(
+  z.object({ message: z.literal('admin pong') })
+);
+export const DashboardStatsResponseSchema = EnvelopeSchema(DashboardStatsSchema);
+export const ListUsersResponseSchema = EnvelopeSchema(z.array(UserPublicSchema));
+export const SuspendUserResponseSchema = EnvelopeSchema(SuspendResultSchema);
+export const UnsuspendUserResponseSchema = EnvelopeSchema(UnsuspendResultSchema);
+export const AdjustQuotaResponseSchema = EnvelopeSchema(AdjustQuotaResultSchema);
+export const ListCandidatesResponseSchema = EnvelopeSchema(z.array(AdminCandidateSchema));
+export const RemoveFromPoolResponseSchema = EnvelopeSchema(
+  z.object({ anonymized_id: IdString, removed: z.literal(true) })
+);
+export const AuditListResponseSchema = EnvelopeSchema(z.array(AuditItemSchema));
+export const DeadLetterListResponseSchema = EnvelopeSchema(z.array(DeadLetterItemSchema));
+export const RetryWebhookResponseSchema = EnvelopeSchema(
+  z.object({ id: z.number().int(), status: z.enum(['pending', 'in_flight']) })
+);
+export const RateLimitBucketsResponseSchema = EnvelopeSchema(z.array(RateLimitBucketSchema));
+export const ClearRateLimitResponseSchema = EnvelopeSchema(
+  z.object({ user_id: IdString, cleared: z.literal(true) })
+);
+export const ConfigGetResponseSchema = EnvelopeSchema(z.record(z.string(), z.unknown()));
+export const ConfigPutResponseSchema = EnvelopeSchema(
+  z.object({ key: z.string(), saved: z.literal(true) })
+);
+export const AdminPlacementsListResponseSchema = EnvelopeSchema(z.array(AdminPlacementSchema));
+export const MarkPaidResponseSchema = EnvelopeSchema(
+  z.object({ id: IdString, status: z.literal('paid') })
+);
+export const CancelPlacementResponseSchema = EnvelopeSchema(
+  z.object({ id: IdString, status: z.literal('cancelled') })
+);
+export const PlacementsSummaryResponseSchema = EnvelopeSchema(PlacementsSummarySchema);
+export const AdminLogListResponseSchema = EnvelopeSchema(z.array(AdminLogItemSchema));
