@@ -112,13 +112,19 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
           candidate_user_id: privRecord.candidate_user_id,
           approved_at: new Date().toISOString(),
         };
-        webhooks.enqueue({
-          target_user_id: rec.employer_id,
-          event_type: 'notify_unlock_approved',
-          payload_enc: encrypt(encryptionKey, JSON.stringify(approvePayload)),
-          contains_pii: 0,
-          traceparent: getTraceparentFromContext() ?? null,
-        });
+        // Side effect: dispatch webhook declared in recFlow for this transition.
+        // C1 fix: previously these fields were hardcoded inline; now they come
+        // from the flow definition, so future transitions can be added by
+        // editing recFlow only.
+        if (result.sideEffect?.kind === 'webhook') {
+          webhooks.enqueue({
+            target_user_id: result.sideEffect.target_user_id as string,
+            event_type: result.sideEffect.event_type as any,
+            payload_enc: encrypt(encryptionKey, JSON.stringify(approvePayload)),
+            contains_pii: (result.sideEffect.contains_pii as 0 | 1 | undefined) ?? 0,
+            traceparent: getTraceparentFromContext() ?? null,
+          });
+        }
         db.exec('COMMIT');
       } catch (e) {
         db.exec('ROLLBACK');
