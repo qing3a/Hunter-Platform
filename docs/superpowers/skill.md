@@ -308,6 +308,19 @@ curl -X POST url --data-binary @req.json -H "Content-Type: application/json; cha
 
 ---
 
+## 📐 约定：所有响应必须经过 zod schema 校验
+
+每个 endpoint 的 `data` 形状必须对应 `src/main/schemas/<domain>.ts` 中的一个 zod schema，并由 `respond()` 发送。任何裸 `res.json({ ok: true, data: ... })` 都会被 `tests/unit/schema-coverage.test.ts` 拦截。
+
+新增 endpoint 时：
+
+1. 在 `src/main/schemas/<domain>.ts` 中定义 `<Action>ResponseSchema = EnvelopeSchema(z.object({...}))`
+2. 在 router 中 `respond(res, <Action>ResponseSchema, { ok: true, data: ... })`
+3. 跑 `pnpm test:schemas` 验证
+4. 跑 `pnpm test` 验证完整套件
+
+---
+
 ## ⏱ 5. 配额与限流
 
 ### 5.1 三层限流
@@ -447,12 +460,12 @@ Headers:
 
 ## 🛠 X. Admin API（运维 / 服务器 AI 管理接口）
 
-> **鉴权**：所有端点（除 `/v1/admin/ping` 外）需要 `Authorization: Bearer <ADMIN_PASSWORD>`。
+> **鉴权**：所有端点（包括 `/v1/admin/ping`）都需要 `Authorization: Bearer <ADMIN_PASSWORD>`。
 > 密码哈希通过环境变量 `ADMIN_PASSWORD_HASH`（bcrypt 格式）配置。
 
 | Method | Path | 说明 |
 |--------|------|------|
-| GET    | `/v1/admin/ping` | 健康检查（无需鉴权） |
+| GET    | `/v1/admin/ping` | 健康检查（需 admin 鉴权） |
 | GET    | `/v1/admin/dashboard/stats` | 平台统计 |
 | GET    | `/v1/admin/users` | 用户列表（?user_type&status&limit） |
 | POST   | `/v1/admin/users/:id/suspend` | 暂停用户 |
