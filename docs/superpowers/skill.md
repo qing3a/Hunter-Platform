@@ -7,6 +7,21 @@
 
 ## 📝 最近升级（按时间倒序）
 
+### 2026-06-22 — Phase 2: OpenTelemetry + trace_id 串联
+
+每个 HTTP 响应都带 `x-trace-id` header（32 字符 hex，W3C Trace ID 格式）。Agent 客户端应在报错日志里带上这个 ID，以便支持方直接定位到对应的 span / `action_history.trace_id` / webhook delivery。
+
+- **响应头**: `x-trace-id: <32-hex>` — 每个 endpoint 都带（traceContextMiddleware 在 handler 运行前 setHeader）
+- **入口 header**: 兼容 W3C `traceparent: 00-<traceId 32>-<spanId 16>-01` — 上游调用方可以延续
+- **action_history**: 新增 `trace_id` 列（v011 migration），每次写都自动 stamp
+- **Webhook 出口**: payload 携带 `traceparent` 字段，HTTP 头也带，让接收方 Agent 拼接跨系统时间线
+- **dev 默认**: ConsoleSpanExporter (无需外部服务); prod 切换: 设 `OTEL_EXPORTER_OTLP_ENDPOINT=...` 即自动用 OTLP exporter
+- **测试基线**: 600/600 通过 (117 test files)
+
+实现细节:
+- `src/main/telemetry.ts`: SDK init + `withSpan` / `withSpanSync` / `getTraceIdFromContext` / `getTraceparentFromContext` / `traceContextMiddleware`
+- 7 个业务 handler 包了自定义 span: `headhunter.recommend` / `employer.claim` / `employer.reject` / `employer.unlock` / `employer.create_placement` / `candidate.approve_unlock` / `candidate.reject_unlock`
+
 ### 2026-06-22 — Post-Phase 1 Review 修复
 
 针对 Phase 1 的 19 个 commit 做了一轮 code review，修复了：
@@ -38,7 +53,46 @@
 - `EnvelopeSchema(dataSchema)` 统一 `{ ok: true, data: T }` 形状
 - 测试基线: **595/595 通过 (116 test files)**
 
-下次升级 (Phase 2, 计划中): OpenTelemetry trace_id 串联,详见 `docs/superpowers/plans/2026-06-21-opentelemetry-trace-id.md`
+---
+
+## 🔗 分布式追踪 (Phase 2) — 给 Agent 客户端的契约
+
+> 这部分写给**对接 Hunter Platform 的外部 Agent**——你能从响应里拿到什么、应该怎么回报。
+
+### 响应头
+
+每个 HTTP 响应都带:
+
+```
+x-trace-id: 0af7651916cd43dd8448eb211c80319c
+```
+
+值是 32 字符小写 hex，符合 W3C Trace ID 格式。当你的 Agent 报错或上报问题时，**在日志里附上 `x-trace-id`**，Hunter Platform 侧能精确还原调用时间线（关联 `action_history.trace_id`、OTel span、webhook 投递记录）。
+
+### 入口 header（可选）
+
+如果你这边已经在用 OpenTelemetry / Jaeger / 自己的 trace 系统，可以在请求里带：
+
+```
+traceparent: 00-<你的 traceId 32 hex>-<你的 spanId 16 hex>-01
+```
+
+Hunter Platform 会延续你的 trace，让你的 span 和 Hunter 的 span 拼成一条时间线（取决于 W3C propagator 行为；当前实现是 best-effort，不会破坏你的请求）。
+
+### Webhook payload
+
+如果你是接收方（你接的是 webhook 而不是发起调用），Hunter 在投递 webhook 时会带：
+
+```
+traceparent: 00-<Hunter traceId>-<Hunter spanId>-01
+```
+
+你的 Agent 收到 webhook 时可以读这个 header，把这次 webhook 投递接到你端的 trace 里。
+
+### 调试用法
+
+- 拿到 `x-trace-id` → grep `action_history` 的 `trace_id` 列 → 看到这次请求引发的所有动作
+- 拿到 `x-trace-id` → Jaeger/Tempo/Honeycomb UI 搜 → 看到完整 span tree（HTTP + 业务 span + DB span，如果有 auto-instrumentation 的话）
 
 ---
 
@@ -1204,6 +1258,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 | 版本 | 日期 | 变化 |
 |------|------|------|
+| v1.5 | 2026-06-22 | **Phase 2**: OpenTelemetry + trace_id 串联; x-trace-id 响应头; action_history.trace_id (v011); webhook traceparent (v012); 7 个业务 span; 600 tests pass |
 | v1.4 | 2026-06-22 | **Phase 0 + Phase 1**: 修复 7 个 bug (rotate-key 立即失效 / claim 状态机 / admin/ping 鉴权 / PII 脱敏 等); 全部 endpoint 走 zod 响应 schema; 595 tests pass |
 | v1.3 | 2026-06 | 新增 `GET /v1/market/jobs` 公共端点；13 项 skill.md polish |
 | v1.2 | 2026-06 | `GET /v1/employer/talent` 新增 `min_salary`/`max_salary` query 参数 |
