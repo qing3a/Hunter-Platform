@@ -10,7 +10,7 @@ import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-q
 import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 import { createQuotaManager } from '../quota/manager.js';
 import { encrypt, decrypt, zeroMemory } from '../crypto/aes-gcm.js';
-import { assertTransition } from '../unlock/state-machine.js';
+import { recFlow, applyTransition } from '../../flows/index.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { SALARY_BANDS } from '../desensitize/mapping.js';
@@ -159,24 +159,25 @@ export function createEmployerHandler(db: DB) {
         if (!rec) throw Errors.notFound('Recommendation not found');
         if (rec.employer_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
 
-        try {
-          assertTransition(rec.status, 'employer_interested');
-        } catch (e) {
-          throw Errors.invalidState(`Invalid state: cannot express interest from status ${rec.status}`);
-        }
-
-        recommendations.updateStatus(rec.id, 'employer_interested');
-
-        auditLog.insert({
-          recommendation_id: rec.id, actor_user_id: user.id, action: 'express_interest',
-          ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
-        });
-
         const candidateAnon = candidatesAnon.findById(rec.anonymized_candidate_id);
         if (!candidateAnon) throw new Error('Anonymized candidate not found');
 
         const priv = db.prepare('SELECT candidate_user_id FROM candidates_private WHERE id = ?').get(candidateAnon.source_private_id) as { candidate_user_id: string } | undefined;
         if (!priv) throw new Error('Candidate user not found');
+
+        let result;
+        try {
+          result = applyTransition(recFlow, rec.status, 'express_interest', { candidate_user_id: priv.candidate_user_id });
+        } catch (e) {
+          throw Errors.invalidState(`Invalid state: cannot express interest from status ${rec.status}`);
+        }
+
+        recommendations.updateStatus(rec.id, result.next);
+
+        auditLog.insert({
+          recommendation_id: rec.id, actor_user_id: user.id, action: 'express_interest',
+          ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
+        });
 
         const payload = {
           recommendation_id: rec.id,
@@ -226,8 +227,9 @@ export function createEmployerHandler(db: DB) {
         if (!rec) throw Errors.notFound('Recommendation not found');
         if (rec.employer_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
 
+        let transitionResult;
         try {
-          assertTransition(rec.status, 'unlocked');
+          transitionResult = applyTransition(recFlow, rec.status, 'unlock', { employer_id: user.id });
         } catch (e) {
           throw Errors.invalidState(`Invalid state: cannot unlock from status ${rec.status}`);
         }
@@ -251,7 +253,7 @@ export function createEmployerHandler(db: DB) {
           phoneBuf = Buffer.from(phone, 'utf8');
           emailBuf = Buffer.from(email, 'utf8');
 
-          recommendations.updateStatus(rec.id, 'unlocked');
+          recommendations.updateStatus(rec.id, transitionResult.next);
 
           auditLog.insert({
             recommendation_id: rec.id, actor_user_id: user.id, action: 'unlock_delivery',
