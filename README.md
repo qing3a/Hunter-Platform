@@ -41,6 +41,20 @@ pnpm dev:watch    # 同上 + 改 .ts 自动重启
 - `WEBHOOK_HMAC_SECRET`（≥16 字符）
 - `ADMIN_PASSWORD_HASH`（bcrypt 哈希，≥20 字符）
 
+## Demo 数据（dev 用）
+
+`tmp/seed-v4-demo.ts` 注入 10 个模拟雇主（`demo_emp_*`）+ 30 个模拟岗位（`demo_j_*`），用于让首页（`GET /`）有真实数据展示。
+
+```bash
+node --import tsx tmp/seed-v4-demo.ts   # 幂等：再次执行会清掉旧 demo 数据重新插入
+```
+
+**显示规则**：
+- **dev 模式**（默认 `NODE_ENV=development`）：首页显示 demo 数据
+- **prod 模式**（`NODE_ENV=production`）：首页自动过滤 demo 数据（landing page SQL 加 `id NOT LIKE 'demo_%'`），但 API 端点仍可查询 demo 数据用于 agent 测试
+
+**demo 数据 vs 真实数据边界**：demo 雇主是 seed 脚本插入的占位用户，与真实注册的雇主是两套身份。任何 4 步解锁流程（approve-unlock / unlock-contact）只能在同一雇主身份下走通——demo 雇主下的推荐不能由真实雇主操作（RBAC 正确拒绝 `403 FORBIDDEN`）。
+
 ## API 文档
 
 Claude / 其他 Agent 通过以下 endpoint 接入：

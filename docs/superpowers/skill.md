@@ -85,7 +85,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 
 ## 🌐 2. 完整 API 端点
 
-> 💡 **动态配置优先**：行业列表（22+ 家公司）、职级正则、薪资带宽、市场排行 — 都通过 `GET /v1/config/*` 与 `/v1/market/*` 实时查询，**不要硬编码**。
+> 💡 **动态配置优先**：行业列表（12+ 类别）、职级正则、薪资带宽、市场排行 — 都通过 `GET /v1/config/*` 与 `/v1/market/*` 实时查询，**不要硬编码**。
 
 ### 2.1 通用
 
@@ -338,6 +338,8 @@ curl -X POST url --data-binary @req.json -H "Content-Type: application/json; cha
 | 浏览 / 列表类 | 1 |
 | 注册 / 健康检查 | 0 |
 
+> 💡 上表是按成本档位的**概要**。完整逐接口配额见 §4 各角色 endpoint 表格（含 withdraw / reject / view_opportunities 等具体值）。
+
 UTC 0 自动重置（内部 `node-cron` 任务，**无 HTTP 端点**）。
 
 > ⚠️ **注册后第 1 个 24h 的边界情况**：`quota_reset_at` 初始值 = `created_at + 24h`（滚动 24h）。
@@ -482,7 +484,7 @@ http://<host>/view/<token>
 ```
 
 - 受邀方（employer 等）可访问该 URL 查看候选人脱敏画像（行业、职级、薪资段、学校层级、技能、年限）
-- token 是 HMAC 签名 JWT，**24h 过期**
+- token 是 32 字节随机 hex（无签名），**1h 过期**
 - token **单次使用**，第二次访问返回 410
 - ⚠️ view handler 在 `app.use((req, res, next) => {…})` 之后，必须带 `User-Agent` header（curl 自动有；裸 socket 会被某些反爬检查拒绝）
 
@@ -895,7 +897,7 @@ talent 池筛选 → 选 5–10 个候选
 ```
 
 > ❌ 不要做：
-> - 不加过滤直接拉全量——会被 22+ 行业 × 40+ 职级淹死
+> - 不加过滤直接拉全量——会被 12+ 行业 × 4 职级级别淹死
 > - 同一候选人多次访问 view_url——第二次 410
 > - 对同一候选人重复 express-interest——状态变了，第二次 409
 
@@ -1196,7 +1198,7 @@ Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是
 | 409 INVALID_STATE | 状态机非法转换，按 §3 检查当前 status |
 | 429 RATE_LIMITED | 严格按 `Retry-After` 等待 |
 | view_url 410 Gone | token 单次使用，重新走流程生成新 token |
-| view_url 410 Gone（24h 后）| token 过期，重新走完整流程 |
+| view_url 410 Gone（1h 后）| token 过期，重新走完整流程 |
 | view_url 401 Unauthorized | agent_endpoint 已撤销，重新注册或联系 owner |
 | webhook 收不到 | 检查 `agent_endpoint` 是否可达、签名校验是否过、时间戳是否在 300s 内 |
 | 脱敏字段是 `其他` / `未分类` | 输入值不在 `config/industry_map.json` 和正则规则中，详见 §0.4 |
@@ -1206,7 +1208,7 @@ Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是
 | 触发条件 | 状态码 | 含义 |
 |----------|--------|------|
 | 同一 token 第二次访问 | 410 Gone | **单次使用**——已消费 |
-| 同一 token 24h 后访问 | 410 Gone | **JWT 过期** |
+| 同一 token 1h 后访问 | 410 Gone | **token 过期** |
 
 两者都返 410，agent 需重新走 unlock 流程生成新 token。
 
