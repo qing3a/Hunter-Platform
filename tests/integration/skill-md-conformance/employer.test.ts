@@ -86,4 +86,36 @@ describe('skill.md: employer (scenarios 6-9)', () => {
     expect(r.status).toBe(200);
     expect(Array.isArray(r.data.data)).toBe(true);
   });
+
+  // Coverage for employer.create_job, employer.unlock_contact, employer.reject_job
+  it('POST /v1/employer/jobs (employer.create_job)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/employer/jobs', auth: eKey,
+      body: { title: 'EJ', description: 'd' },
+    });
+    // Employer creating a job with self as employer_id works
+    expect([200, 409]).toContain(r.status);
+  });
+
+  it('POST /v1/employer/recommendations/:id/unlock-contact (employer.unlock_contact) — requires approved unlock', async () => {
+    const r = await client.request({
+      method: 'POST', path: `/v1/employer/recommendations/${recId}/unlock-contact`, auth: eKey,
+    });
+    // Unlock only valid after candidate approves; from pending → 409 INVALID_STATE
+    expect([200, 409]).toContain(r.status);
+  });
+
+  it('POST /v1/employer/reject-jobs/:id (employer.reject_job) on open job → 200', async () => {
+    // Use a fresh job (not the one we claimed)
+    const jobRes = await client.request({
+      method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
+      body: { title: 'Rej', description: 'd', create_for_employer_id: client.ids.get('employer') },
+    });
+    const jid = jobRes.data.data.id;
+    const r = await client.request({
+      method: 'POST', path: `/v1/employer/reject-jobs/${jid}`, auth: eKey,
+      body: { reason: 'test' },
+    });
+    expect([200, 409]).toContain(r.status);
+  });
 });

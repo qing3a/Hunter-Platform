@@ -1,0 +1,54 @@
+/**
+ * pnpm conformance:check — fail if any capability declared in
+ * src/main/capabilities/ has no corresponding test in
+ * tests/integration/skill-md-conformance/ (other than the auto-generated
+ * _generated.test.ts which is allowed to be stubs).
+ *
+ * Strategy: parse each scenario file looking for capability names in test
+ * descriptions OR in HTTP method+path patterns matching capabilities.
+ *
+ * Exit 0: every capability has a test that mentions it by name.
+ * Exit 1: list missing capabilities.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { getAllCapabilitySets } from '../src/main/capabilities/index.js';
+
+const CONFORMANCE_DIR = path.join(__dirname, '../tests/integration/skill-md-conformance');
+
+function collectTestMentions(): Set<string> {
+  const mentioned = new Set<string>();
+  for (const file of fs.readdirSync(CONFORMANCE_DIR).filter((f) => f.endsWith('.test.ts'))) {
+    if (file === '_generated.test.ts') continue;  // skip stubs
+    const src = fs.readFileSync(path.join(CONFORMANCE_DIR, file), 'utf8');
+    // Look for capability names appearing as strings
+    for (const set of getAllCapabilitySets()) {
+      for (const cap of set.capabilities) {
+        if (src.includes(cap.name) || src.includes(`${cap.method} ${cap.path}`)) {
+          mentioned.add(cap.name);
+        }
+      }
+    }
+  }
+  return mentioned;
+}
+
+function main() {
+  const all = getAllCapabilitySets();
+  const allCaps = all.flatMap((s) => s.capabilities);
+  const mentioned = collectTestMentions();
+  const missing = allCaps.filter((c) => !mentioned.has(c.name));
+
+  if (missing.length > 0) {
+    console.error(`\n${missing.length} capability(ies) have no scenario test:\n`);
+    for (const c of missing) {
+      console.error(`  - ${c.name} (${c.method} ${c.path})`);
+    }
+    console.error(`\nAdd a test to tests/integration/skill-md-conformance/, or`);
+    console.error(`run pnpm conformance:gen + fill in the stub in _generated.test.ts.`);
+    process.exit(1);
+  }
+  console.log(`OK: all ${allCaps.length} capabilities have a scenario test.`);
+}
+
+main();

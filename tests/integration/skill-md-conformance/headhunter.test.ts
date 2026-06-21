@@ -89,4 +89,25 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
     });
     expect(r.status).toBe(200);
   });
+
+  // headhunter.list_candidates + create_job + list_jobs coverage
+  it('GET /v1/headhunter/candidates (headhunter.list_candidates)', async () => {
+    const r = await client.request({ method: 'GET', path: '/v1/headhunter/candidates', auth: hKey });
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.data.data)).toBe(true);
+  });
+
+  it('POST /v1/headhunter/jobs (headhunter.create_job)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
+      body: { title: 'HJ2', description: 'd2', create_for_employer_id: client.ids.get('employer') },
+    });
+    expect(r.status).toBe(200);
+  });
+
+  it('GET /v1/headhunter/jobs (headhunter.list_jobs)', async () => {
+    const r = await client.request({ method: 'GET', path: '/v1/headhunter/jobs', auth: hKey });
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.data.data)).toBe(true);
+  });
 });
