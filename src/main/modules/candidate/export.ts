@@ -46,6 +46,30 @@ export function createCandidateExport(db: DB, encryptionKey: Buffer) {
         for (const { id } of myPrivIds) {
           const p = priv.findById(id);
           if (!p) continue;
+
+          // Privacy: candidates_private rows where headhunter_id != candidate_user_id
+          // were submitted by a third party (a headhunter, not the candidate themselves).
+          // The data subject (this candidate) does NOT get the third-party-submitted PII
+          // in cleartext — they only see the anonymized statistical profile plus a
+          // attribution notice indicating who submitted the record. This implements
+          // GDPR data-minimization: a candidate's export must contain their own data,
+          // not data a headhunter typed into a form about them.
+          //
+          // The single exception: if headhunter_id === candidate_user_id (rare — a
+          // candidate self-uploading), the full PII is included because the candidate
+          // is the submitter and the data subject.
+          const isSelfSubmitted = p.headhunter_id === p.candidate_user_id;
+          if (!isSelfSubmitted) {
+            privExports.push({
+              id: p.id,
+              submitted_by_headhunter_id: p.headhunter_id,
+              notice: 'third_party_submitted_data_about_you_redacted',
+              fields_available: ['industry (anonymized)', 'title_level (anonymized)', 'years_experience (anonymized)', 'salary_range (anonymized)', 'education_tier (anonymized)'],
+              created_at: p.created_at,
+            });
+            continue;
+          }
+
           const nameBuf = Buffer.from(decrypt(encryptionKey, p.name_enc), 'utf8');
           const phoneBuf = Buffer.from(decrypt(encryptionKey, p.phone_enc), 'utf8');
           const emailBuf = Buffer.from(decrypt(encryptionKey, p.email_enc), 'utf8');

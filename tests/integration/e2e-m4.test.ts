@@ -107,15 +107,19 @@ describe('M4 E2E: placement + GDPR + admin billing', () => {
     expect(r.status).toBeGreaterThanOrEqual(400);
   });
 
-  it('candidate can export all their data (GDPR)', async () => {
+  it('candidate can export all their data (GDPR) — third-party-submitted PII is redacted', async () => {
     const r = await request(app)
       .get('/v1/candidate/export-my-data')
       .set('Authorization', `Bearer ${candidateKey}`);
     expect(r.status).toBe(200);
     expect(r.body.data.user.id).toBe(candidateId);
     expect(r.body.data.candidates_private.length).toBeGreaterThan(0);
-    expect(r.body.data.candidates_private[0].name).toBe('张三'); // decrypted
-    expect(r.body.data.candidates_private[0].phone).toBe('13800138000');
+    // Candidate was uploaded by a headhunter (headhunter_id != candidate_user_id),
+    // so PII is redacted per Bug 7 fix (GDPR data-minimization).
+    expect(r.body.data.candidates_private[0].name).toBeUndefined();
+    expect(r.body.data.candidates_private[0].phone).toBeUndefined();
+    expect(r.body.data.candidates_private[0].submitted_by_headhunter_id).toBeDefined();
+    expect(r.body.data.candidates_private[0].notice).toMatch(/redacted/);
   });
 
   it('GET /v1/openapi.json returns valid OpenAPI 3.0', async () => {

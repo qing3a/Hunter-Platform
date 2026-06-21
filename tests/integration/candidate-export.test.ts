@@ -50,12 +50,34 @@ describe('candidate GDPR export', () => {
     const data = exporter.exportMyData(c);
     expect(data.user.id).toBe('c1');
     expect(data.candidates_private.length).toBe(1);
-    expect(data.candidates_private[0].name).toBe('张三');
-    expect(data.candidates_private[0].phone).toBe('13800138000');
+    // h1 != c1 → third-party-submitted PII is REDACTED in the candidate's export.
+    expect(data.candidates_private[0].name).toBeUndefined();
+    expect(data.candidates_private[0].phone).toBeUndefined();
+    expect(data.candidates_private[0].email).toBeUndefined();
+    expect(data.candidates_private[0].submitted_by_headhunter_id).toBe('h1');
+    expect(data.candidates_private[0].notice).toMatch(/redacted/);
     expect(data.candidates_anonymized[0].industry).toBe('互联网');
     expect(data.recommendations.length).toBe(1);
     expect(data.audit_log_entries.length).toBe(1);
     expect(data.exported_at).toBeDefined();
+  });
+
+  it('exports full PII only when the candidate submitted the record themselves', async () => {
+    // Insert a SELF-submitted record (headhunter_id == candidate_user_id == c1)
+    const { encrypt } = await import('../../src/main/modules/crypto/aes-gcm');
+    const now = '2026-06-17T00:00:00Z';
+    priv.insert({ id: 'cp_self', headhunter_id: 'c1', candidate_user_id: 'c1',
+      name_enc: encrypt(encryptionKey, '李四'), phone_enc: encrypt(encryptionKey, '13900139000'), email_enc: encrypt(encryptionKey, 'l@x.com'),
+      current_company_raw: '腾讯', current_title_raw: 'P7', expected_salary: 900000, years_experience: 10, education_school: '北大',
+      resume_url: null, skills_json: '["Node"]', raw_payload_json: null, created_at: now, updated_at: now });
+
+    const c: any = { id: 'c1', user_type: 'candidate' };
+    const data = exporter.exportMyData(c);
+    const selfRow = data.candidates_private.find((r: any) => r.id === 'cp_self');
+    expect(selfRow).toBeDefined();
+    expect(selfRow.name).toBe('李四');
+    expect(selfRow.phone).toBe('13900139000');
+    expect(selfRow.email).toBe('l@x.com');
   });
 
   it('rejects non-candidate', () => {
