@@ -98,4 +98,21 @@ describe('POST /v1/employer/reject-jobs/:id', () => {
     const res = await request(app).get('/v1/employer/pending-claims').set('Authorization', `Bearer ${emp.api_key}`);
     expect(res.body.data).toHaveLength(0);
   });
+
+  it('claim 之后 status=claimed, 拒绝同一 job → 409 INVALID_STATE (regression: Bug 3)', async () => {
+    const app = createApp();
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
+
+    // 1. claim the job
+    const claim = await request(app).post(`/v1/employer/claim-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`);
+    expect(claim.status).toBe(200);
+    expect(claim.body.data.status).toBe('claimed');
+
+    // 2. try to reject the same job — must fail because state machine guards reject to 'open' only
+    const reject = await request(app).post(`/v1/employer/reject-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`).send({});
+    expect(reject.status).toBe(409);
+    expect(reject.body.error.code).toBe('INVALID_STATE');
+  });
 });
