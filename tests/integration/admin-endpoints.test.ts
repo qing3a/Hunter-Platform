@@ -32,11 +32,20 @@ describe('admin endpoints integration', () => {
   afterAll(() => { if (db) db.close(); });
 
   describe('GET /v1/admin/ping', () => {
-    it('returns pong (auth required for everything except /ping)', async () => {
-      // Note: per design, /ping has NO auth — it's for ops monitoring
-      const res = await request(app).get('/v1/admin/ping');
+    it('returns pong with valid admin bearer', async () => {
+      const res = await request(app).get('/v1/admin/ping').set('Authorization', adminAuth);
       expect(res.status).toBe(200);
       expect(res.body.data.message).toBe('admin pong');
+    });
+
+    it('401 without bearer (admin/ping now requires auth, was previously public)', async () => {
+      const res = await request(app).get('/v1/admin/ping');
+      expect(res.status).toBe(401);
+    });
+
+    it('401 with wrong password', async () => {
+      const res = await request(app).get('/v1/admin/ping').set('Authorization', 'Bearer wrong');
+      expect(res.status).toBe(401);
     });
   });
 

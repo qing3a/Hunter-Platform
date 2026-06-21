@@ -199,11 +199,9 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/headhunter', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer',   createUtf8OnlyMiddleware(64 * 1024), express.json({ limit: BODY_LIMIT_LARGE }), createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/candidate',  createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
-  // /v1/admin/ping is intentionally public (ops monitoring). Registered BEFORE
-  // the auth-gated admin router so the middleware never sees it.
-  app.get('/v1/admin/ping', (_req, res) => {
-    res.json({ ok: true, data: { message: 'admin pong' } });
-  });
+  // /v1/admin/* — all routes (including /ping) require the admin bearer token.
+  // The admin auth middleware rejects unauthenticated and non-admin requests
+  // with 401 UNAUTHORIZED.
   app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(), createAdminRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.

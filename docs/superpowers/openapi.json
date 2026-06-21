@@ -303,12 +303,11 @@
     },
     "/v1/admin/ping": {
       "get": {
-        "summary": "Admin health check (public)",
-        "security": [],
+        "summary": "Admin health check (requires admin bearer token)",
+        "security": [{ "AdminBearer": [] }],
         "responses": {
-          "200": {
-            "description": "ok"
-          }
+          "200": { "description": "ok" },
+          "401": { "description": "Unauthorized" }
         }
       }
     },
