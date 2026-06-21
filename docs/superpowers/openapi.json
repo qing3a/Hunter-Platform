@@ -301,6 +301,39 @@
         }
       }
     },
+    "/v1/capabilities": {
+      "get": {
+        "summary": "Domain Capability Sets discovery (Phase 4, public) — 列出所有能力集(角色 + 端点 + 配额 + 前置条件 + 副作用)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Ok" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/capabilities/me": {
+      "get": {
+        "summary": "当前用户的可用能力列表(Phase 4) — 含 quota 剩余和 available/reason",
+        "security": [{ "ApiKey": [] }],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Ok" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
     "/v1/admin/ping": {
       "get": {
         "summary": "Admin health check (requires admin bearer token)",
