@@ -107,6 +107,51 @@ describe('admin endpoints integration', () => {
       expect(res.body.data.status).toBe('active');
     });
 
+    it('POST /v1/admin/users/:id/unsuspend on already-active user returns 409 (H1 regression)', async () => {
+      // Regression: before C1+H1 fix, unsuspend on active user would 500 with
+      // "Invalid state transition: cannot 'unsuspend' from 'active'".
+      // After the fix, it returns 409 INVALID_STATE with a friendly message.
+      const res = await request(app)
+        .post(`/v1/admin/users/${testUserId}/unsuspend`)
+        .set('Authorization', adminAuth);
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('INVALID_STATE');
+    });
+
+    it('POST /v1/admin/users/:id/suspend on already-suspended user returns 409 (H1 regression)', async () => {
+      await request(app).post(`/v1/admin/users/${testUserId}/suspend`)
+        .set('Authorization', adminAuth).send({ reason: 'test' });
+      const res = await request(app)
+        .post(`/v1/admin/users/${testUserId}/suspend`)
+        .set('Authorization', adminAuth)
+        .send({ reason: 'second try' });
+      expect(res.status).toBe(409);
+      expect(res.body.error.code).toBe('INVALID_STATE');
+    });
+
+    it('suspend writes an admin_action_log row (C1: sideEffect is dispatched)', async () => {
+      // Regression for C1: userFlow declares an admin_action_log side effect
+      // for the active->suspended transition. Before the C1 fix, the handler
+      // ignored result.sideEffect, so no row was written.
+      await request(app).post(`/v1/admin/users/${testUserId}/suspend`)
+        .set('Authorization', adminAuth).send({ reason: 'audit-test' });
+
+      // Query the admin_action_log table directly
+      const { openDb } = await import('../../src/main/db/connection');
+      const db = openDb(testDb);
+      const row = db.prepare(`
+        SELECT * FROM admin_action_log
+        WHERE action = 'suspend_user' AND target_id = ?
+        ORDER BY id DESC LIMIT 1
+      `).get(testUserId) as { id: number; admin_user_id: string; action: string; target_id: string; details_json: string } | undefined;
+      db.close();
+
+      expect(row).toBeDefined();
+      expect(row!.admin_user_id).toBe('admin');
+      expect(row!.action).toBe('suspend_user');
+      expect(JSON.parse(row!.details_json).reason).toBe('audit-test');
+    });
+
     it('POST /v1/admin/users/:id/adjust-quota validates range', async () => {
       const res = await request(app)
         .post(`/v1/admin/users/${testUserId}/adjust-quota`)
