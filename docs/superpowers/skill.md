@@ -59,7 +59,7 @@
 | 6. admin/ping 无鉴权 | 移到 admin router,继承 `createAdminAuthMiddleware` |
 | 7. export-my-data 泄露第三方 PII | 区分 self-submitted vs third-party,第三方 PII 脱敏 |
 
-**Phase 1**: 全部 58 个 endpoint 走 zod 响应 schema
+**Phase 1+4**: 全部 64 个 endpoint 走 zod 响应 schema (含 2 个 capability discovery endpoint)
 
 - `respond(res, schema, payload, opts)` helper + 递归 `makeStrict()` 校验
 - 强制 0 裸 `res.json` (schema-coverage test 守护)
@@ -126,6 +126,23 @@ Handler 通过 `applyTransition(flow, from, event, ctx)` 触发转移,返回 `{ 
 这样 state machine 是一处声明,handler 不会忘记更新 status 或漏发 webhook。
 
 **已知 caveat**: `applyTransition` 抛 `TransitionError` 时,handler 需包成业务错误 (e.g. `Errors.invalidState`) 再抛 — flow 不知道 HTTP 错误码。
+
+---
+
+## 🧭 Capability Discovery (Phase 4)
+
+外部 Agent 启动时建议先调用 `GET /v1/capabilities/me` 查自己的可用能力 + 剩余配额:
+
+```
+GET /v1/capabilities           # 公开, 列出所有 role 的所有 capability
+GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability + 剩余配额
+```
+
+返回的每个 capability 包含: `name`, `method`, `path`, `quota_cost`, `preconditions`, `effects`, `description`。`available: false` 时说明当前不可调用(配额耗尽或前置条件不满足)。
+
+所有 endpoint 的响应也带 `x-capability-name` 响应头,日志里 grep 即可知道调用的是哪个 capability。
+
+`pnpm conformance:check` 在 CI 守门:每个 capability 必须有 scenario test,缺失时构建失败。
 
 ---
 
@@ -1423,6 +1440,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 | 版本 | 日期 | 变化 |
 |------|------|------|
+| v1.8 | 2026-06-22 | **Conformance Tests (v1.7 upgrade)**: 12 个 vitest scenario 文件覆盖 46 capabilities 的端到端契约。`tests/integration/skill-md-conformance/` 是 vitest-native contract test,模拟"读 skill.md 的客户端"调每个 endpoint 并验响应 shape。`pnpm conformance:gen` 从 capabilities 生成 scenario stubs；`pnpm conformance:check` CI 守门(缺场景则失败)。`examples/reference-agent/` CLI 标记 `@deprecated`,v1.9 删除。641 → 760 tests pass |
 | v1.7 | 2026-06-22 | **Phase 4**: Domain Capability Sets。46 capabilities 在 `src/main/capabilities/{auth,headhunter,employer,candidate,admin}.ts` 声明（5 文件 / 5 角色）。`GET /v1/capabilities`（公开）+ `GET /v1/capabilities/me`（鉴权）。`x-capability-name` 响应头。`pnpm capabilities:check` CI 守门；`pnpm capabilities:doc` 自动生成 skill.md 角色能力段。641 tests pass |
 | v1.6 | 2026-06-22 | **Phase 3**: 显式状态机。recommendation / job / user 三个 flow 集中到 `src/main/flows/`。删除旧 `modules/unlock/state-machine.ts`。622 tests pass |
 | v1.5 | 2026-06-22 | **Phase 2**: OpenTelemetry + trace_id 串联; x-trace-id 响应头; action_history.trace_id (v011); webhook traceparent (v012); 7 个业务 span; 600 tests pass |
