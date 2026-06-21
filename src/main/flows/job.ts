@@ -27,7 +27,7 @@ export type JobEvent =
 
 export const JOB_TERMINAL_STATUSES = new Set<JobStatus>(['closed', 'filled']);
 
-export const jobFlow: Flow<JobStatus, JobEvent> = defineFlow({
+export const jobFlow: Flow<JobStatus, JobEvent> = defineFlow<JobStatus, JobEvent>({
   initial: 'open',
   states: {
     open: {

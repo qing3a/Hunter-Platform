@@ -23,7 +23,7 @@ export type UserEvent = 'suspend' | 'unsuspend' | 'delete';
 
 export const USER_TERMINAL_STATUSES = new Set<UserStatus>(['deleted']);
 
-export const userFlow: Flow<UserStatus, UserEvent> = defineFlow({
+export const userFlow: Flow<UserStatus, UserEvent> = defineFlow<UserStatus, UserEvent>({
   initial: 'active',
   states: {
     active: {

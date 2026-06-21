@@ -51,7 +51,7 @@ export const REC_SIDE_EFFECTS: { [k: string]: (ctx: any) => SideEffect | null } 
   // step like placement creation).
 };
 
-export const recFlow: Flow<RecStatus, RecEvent> = defineFlow({
+export const recFlow: Flow<RecStatus, RecEvent> = defineFlow<RecStatus, RecEvent>({
   initial: 'pending',
   states: {
     pending: {
