@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import { z, type ZodTypeAny } from 'zod';
 import { EnvelopeSchema } from './schemas/common.js';
+import { getTraceIdFromContext } from './telemetry.js';
 
 // Re-export so existing imports of `respond, EnvelopeSchema` from
 // '../responses.js' keep working. New code should import `EnvelopeSchema`
@@ -117,6 +118,12 @@ export function respond<T extends ZodTypeAny>(
   if (!result.success) {
     throw result.error;
   }
+
+  // Stamp the response with the active OTel trace_id so external Agents
+  // can report a failure with this id and we can correlate to
+  // action_history.trace_id + OTel spans.
+  const traceId = getTraceIdFromContext();
+  if (traceId) res.setHeader('x-trace-id', traceId);
 
   res.json(result.data);
 }
