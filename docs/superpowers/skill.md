@@ -96,6 +96,26 @@ traceparent: 00-<Hunter traceId>-<Hunter spanId>-01
 
 ---
 
+## 🔄 状态机 (Phase 3) — 给 Agent 客户端的契约
+
+每个 domain 的状态机集中在 `src/main/flows/<domain>.ts` 一个文件:
+
+- `recommendation.ts` — 8 状态 (pending → employer_interested → candidate_approved → unlocked → placed, 4 terminal)
+- `job.ts` — 5 状态 (open → claimed | paused, claimed → filled, terminal: closed/filled)
+- `user.ts` — 3 状态 (active → suspended → deleted)
+
+每个 flow 声明:
+- `states[from][event] = to` — 合法的状态转移
+- `sideEffects['from->to']` — 转移时触发的副作用 (webhook / audit log)
+
+Handler 通过 `applyTransition(flow, from, event, ctx)` 触发转移,返回 `{ next, sideEffect }`。
+返回后 handler 自己负责: 写 DB 状态 + 派发 sideEffect (enqueue webhook 等)。
+这样 state machine 是一处声明,handler 不会忘记更新 status 或漏发 webhook。
+
+**已知 caveat**: `applyTransition` 抛 `TransitionError` 时,handler 需包成业务错误 (e.g. `Errors.invalidState`) 再抛 — flow 不知道 HTTP 错误码。
+
+---
+
 ## 📖 0. 业务模型（先读这一节）
 
 ### 0.1 价值流
@@ -1258,6 +1278,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 | 版本 | 日期 | 变化 |
 |------|------|------|
+| v1.6 | 2026-06-22 | **Phase 3**: 显式状态机。recommendation / job / user 三个 flow 集中到 `src/main/flows/`。删除旧 `modules/unlock/state-machine.ts`。622 tests pass |
 | v1.5 | 2026-06-22 | **Phase 2**: OpenTelemetry + trace_id 串联; x-trace-id 响应头; action_history.trace_id (v011); webhook traceparent (v012); 7 个业务 span; 600 tests pass |
 | v1.4 | 2026-06-22 | **Phase 0 + Phase 1**: 修复 7 个 bug (rotate-key 立即失效 / claim 状态机 / admin/ping 鉴权 / PII 脱敏 等); 全部 endpoint 走 zod 响应 schema; 595 tests pass |
 | v1.3 | 2026-06 | 新增 `GET /v1/market/jobs` 公共端点；13 项 skill.md polish |
