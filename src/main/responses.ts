@@ -87,11 +87,23 @@ export interface RespondOptions {
 /**
  * Validate `payload` against `schema`, then send via `res.json()`.
  *
- * Strips unknown keys by default (z.safeParse → take only declared fields),
- * so handlers can't accidentally leak extra fields to API clients.
+ * Two failure modes, both THROW (no silent fallback — silent data loss is
+ * worse than a 500 in this codebase):
  *
- * Throws ZodError on schema mismatch. The error middleware in server.ts
+ *   1. strict=true:   unknown keys fail the parse → throw ZodError
+ *   2. strict=false:  known shape mismatch (wrong type / missing required
+ *                     field) fails the parse → throw ZodError. (Unknown
+ *                     keys are silently stripped in this mode, by design.)
+ *
+ * Throws ZodError in both cases. The error middleware in server.ts
  * converts ZodError into 500 INTERNAL_ERROR with details — log + alert.
+ *
+ * Why no fallback to permissive send: a schema mismatch indicates a
+ * handler-vs-schema drift, which is a developer error that should be
+ * loud, not papered over. The Phase 1 plan called for a console.warn
+ * fallback here, but on review (491e8c8 MEDIUM M4) the maintainer
+ * decided throwing is the safer default — silent fallback would let
+ * a buggy handler ship to production undetected.
  */
 export function respond<T extends ZodTypeAny>(
   res: Response,
@@ -103,9 +115,6 @@ export function respond<T extends ZodTypeAny>(
   const result = effectiveSchema.safeParse(payload);
 
   if (!result.success) {
-    if (opts.strict) throw result.error;
-    // safeParse failed but strict=false: fall back to permissive send with console.warn
-    console.error('[respond] schema mismatch (stripping unknown fields failed too):', result.error.issues);
     throw result.error;
   }
 
