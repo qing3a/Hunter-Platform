@@ -19,8 +19,10 @@ export function tmpDbPath(name: string): string {
   return path.join(__dirname, `../../../tmp/conformance-${name}.db`);
 }
 
-/** Fresh Express app + DB. Call this in beforeAll of each scenario file. */
-export async function freshApp(name: string): Promise<{ app: Express; dbPath: string }> {
+/** Fresh Express app + open DB handle + DB path. Call this in beforeAll of each scenario file.
+ *  Returned `db` is an open node:sqlite DatabaseSync — tests that simulate
+ *  failures (e.g. closing the DB to provoke a 500) can use it directly. */
+export async function freshApp(name: string): Promise<{ app: Express; dbPath: string; db: import('../../../src/main/db/connection.js').DB }> {
   const dbPath = tmpDbPath(name);
   for (const suffix of ['', '-wal', '-shm']) {
     try { fs.unlinkSync(dbPath + suffix); } catch { /* ignore */ }
@@ -44,7 +46,7 @@ export async function freshApp(name: string): Promise<{ app: Express; dbPath: st
   const db = openDb(dbPath);
   runMigrations(db);
   const app = createAppFromDb(db, loadEnv());
-  return { app, dbPath };
+  return { app, dbPath, db };
 }
 
 /** Clean up a DB after a test. */
