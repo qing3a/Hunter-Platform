@@ -5,6 +5,8 @@ import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createUsersRepo } from '../db/repositories/users.js';
 import { createActionHistoryRepo } from '../db/repositories/action-history.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import { UserStatusResponseSchema, UserHistoryResponseSchema } from '../schemas/users.js';
 import type { User } from '../../shared/types.js';
 
 export function createUsersRouter(db: DB): Router {
@@ -21,7 +23,7 @@ export function createUsersRouter(db: DB): Router {
       const u = users.findById(req.params.id);
       if (!u) throw Errors.notFound('User not found');
       // Strip sensitive fields (api_key_hash, contact, agent_endpoint)
-      res.json({
+      respond(res, UserStatusResponseSchema, {
         ok: true,
         data: {
           id: u.id,
@@ -76,7 +78,7 @@ export function createUsersRouter(db: DB): Router {
         u.id,
         since !== undefined ? { limit, offset, since } : { limit, offset },
       );
-      res.json({ ok: true, data: list });
+      respond(res, UserHistoryResponseSchema, { ok: true, data: list });
     } catch (e) { next(e); }
   });
 
