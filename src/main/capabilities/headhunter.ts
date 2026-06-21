@@ -1,0 +1,85 @@
+import { defineCapabilitySet } from './types.js';
+import {
+  UploadCandidateResponseSchema, RecommendResponseSchema, WithdrawResponseSchema,
+  PublishResponseSchema, ListRecommendationsResponseSchema, ListMyCandidatesResponseSchema,
+  CreateJobForEmployerResponseSchema, ListMyCreatedJobsResponseSchema,
+} from '../schemas/headhunter.js';
+import { QUOTA_COSTS } from '../../shared/constants.js';
+
+export const headhunterCapabilities = defineCapabilitySet({
+  role: 'headhunter',
+  capabilities: [
+    {
+      name: 'headhunter.upload_candidate',
+      description: '上传候选人简历(加密入库,生成脱敏版本)。',
+      method: 'POST', path: '/v1/headhunter/candidates',
+      response_schema: UploadCandidateResponseSchema,
+      quota_cost: QUOTA_COSTS.upload_candidate,
+      preconditions: ['user.status === "active"'],
+      effects: ['consume_quota(5)', 'db.candidates_private.insert', 'db.candidates_anonymized.insert'],
+    },
+    {
+      name: 'headhunter.recommend_candidate',
+      description: '把已上传的候选人推荐给指定 job(状态: pending)。',
+      method: 'POST', path: '/v1/headhunter/recommendations',
+      response_schema: RecommendResponseSchema,
+      quota_cost: QUOTA_COSTS.recommend_candidate,
+      preconditions: ['user.status === "active"'],
+      effects: ['consume_quota(5)', 'db.recommendations.insert'],
+    },
+    {
+      name: 'headhunter.withdraw_recommendation',
+      description: '撤回已提交的推荐(只在 pending / employer_interested 状态可撤回)。',
+      method: 'POST', path: '/v1/headhunter/recommendations/:id/withdraw',
+      response_schema: WithdrawResponseSchema,
+      quota_cost: QUOTA_COSTS.withdraw_recommendation,
+      preconditions: ['user.status === "active"', 'flow.recommendation.withdraw'],
+      effects: ['consume_quota(1)', 'db.recommendations.updateStatus(withdrawn)'],
+    },
+    {
+      name: 'headhunter.publish_to_pool',
+      description: '把候选人公开到公共池(让其他猎头/雇主可见)。',
+      method: 'POST', path: '/v1/headhunter/candidates/:id/publish-to-pool',
+      response_schema: PublishResponseSchema,
+      quota_cost: QUOTA_COSTS.publish_to_pool,
+      preconditions: ['user.status === "active"'],
+      effects: ['consume_quota(2)', 'db.candidates_anonymized.update(is_public_pool=1)'],
+    },
+    {
+      name: 'headhunter.list_recommendations',
+      description: '列出我提交过的所有推荐。',
+      method: 'GET', path: '/v1/headhunter/recommendations',
+      response_schema: ListRecommendationsResponseSchema,
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.recommendations.listByUser'],
+    },
+    {
+      name: 'headhunter.list_candidates',
+      description: '列出我上传过的所有候选人(脱敏预览)。',
+      method: 'GET', path: '/v1/headhunter/candidates',
+      response_schema: ListMyCandidatesResponseSchema,
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.candidates_anonymized.listBySource'],
+    },
+    {
+      name: 'headhunter.create_job',
+      description: '猎头代雇主建岗(用 create_for_employer_id)。',
+      method: 'POST', path: '/v1/headhunter/jobs',
+      response_schema: CreateJobForEmployerResponseSchema,
+      quota_cost: QUOTA_COSTS.create_job,
+      preconditions: ['user.status === "active"'],
+      effects: ['consume_quota(5)', 'db.jobs.insert'],
+    },
+    {
+      name: 'headhunter.list_jobs',
+      description: '列出我建过的所有 job。',
+      method: 'GET', path: '/v1/headhunter/jobs',
+      response_schema: ListMyCreatedJobsResponseSchema,
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.jobs.listBySource'],
+    },
+  ],
+});
