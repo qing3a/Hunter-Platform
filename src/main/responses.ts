@@ -1,5 +1,11 @@
 import type { Response } from 'express';
 import { z, type ZodTypeAny } from 'zod';
+import { EnvelopeSchema } from './schemas/common.js';
+
+// Re-export so existing imports of `respond, EnvelopeSchema` from
+// '../responses.js' keep working. New code should import `EnvelopeSchema`
+// from './schemas/common.js' to avoid coupling.
+export { EnvelopeSchema };
 
 /**
  * Recursively clone a zod schema and apply `.strict()` to all ZodObject
@@ -19,21 +25,6 @@ function makeStrict<T extends ZodTypeAny>(schema: T): T {
     return z.array(makeStrict(schema.element)) as unknown as T;
   }
   return schema;
-}
-
-/**
- * Standard API response envelope: either { ok: true, data: T } or
- * { ok: false, error: { code, message, details? } }. Error responses are
- * built by errors.ts middleware and intentionally NOT wrapped here.
- *
- * Helper, not a wrapper: we want every route to declare its data schema
- * explicitly. The route passes the full envelope schema to `respond()`.
- */
-export function EnvelopeSchema<T extends ZodTypeAny>(dataSchema: T) {
-  return z.object({
-    ok: z.literal(true),
-    data: dataSchema,
-  });
 }
 
 /**

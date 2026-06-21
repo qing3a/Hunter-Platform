@@ -1,4 +1,20 @@
-import { z } from 'zod';
+import { z, type ZodTypeAny } from 'zod';
+
+/**
+ * Standard API response envelope helper.
+ *
+ * Returns a zod schema that accepts `{ ok: true, data: <dataSchema> }`.
+ * Used by every response schema in `src/main/schemas/<domain>.ts`.
+ *
+ * Helper, not a wrapper: routes declare their data schema explicitly and
+ * pass the full envelope schema to `respond()`.
+ */
+export function EnvelopeSchema<T extends ZodTypeAny>(dataSchema: T) {
+  return z.object({
+    ok: z.literal(true),
+    data: dataSchema,
+  });
+}
 
 /** ISO 8601 datetime string */
 export const ISODateTime = z.string().refine(

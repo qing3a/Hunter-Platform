@@ -7,15 +7,9 @@ import { generateApiKey } from '../modules/auth/api-key.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
 import { rotateApiKey } from '../db/repositories/users.js';
 import { Errors } from '../errors.js';
+import { respond } from '../responses.js';
+import { RegisterResponseSchema, RotateKeyResponseSchema } from '../schemas/auth.js';
 import type { User } from '../../shared/types.js';
-
-/**
- * Grace period for a rotated-out API key.
- * Old key still authenticates for 24h after rotate so in-flight requests /
- * queued webhooks have time to migrate. After 24h the auth middleware
- * filters it out (via api_key_expires_at < now).
- */
-const ROTATE_GRACE_PERIOD_MS = 24 * 3600 * 1000;
 
 const RegisterSchema = z.object({
   user_type: z.enum(['candidate', 'headhunter', 'employer']),
@@ -41,7 +35,7 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
       res.locals.userIdForAudit = user.id;
       res.locals.ahTargetType = 'user';
       res.locals.ahTargetId = user.id;
-      res.json({
+      respond(res, RegisterResponseSchema, {
         ok: true,
         data: {
           id: user.id,
@@ -56,7 +50,7 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
   // POST /v1/auth/rotate-key — 旋转当前用户的 API key
   // 鉴权：仅本人（通过 authMiddleware 拿到 req.user）
   // 配额：1 次
-  // 行为：生成新 key，旧 key 在 ROTATE_GRACE_PERIOD_MS 内仍可用
+  // 行为：生成新 key，旧 key 立即失效（无 grace period）
   router.post('/rotate-key', authMiddleware(db), (req, res, next) => {
     try {
       const user = (req as typeof req & { user?: User }).user;
@@ -71,7 +65,7 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
       }
 
       const { key, hash, prefix } = generateApiKey();
-      const rotated = rotateApiKey(db, user.id, hash, prefix, ROTATE_GRACE_PERIOD_MS);
+      const rotated = rotateApiKey(db, user.id, hash, prefix);
       if (!rotated) throw Errors.notFound('User not found');
 
       // audit summary 让 action_history 中间件记录 rotate 事件
@@ -79,14 +73,12 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
       res.locals.ahTargetId = user.id;
       res.locals.ahResSummary = {
         action: 'rotate_api_key',
-        old_key_expires_at: rotated.oldKeyExpiresAt,
         new_prefix: prefix,
       };
 
-      res.json({
+      respond(res, RotateKeyResponseSchema, {
         ok: true,
         data: {
-          old_key_expires_at: rotated.oldKeyExpiresAt,
           new_api_key: key,
           new_prefix: prefix,
         },
