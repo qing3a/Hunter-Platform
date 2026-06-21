@@ -38,14 +38,16 @@ export function createUsersRepo(db: DB) {
  * Rotate the API key for a user.
  *
  * Strategy (atomic — single UPDATE):
- *  1. Copy CURRENT hash → prev_api_key_hash (with prev_api_key_expires_at = now + gracePeriodMs)
- *  2. Write the NEW hash to api_key_hash (api_key_expires_at = NULL)
+ *  1. Clear prev_api_key_* slot (NULL) so any grace slot from a prior rotate is wiped
+ *  2. Overwrite api_key_hash + api_key_prefix with the new values (api_key_expires_at = NULL)
  *  3. Bump updated_at
  *
- * Auth middleware accepts either the new key OR the old key during the grace window.
- * After grace expires, only the new key works.
+ * The old key is invalidated IMMEDIATELY — there is no grace period. This is a
+ * deliberate security choice: if a key is compromised, rotation must stop the
+ * attacker within the same request, not up to 24h later. The auth middleware's
+ * prev_api_key_* branch still exists in the schema for forward compatibility
+ * and to support migrations from earlier versions, but rotate no longer populates it.
  *
- * Returns the old-key expiry timestamp so the caller can echo it back.
  * Returns null if the user did not exist (no row updated).
  */
 export function rotateApiKey(
@@ -53,24 +55,21 @@ export function rotateApiKey(
   userId: string,
   newHash: string,
   newPrefix: string,
-  gracePeriodMs: number,
-): { oldKeyExpiresAt: string; updatedAt: string } | null {
-  const now = Date.now();
-  const oldExpiresAt = new Date(now + gracePeriodMs).toISOString();
-  const newUpdatedAt = new Date(now).toISOString();
+): { updatedAt: string } | null {
+  const newUpdatedAt = new Date().toISOString();
 
   const result = db.prepare(`
     UPDATE users
-    SET prev_api_key_hash = api_key_hash,
-        prev_api_key_prefix = api_key_prefix,
-        prev_api_key_expires_at = ?,
+    SET prev_api_key_hash = NULL,
+        prev_api_key_prefix = NULL,
+        prev_api_key_expires_at = NULL,
         api_key_hash = ?,
         api_key_prefix = ?,
         api_key_expires_at = NULL,
         updated_at = ?
     WHERE id = ?
-  `).run(oldExpiresAt, newHash, newPrefix, newUpdatedAt, userId);
+  `).run(newHash, newPrefix, newUpdatedAt, userId);
 
   if (result.changes === 0) return null;
-  return { oldKeyExpiresAt: oldExpiresAt, updatedAt: newUpdatedAt };
+  return { updatedAt: newUpdatedAt };
 }

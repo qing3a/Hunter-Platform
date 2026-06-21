@@ -731,7 +731,7 @@
     },
     "/v1/auth/rotate-key": {
       "post": {
-        "summary": "Rotate the caller's API key. Old key stays valid for 24h grace period.",
+        "summary": "Rotate the caller's API key. Old key is invalidated immediately (no grace period).",
         "security": [
           {
             "ApiKey": []
@@ -753,10 +753,6 @@
                         "data": {
                           "type": "object",
                           "properties": {
-                            "old_key_expires_at": {
-                              "type": "string",
-                              "format": "date-time"
-                            },
                             "new_api_key": {
                               "type": "string"
                             },
