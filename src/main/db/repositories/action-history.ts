@@ -11,6 +11,8 @@ export interface ActionHistoryEntry {
   status: 'success' | 'error';
   error_code: string | null;
   duration_ms: number | null;
+  /** W3C trace_id (32-char hex) of the request that caused this action. NULL for pre-v011 rows. */
+  trace_id: string | null;
   created_at: string;
 }
 
@@ -29,8 +31,8 @@ export function createActionHistoryRepo(db: DB) {
     INSERT INTO action_history (
       user_id, action_type, target_type, target_id,
       request_summary_json, response_summary_json,
-      status, error_code, duration_ms, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      status, error_code, duration_ms, trace_id, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   return {
@@ -40,6 +42,7 @@ export function createActionHistoryRepo(db: DB) {
         entry.target_type ?? null, entry.target_id ?? null,
         entry.request_summary_json ?? null, entry.response_summary_json ?? null,
         entry.status, entry.error_code ?? null, entry.duration_ms ?? null,
+        entry.trace_id ?? null,
         entry.created_at,
       );
       return Number(result.lastInsertRowid);

@@ -2,6 +2,7 @@ import type { Request, Response, RequestHandler } from 'express';
 import { lookupActionType } from './route-action-map.js';
 import { sanitizeSummary } from './sanitize-summary.js';
 import type { ActionHistoryEntry } from '../../db/repositories/action-history.js';
+import { getTraceIdFromContext } from '../../telemetry.js';
 
 interface RepoShape {
   insert(entry: Omit<ActionHistoryEntry, 'id'>): number;
@@ -47,6 +48,7 @@ export function createActionHistoryMiddleware(repo: RepoShape): RequestHandler {
           status,
           error_code: errorCode,
           duration_ms: Date.now() - start,
+          trace_id: getTraceIdFromContext() ?? null,
           created_at: new Date().toISOString(),
         });
       } catch (e) {
