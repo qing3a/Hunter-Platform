@@ -6,7 +6,7 @@ import { createCandidatesPrivateRepo } from '../../db/repositories/candidates-pr
 import { createJobsRepo } from '../../db/repositories/jobs.js';
 import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-queue.js';
 import { createQuotaManager } from '../quota/manager.js';
-import { assertTransition } from '../unlock/state-machine.js';
+import { recFlow, applyTransition } from '../../flows/index.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
@@ -94,13 +94,14 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
         const privRecord = db.prepare('SELECT candidate_user_id FROM candidates_private WHERE id = (SELECT source_private_id FROM candidates_anonymized WHERE id = ?)').get(rec.anonymized_candidate_id) as { candidate_user_id: string } | undefined;
         if (!privRecord || privRecord.candidate_user_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
 
+        let result;
         try {
-          assertTransition(rec.status, 'candidate_approved');
+          result = applyTransition(recFlow, rec.status, 'approve_unlock', { employer_id: rec.employer_id });
         } catch (e) {
           throw Errors.invalidState(`Invalid state: cannot approve from status ${rec.status}`);
         }
 
-        recs.updateStatus(rec.id, 'candidate_approved');
+        recs.updateStatus(rec.id, result.next);
         audit.insert({
           recommendation_id: rec.id, actor_user_id: user.id, action: 'approve_unlock',
           ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
@@ -148,13 +149,14 @@ export function createCandidateHandler(db: DB, encryptionKey: Buffer) {
         const privRecord = db.prepare('SELECT candidate_user_id FROM candidates_private WHERE id = (SELECT source_private_id FROM candidates_anonymized WHERE id = ?)').get(rec.anonymized_candidate_id) as { candidate_user_id: string } | undefined;
         if (!privRecord || privRecord.candidate_user_id !== user.id) throw Errors.forbidden('Forbidden: not your recommendation');
 
+        let result;
         try {
-          assertTransition(rec.status, 'rejected_candidate');
+          result = applyTransition(recFlow, rec.status, 'reject_candidate', {});
         } catch (e) {
           throw Errors.invalidState(`Invalid state: cannot reject from status ${rec.status}`);
         }
 
-        recs.updateStatus(rec.id, 'rejected_candidate');
+        recs.updateStatus(rec.id, result.next);
         audit.insert({
           recommendation_id: rec.id, actor_user_id: user.id, action: 'reject_unlock',
           ip_address: ctx.ip ?? null, user_agent: ctx.userAgent ?? null,
