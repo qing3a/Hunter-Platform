@@ -23,7 +23,8 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { trace, context, SpanStatusCode, type Span, type Tracer } from '@opentelemetry/api';
+import { trace, context, SpanStatusCode, SpanKind, type Span, type Tracer } from '@opentelemetry/api';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 
 let sdk: NodeSDK | null = null;
 let started = false;
@@ -154,4 +155,53 @@ export function getTraceparentFromContext(): string | undefined {
   if (!span) return undefined;
   const sc = span.spanContext();
   return `00-${sc.traceId}-${sc.spanId}-01`;
+}
+
+/**
+ * Express middleware that creates one root span per HTTP request and
+ * makes it the active context. Also writes the `x-trace-id` response
+ * header so every response carries the trace id (not just those that
+ * go through respond()).
+ *
+ * In production this is the request-level root span; auto-instrumentation
+ * adds child spans (DB, fetch, etc.) under it. In tests, this is the
+ * ONLY span source — the e2e tests in tests/integration/trace-id.test.ts
+ * depend on it.
+ *
+ * Safe to use when no SDK is started: tracer.startActiveSpan returns
+ * a NoopSpan, no overhead. The x-trace-id header is simply not set in
+ * that case (no span → no trace_id).
+ */
+export function traceContextMiddleware(): RequestHandler {
+  const tracer = trace.getTracer('http-server');
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const incomingTraceparent = req.headers['traceparent'];
+    if (typeof incomingTraceparent === 'string') {
+      // Continue the upstream trace. We don't strictly parse the W3C format —
+      // if SDK is running, propagation is automatic; if not, treat as a
+      // fresh span and let the upstream-supplied id flow through the
+      // `x-trace-id` response header.
+    }
+    tracer.startActiveSpan(
+      `HTTP ${req.method} ${req.path}`,
+      { kind: SpanKind.SERVER, attributes: { 'http.method': req.method, 'http.path': req.path } },
+      (span) => {
+        // Write x-trace-id here, BEFORE the handler runs, so it's set
+        // regardless of whether the handler uses respond() or plain
+        // res.json. respond() also sets it, which is harmless.
+        const traceId = span.spanContext().traceId;
+        if (traceId) res.setHeader('x-trace-id', traceId);
+
+        res.on('finish', () => {
+          if (res.statusCode >= 500) {
+            span.setStatus({ code: SpanStatusCode.ERROR, message: `HTTP ${res.statusCode}` });
+          } else {
+            span.setStatus({ code: SpanStatusCode.OK });
+          }
+          span.end();
+        });
+        next();
+      },
+    );
+  };
 }

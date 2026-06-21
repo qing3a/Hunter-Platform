@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { startTelemetry, shutdownTelemetry } from './telemetry.js';
+import { startTelemetry, shutdownTelemetry, traceContextMiddleware } from './telemetry.js';
 import { openDb } from './db/connection.js';
 import { runMigrations } from './db/migrations.js';
 import { loadEnv } from './env.js';
@@ -50,6 +50,12 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // Mounted early so all downstream routers inherit the wrapped res.json.
   const baseUrl = `http://localhost:${env.PORT}`;
   app.use(createViewUrlInjector(db, baseUrl));
+
+  // Telemetry: create a root span per request and set it as the active context.
+  // Mounted BEFORE action-history middleware so the trace_id written to
+  // action_history matches the x-trace-id response header. Safe to use when
+  // no SDK is started (becomes a no-op via OTel's NoopSpan).
+  app.use(traceContextMiddleware());
 
   // Render layer: /view/* HTML routes (public — token IS the auth)
   const viewRepo = createViewTokenRepo(db);
