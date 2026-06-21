@@ -9,33 +9,34 @@ import { API_KEY_PREFIX_LENGTH } from '../../../shared/constants.js';
 /**
  * SELECT clause used by both auth middleware variants.
  *
- * Accepts the key if EITHER slot matches:
- *  - Current slot:  api_key_prefix matches AND api_key_expires_at not expired
- *  - Grace slot:    prev_api_key_prefix matches AND prev_api_key_expires_at > now
+ * Single-slot lookup: api_key_prefix matches AND (api_key_expires_at is NULL
+ * or not yet expired). Status filter blocks suspended / deleted users.
  *
- * Status filter applies to both slots (suspended / deleted users can't auth).
+ * TRIPWIRE (do not remove this comment without re-reading the security review):
+ * The schema still has `prev_api_key_hash` / `prev_api_key_prefix` /
+ * `prev_api_key_expires_at` columns (introduced by v006/v007 for a 24h
+ * grace window) but we deliberately do NOT consult them here. The Bug 1
+ * fix (commit 62329b8) made rotation an immediate cutover with no grace.
+ * To re-introduce a grace period, you must re-add the prev_* branches
+ * in BOTH CANDIDATE_SELECT and tryVerify — restoring the schema alone
+ * is not enough. This guarantees that any reversion to grace behavior
+ * is a deliberate code change, not an accidental schema-only flip.
  */
 const CANDIDATE_SELECT = `
   SELECT * FROM users
   WHERE status = 'active'
-    AND (
-      (api_key_prefix = ? AND (api_key_expires_at IS NULL OR api_key_expires_at > datetime('now')))
-      OR
-      (prev_api_key_prefix = ? AND prev_api_key_expires_at > datetime('now'))
-    )
+    AND api_key_prefix = ?
+    AND (api_key_expires_at IS NULL OR api_key_expires_at > datetime('now'))
 `;
 
 /**
- * Try to verify `key` against both the current slot and the grace slot.
- * Returns the matched User or undefined.
+ * Try to verify `key` against the current slot. Returns the matched User
+ * or undefined. (Grace-slot verification was removed in the Bug 1 fix.)
  */
 function tryVerify(candidates: User[], key: string, prefix: string): User | undefined {
-  return candidates.find(u => {
-    if (u.api_key_prefix === prefix && verifyApiKey(key, u.api_key_hash)) return true;
-    if (u.prev_api_key_prefix === prefix && u.prev_api_key_hash &&
-        verifyApiKey(key, u.prev_api_key_hash)) return true;
-    return false;
-  });
+  return candidates.find(u =>
+    u.api_key_prefix === prefix && verifyApiKey(key, u.api_key_hash)
+  );
 }
 
 export function authMiddleware(db: DB, usersRepo = createUsersRepo(db)): RequestHandler {
@@ -47,8 +48,8 @@ export function authMiddleware(db: DB, usersRepo = createUsersRepo(db)): Request
       // prefix 长度必须 ≥ 12 才能用于缩小候选集
       const prefix = key.slice(0, API_KEY_PREFIX_LENGTH);
 
-      // 通过 prefix 缩小候选集 → 再 bcrypt 验证 (current + grace slots)
-      const candidates = db.prepare(CANDIDATE_SELECT).all(prefix, prefix) as unknown as User[];
+      // 通过 prefix 缩小候选集 → 再 bcrypt 验证 (current slot only; grace removed by Bug 1 fix)
+      const candidates = db.prepare(CANDIDATE_SELECT).all(prefix) as unknown as User[];
       const matched = tryVerify(candidates, key, prefix);
       if (!matched) throw Errors.unauthorized();
 
@@ -75,7 +76,7 @@ export function optionalAuthMiddleware(db: DB, usersRepo = createUsersRepo(db)):
       if (!auth || !auth.startsWith('Bearer ')) return next();
       const key = auth.slice(7);
       const prefix = key.slice(0, API_KEY_PREFIX_LENGTH);
-      const candidates = db.prepare(CANDIDATE_SELECT).all(prefix, prefix) as unknown as User[];
+      const candidates = db.prepare(CANDIDATE_SELECT).all(prefix) as unknown as User[];
       const matched = tryVerify(candidates, key, prefix);
       if (matched) (req as Request & { user?: User }).user = matched;
       next();
