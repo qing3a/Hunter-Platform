@@ -20,3 +20,4 @@ nul
 # deployment config (industry_map.json etc.) is committed explicitly.
 config/desensitization.json
 config/commission.json
+fix-nginx-2.py
