@@ -1,6 +1,6 @@
 {
   "name": "hunter-platform",
-  "version": "1.4.1",
+  "version": "1.8.0",
   "description": "猎头中介 API 平台 — 仅 HTTP API，供外部 AI Agent 通过 skill.md 直接对接",
   "main": "./out/main/index.js",
   "author": "Convo Contributors",

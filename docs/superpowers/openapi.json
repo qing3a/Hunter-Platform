@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Hunter Platform API",
-    "version": "1.4.1",
+    "version": "1.8.0",
     "description": "猎头中介 API 平台 — HTTP-only API for external AI agents. Detailed docs in /v1/skill.md."
   },
   "servers": [

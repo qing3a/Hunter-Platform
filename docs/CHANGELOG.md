@@ -5,6 +5,42 @@
 
 ---
 
+## v1.8.0 — 2026-06-22
+
+**重点**：API 自检（self-policing）+ 3 个 production bug 修复 + 0 skipped tests + 161 行参考客户端。
+
+### ✨ 新增
+
+- **skill.md 一致性测试套件**（Phase 5）— 每个 capability 都有 vitest 测试，调用端点 + 校验 zod schema + 抓 x-trace-id 头。docs/code drift 立即失败。
+- **参考客户端** `examples/hunter-client.ts`（Phase 9）— 161 行 TypeScript 类，零额外配置（仅 zod 依赖），外部 AI Agent 开发者可直接拷贝使用。8 个 convenience methods + `HunterError` 类型化错误类。取代 v1.7 deprecated 的 `examples/reference-agent/` CLI smoke test。
+
+### 🐛 修复
+
+- **3 个 admin production bug**（Phase 8）— handler 返回的 shape 与 zod schema 不一致，之前 strict 模式下返 500：
+  - `POST /v1/admin/candidates/:id/remove-from-pool`：返回 `is_public_pool` 改为 `removed: true`
+  - `POST /v1/admin/rate-limit/users/:id/clear`：返回 `deleted` 改为 `cleared: true`
+  - `GET /v1/admin/placements/summary`：重写为 5 字段（`total_count`/`pending_payment_count`/`paid_count`/`cancelled_count`/`total_revenue`）
+- **8 个 admin handler 静默泄露 PII/secret**（Phase 6）— 之前用 `SELECT *` + 静默 strip 不一致字段，会泄露 `contact`、`api_key_*` 等。改为列投影 + `{ strict: true }`，现在保证 `/v1/admin/users` 返回正好 9 个字段。
+- **schema-shape 测试 helper bug**（Phase 7）— `pathParamsFor()` 漏掉 `admin.adjust_user_quota` 的 case，导致 path 变 `/v1/admin/users//adjust-quota`（空 :id）返 404。
+
+### 🔧 内部
+
+- 所有 admin route 加 `{ strict: true }`（Phase 6）— 不一致字段立即 ZodError 500，不再静默。
+- 22 个原 skipped 测试填好（Phase 7），拆 4 个文件：main（25 simple）+ destructive（2）+ flow（7）+ admin-precondition（12）。
+- Conformance suite **0 skipped**（Phase 8 refactor）— 21 个复杂 capability 通过 `COMPLEX_CAPS` set 在主文件过滤，sibling 文件独占 coverage。
+
+### 📊 数据
+
+- 测试：509 → 641 → **779**（+53%）
+- Skipped：22 → **0**
+- Capability 覆盖率：24/46 → **46/46**
+- Strict-mode 路由：0 → **20**
+- 公开 bug 抓获：0 → **3**（已修）
+
+详见 `docs/superpowers/releases/v1.8.md`。
+
+---
+
 ## v1.4.1 — 2026-06-20
 
 **跨度合并发布**：本版本一次性收口 v1.0.2 之后未提交的全部工作（v1.1 / v1.2 / v1.3 / v1.3.1 / v1.4 五个未发布版本的代码累积）以及 v1.4.1 的 7 大类未文档化新功能。
