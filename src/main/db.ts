@@ -8,7 +8,7 @@
 // `nodeRequire('node:sqlite')` works in both test and prod.
 
 import { createRequire } from 'node:module';
-import { dbPath } from './paths';
+import { dbPath } from './paths.js';
 
 const nodeRequire = createRequire(import.meta.url);
 const { DatabaseSync } = nodeRequire('node:sqlite') as { DatabaseSync: typeof import('node:sqlite').DatabaseSync };
