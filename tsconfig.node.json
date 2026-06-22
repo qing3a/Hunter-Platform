@@ -13,7 +13,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "outDir": "./out",
+    "rootDir": "./src",
     "types": ["node"]
   },
   "include": [
