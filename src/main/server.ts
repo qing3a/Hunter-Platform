@@ -132,7 +132,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
         }
         return {
           at: r.created_at,
-          action_type: r.action_type,
+          action_type: r.capability_name,
           method,
           path,
           status_code: r.status === 'success' ? 200 : null,

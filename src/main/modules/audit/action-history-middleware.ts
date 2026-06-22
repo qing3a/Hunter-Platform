@@ -40,7 +40,7 @@ export function createActionHistoryMiddleware(repo: RepoShape): RequestHandler {
 
         repo.insert({
           user_id: userId,
-          action_type: actionType,
+          capability_name: actionType,
           target_type: (res.locals as any).ahTargetType ?? null,
           target_id: (res.locals as any).ahTargetId ?? null,
           request_summary_json: reqSummary ? JSON.stringify(reqSummary) : null,

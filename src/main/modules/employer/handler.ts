@@ -363,8 +363,8 @@ export function createEmployerHandler(db: DB) {
         jobs.updateStatus(input.job_id, 'closed');
         // 写 action_history
         db.prepare(`
-          INSERT INTO action_history (user_id, action_type, target_type, target_id, request_summary_json, status, created_at)
-          VALUES (?, 'reject_job', 'job', ?, ?, 'success', ?)
+          INSERT INTO action_history (user_id, capability_name, target_type, target_id, request_summary_json, status, created_at)
+          VALUES (?, 'employer.reject_job', 'job', ?, ?, 'success', ?)
         `).run(user.id, input.job_id, JSON.stringify({ reason: input.reason ?? null }), new Date().toISOString());
         db.exec('COMMIT');
       } catch (e) {
