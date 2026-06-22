@@ -54,7 +54,7 @@ describe('UserHistoryResponseSchema', () => {
       data: [{
         id: 1,
         user_id: 'user_x',
-        action_type: 'register',
+        capability_name: 'auth.register',
         target_type: null,
         target_id: null,
         request_summary_json: null,
@@ -73,7 +73,7 @@ describe('UserHistoryResponseSchema', () => {
       data: [{
         id: 1,
         user_id: 'user_x',
-        action_type: 'register',
+        capability_name: 'auth.register',
         target_type: null,
         target_id: null,
         request_summary_json: null,

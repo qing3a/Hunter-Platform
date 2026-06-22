@@ -141,14 +141,14 @@ describe('admin endpoints integration', () => {
       const db = openDb(testDb);
       const row = db.prepare(`
         SELECT * FROM admin_action_log
-        WHERE action = 'suspend_user' AND target_id = ?
+        WHERE action = 'admin.suspend_user' AND target_id = ?
         ORDER BY id DESC LIMIT 1
       `).get(testUserId) as { id: number; admin_user_id: string; action: string; target_id: string; details_json: string } | undefined;
       db.close();
 
       expect(row).toBeDefined();
       expect(row!.admin_user_id).toBe('admin');
-      expect(row!.action).toBe('suspend_user');
+      expect(row!.action).toBe('admin.suspend_user');
       expect(JSON.parse(row!.details_json).reason).toBe('audit-test');
     });
 
