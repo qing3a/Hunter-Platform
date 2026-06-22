@@ -32,19 +32,19 @@ describe('view token atomicity', () => {
 
   afterEach(() => { delete process.env.DATABASE_PATH; });
 
-  it('two concurrent requests with same token: exactly one succeeds', async () => {
+  it('view token is multi-use within 7d TTL (concurrent + sequential both succeed)', async () => {
+    // Concurrent: both should succeed (no atomic consume)
     const [r1, r2] = await Promise.all([
       request(app).get(viewUrl),
       request(app).get(viewUrl),
     ]);
-    const successes = [r1.status, r2.status].filter((s) => s === 200).length;
-    expect(successes).toBe(1);
-  });
-
-  it('sequential requests with same token: first 200, second 410', async () => {
-    const r1 = await request(app).get(viewUrl);
     expect(r1.status).toBe(200);
-    const r2 = await request(app).get(viewUrl);
-    expect(r2.status).toBe(410);
+    expect(r2.status).toBe(200);
+
+    // Sequential: also all 200 (no consume on first use)
+    const r3 = await request(app).get(viewUrl);
+    const r4 = await request(app).get(viewUrl);
+    expect(r3.status).toBe(200);
+    expect(r4.status).toBe(200);
   });
 });

@@ -47,14 +47,16 @@ describe('view handlers', () => {
     expect(r.text).toContain('候选人画像');
   });
 
-  it('GET /view/candidate/:id with consumed token returns 410', async () => {
+  it('GET /view/candidate/:id with valid token is multi-use within TTL (7d)', async () => {
     const repo = createViewTokenRepo(db);
     const { url } = generateViewUrl(repo, BASE_URL, 'user_1', 'candidate', 'cand_real');
     const path = url.replace(BASE_URL, '');
-    await request(app).get(path);  // consumes
+    const r1 = await request(app).get(path);
     const r2 = await request(app).get(path);
-    expect(r2.status).toBe(410);
-    expect(r2.text).toContain('已被使用');
+    const r3 = await request(app).get(path);
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+    expect(r3.status).toBe(200);
   });
 
   it('GET /view/candidate/:id with type-mismatched token returns 404', async () => {

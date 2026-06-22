@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { createViewTokenRepo } from './view-token-repo.js';
 
-const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (changed from 1h: view URLs are now multi-use within the TTL window)
 
 export type ViewType = 'candidate' | 'recommendation' | 'user-quota' | 'audit';
 

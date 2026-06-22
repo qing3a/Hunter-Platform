@@ -7,7 +7,7 @@ import { createApp } from '../../src/main/server';
  * recommendation's status. Each one should:
  *  - auto-inject `view_url` in the response (already handled by viewUrlInjector)
  *  - the returned view_url must render recommendation HTML
- *  - the view_url must be single-use (410 on second fetch)
+ *  - the view_url is multi-use within 7d TTL (no consume on first use)
  */
 describe('state-change endpoints — view_url injection + render', () => {
   beforeEach(() => {
@@ -74,9 +74,9 @@ describe('state-change endpoints — view_url injection + render', () => {
     expect(viewRes.status).toBe(200);
     expect(viewRes.text).toContain('推荐状态');
 
-    // Single-use
+    // Multi-use: second fetch also 200 (not 410)
     const r2 = await request(app).get(path);
-    expect(r2.status).toBe(410);
+    expect(r2.status).toBe(200);
   });
 
   it('POST /v1/candidate/recommendations/:id/approve-unlock injects view_url that renders', async () => {

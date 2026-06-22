@@ -3,7 +3,9 @@ import { openDb, type DB } from '../../../src/main/db/connection';
 import { runMigrations } from '../../../src/main/db/migrations';
 import { createViewTokenRepo } from '../../../src/main/modules/view/view-token-repo';
 import { generateViewUrl } from '../../../src/main/modules/view/generate';
-import { validateAndConsume } from '../../../src/main/modules/view/validate';
+import { validate } from '../../../src/main/modules/view/validate';
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 describe('generate / validate', () => {
   let db: DB;
@@ -24,19 +26,20 @@ describe('generate / validate', () => {
     expect(token).toMatch(/^[a-f0-9]{64}$/);
   });
 
-  it('generate stores row in DB with 1-hour expiry', () => {
+  it('generate stores row in DB with 7-day expiry', () => {
     const before = Date.now();
     const { token } = generateViewUrl(repo, BASE_URL, 'user_1', 'candidate', 'cand_x');
-    const row = repo.findValid(token);
+    const row = repo.lookupRaw(token);
     expect(row).not.toBeNull();
     const expiryMs = new Date(row!.expires_at).getTime();
-    expect(expiryMs).toBeGreaterThanOrEqual(before + 3500_000);
-    expect(expiryMs).toBeLessThanOrEqual(before + 3700_000);
+    // Allow 10s jitter for test timing
+    expect(expiryMs).toBeGreaterThanOrEqual(before + SEVEN_DAYS_MS - 10_000);
+    expect(expiryMs).toBeLessThanOrEqual(before + SEVEN_DAYS_MS + 10_000);
   });
 
-  it('validate returns ok=true and consumes the token', () => {
+  it('validate returns ok=true with resourceId and userId', () => {
     const { token } = generateViewUrl(repo, BASE_URL, 'user_1', 'candidate', 'cand_x');
-    const result = validateAndConsume(repo, token, 'candidate');
+    const result = validate(repo, token, 'candidate');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.resourceId).toBe('cand_x');
@@ -44,24 +47,42 @@ describe('generate / validate', () => {
     }
   });
 
-  it('validate returns ok=false reason=consumed on second call', () => {
+  // Multi-use: token can be validated multiple times until expires_at.
+  it('validate returns ok=true on repeated calls (multi-use within TTL)', () => {
     const { token } = generateViewUrl(repo, BASE_URL, 'user_1', 'candidate', 'cand_x');
-    validateAndConsume(repo, token, 'candidate');
-    const second = validateAndConsume(repo, token, 'candidate');
-    expect(second.ok).toBe(false);
-    if (!second.ok) expect(second.reason).toBe('consumed');
+    for (let i = 0; i < 5; i++) {
+      const r = validate(repo, token, 'candidate');
+      expect(r.ok).toBe(true);
+    }
   });
 
   it('validate returns ok=false reason=type_mismatch when view_type differs', () => {
     const { token } = generateViewUrl(repo, BASE_URL, 'user_1', 'candidate', 'cand_x');
-    const result = validateAndConsume(repo, token, 'recommendation');
+    const result = validate(repo, token, 'recommendation');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe('type_mismatch');
   });
 
   it('validate returns ok=false reason=invalid for unknown token', () => {
-    const result = validateAndConsume(repo, 'z'.repeat(64), 'candidate');
+    const result = validate(repo, 'z'.repeat(64), 'candidate');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe('invalid');
+  });
+
+  it('validate returns ok=false reason=expired for token past expires_at', () => {
+    // Manually insert a row with past expiry
+    db.prepare(
+      `INSERT INTO view_tokens (token, user_id, view_type, view_id, expires_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(
+      'a'.repeat(64),
+      'user_1',
+      'candidate',
+      'cand_x',
+      new Date(Date.now() - 60_000).toISOString(),  // 1 min ago
+    );
+    const result = validate(repo, 'a'.repeat(64), 'candidate');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe('expired');
   });
 });

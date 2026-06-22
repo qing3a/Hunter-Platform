@@ -80,16 +80,17 @@ describe('POST /v1/views/audit/:id', () => {
     expect(res.status).toBe(401);
   });
 
-  it('the returned view_url is single-use (second fetch → 410)', async () => {
+  it('the returned view_url is multi-use within 7d TTL (repeated fetches all 200)', async () => {
     const res = await request(app)
       .post(`/v1/views/audit/${userId}`)
       .set('Authorization', `Bearer ${apiKey}`);
     const path = res.body.data.view_url.replace('http://localhost:3000', '');
 
     const first = await request(app).get(path);
-    expect(first.status).toBe(200);
-
     const second = await request(app).get(path);
-    expect(second.status).toBe(410);
+    const third = await request(app).get(path);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(third.status).toBe(200);
   });
 });

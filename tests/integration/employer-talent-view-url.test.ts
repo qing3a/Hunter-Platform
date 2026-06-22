@@ -74,13 +74,16 @@ describe('GET /v1/employer/talent — view_url injection (Bug #11)', () => {
     expect(c.view_url).toContain(encodeURIComponent(publishedAnonId));
   });
 
-  it('view_url is single-use (second access returns 410)', async () => {
+  it('view_url is multi-use within TTL (7d)', async () => {
     const res = await request(app).get('/v1/employer/talent')
       .set('Authorization', `Bearer ${empKey}`);
     const c = res.body.data[0];
-    const first = await request(app).get(c.view_url.replace('http://localhost:3000', ''));
-    expect([200, 410]).toContain(first.status); // 200 first time, 410 after
-    const second = await request(app).get(c.view_url.replace('http://localhost:3000', ''));
-    expect(second.status).toBe(410);
+    const path = c.view_url.replace('http://localhost:3000', '');
+    const first = await request(app).get(path);
+    const second = await request(app).get(path);
+    const third = await request(app).get(path);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(third.status).toBe(200);
   });
 });

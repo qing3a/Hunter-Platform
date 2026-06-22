@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { createViewTokenRepo } from './view-token-repo.js';
-import { validateAndConsume, type ValidateFailureReason } from './validate.js';
+import { validate, type ValidateFailureReason } from './validate.js';
 import type { ViewType } from './generate.js';
 import { renderCandidate, type CandidateViewData } from './templates/candidate.js';
 import { renderRecommendation, type RecommendationViewData } from './templates/recommendation.js';
@@ -17,8 +17,8 @@ export interface ViewDataSources {
 
 const ERROR_PAGE_FOR_REASON: Record<ValidateFailureReason, { status: number; title: string; message: string; icon: string }> = {
   invalid:        { status: 410, title: '链接无效',         message: '链接无效或已过期。请重新发起请求以获取新链接。', icon: '🔗' },
-  expired:        { status: 410, title: '链接已过期',       message: '链接无效或已过期。请重新发起请求以获取新链接。', icon: '🔗' },
-  consumed:       { status: 410, title: '链接已被使用',     message: '此链接已被使用（一次性链接）。如需再次查看，请重新发起请求。', icon: '🔗' },
+  expired:        { status: 410, title: '链接已过期',       message: '链接已过期（7 天有效）。请重新发起请求以获取新链接。', icon: '🔗' },
+  // 'consumed' case removed: view tokens are now multi-use within the 7-day TTL
   type_mismatch:  { status: 404, title: '资源不存在',       message: '资源不存在或您无权访问。', icon: '🔗' },
 };
 
@@ -41,7 +41,7 @@ export function createViewHandlers(
       return;
     }
 
-    const result = validateAndConsume(repo, token, viewType);
+    const result = validate(repo, token, viewType);
     if (!result.ok) {
       const cfg = ERROR_PAGE_FOR_REASON[result.reason];
       sendError(res, cfg.status, cfg.title, cfg.message, cfg.icon);

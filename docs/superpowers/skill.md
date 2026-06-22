@@ -643,8 +643,8 @@ http://<host>/view/<token>
 ```
 
 - 受邀方（employer 等）可访问该 URL 查看候选人脱敏画像（行业、职级、薪资段、学校层级、技能、年限）
-- token 是 32 字节随机 hex（无签名），**1h 过期**
-- token **单次使用**，第二次访问返回 410
+- token 是 32 字节随机 hex（无签名），**7 天过期**
+- token **多次有效**（在 7 天 TTL 内可重复打开），过期后返回 410
 - ⚠️ view handler 在 `app.use((req, res, next) => {…})` 之后，必须带 `User-Agent` header（curl 自动有；裸 socket 会被某些反爬检查拒绝）
 
 > ⚠️ 不要在客户端缓存或重放 view_url —— 单次有效。

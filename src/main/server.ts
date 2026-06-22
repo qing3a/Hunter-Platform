@@ -52,7 +52,11 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // Mounted early so all downstream routers inherit the wrapped res.json.
   // BASE_URL is set in production .env so view_url returned by uploads is the
   // public HTTPS URL (e.g. https://qing3.top). Defaults to localhost for dev.
-  const baseUrl = process.env.BASE_URL || `http://localhost:${env.PORT}`;
+  // Defensive: only trust BASE_URL if it's a valid http(s) URL (reject '/' or
+  // empty values that may leak from test environments or shell configs).
+  const rawBaseUrl = process.env.BASE_URL;
+  const baseUrl = (rawBaseUrl && /^https?:\/\//.test(rawBaseUrl) ? rawBaseUrl : null)
+    || `http://localhost:${env.PORT}`;
   app.use(createViewUrlInjector(db, baseUrl));
 
   // Telemetry: create a root span per request and set it as the active context.

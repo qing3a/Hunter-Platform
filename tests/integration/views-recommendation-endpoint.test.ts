@@ -91,12 +91,15 @@ describe('POST /v1/views/recommendation/:id', () => {
     expect(viewRes.text).toContain('推荐状态');
   });
 
-  it('view_url is single-use', async () => {
+  it('view_url is multi-use within 7d TTL', async () => {
     const res = await request(app).post(`/v1/views/recommendation/${recommendationId}`)
       .set('Authorization', `Bearer ${hhKey}`);
     const path = res.body.data.view_url.replace('http://localhost:3000', '');
-    await request(app).get(path); // consumes
+    const r1 = await request(app).get(path);
     const r2 = await request(app).get(path);
-    expect(r2.status).toBe(410);
+    const r3 = await request(app).get(path);
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+    expect(r3.status).toBe(200);
   });
 });

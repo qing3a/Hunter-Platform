@@ -6,7 +6,7 @@ export interface ViewTokenRow {
   view_type: string;
   view_id: string;
   expires_at: string;
-  consumed_at: string | null;
+  consumed_at: string | null;  // legacy column; no longer written (multi-use tokens)
   created_at: string;
 }
 
@@ -24,36 +24,13 @@ export function createViewTokenRepo(db: DB) {
      VALUES (?, ?, ?, ?, ?)`
   );
 
-  const findValidStmt = db.prepare(
-    `SELECT * FROM view_tokens
-     WHERE token = ?
-       AND consumed_at IS NULL
-       AND expires_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`
-  );
-
-  // Atomic: only marks if consumed_at is still NULL. Returns true if updated.
-  const markConsumedStmt = db.prepare(
-    `UPDATE view_tokens
-     SET consumed_at = ?
-     WHERE token = ? AND consumed_at IS NULL`
-  );
-
   return {
     create(input: CreateViewTokenInput): void {
       insertStmt.run(input.token, input.userId, input.viewType, input.viewId, input.expiresAt);
     },
 
-    findValid(token: string): ViewTokenRow | null {
-      return (findValidStmt.get(token) as ViewTokenRow | undefined) ?? null;
-    },
-
-    markConsumed(token: string, consumedAt: string): boolean {
-      const result = markConsumedStmt.run(consumedAt, token);
-      return (result as { changes: number }).changes === 1;
-    },
-
-    // Unfiltered lookup — used by validate to disambiguate expired vs consumed vs invalid.
-    // Exists for this single purpose; not part of the public API for callers.
+    // Unfiltered lookup — used by validate to disambiguate expired vs invalid.
+    // (consumed_at is no longer checked; tokens are valid until expires_at.)
     lookupRaw(token: string): ViewTokenRow | null {
       const stmt = db.prepare(`SELECT * FROM view_tokens WHERE token = ?`);
       return (stmt.get(token) as ViewTokenRow | undefined) ?? null;
