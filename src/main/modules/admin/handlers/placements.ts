@@ -66,23 +66,21 @@ export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
       return { id: placementId, status: 'cancelled' };
     },
     summary(): {
-      pending_count: number; paid_count: number; total_paid_amount: number;
-      total_platform_revenue: number; total_hunter_payout: number;
+      total_count: number; pending_payment_count: number; paid_count: number;
+      cancelled_count: number; total_revenue: number;
     } {
       const rows = db.prepare(
-        "SELECT status, COUNT(*) as cnt, COALESCE(SUM(platform_fee), 0) as total_fee, COALESCE(SUM(primary_share), 0) as total_primary, COALESCE(SUM(referrer_share), 0) as total_referrer FROM placements GROUP BY status"
-      ).all() as { status: string; cnt: number; total_fee: number; total_primary: number; total_referrer: number }[];
-      let pending_count = 0, paid_count = 0, total_platform_revenue = 0, total_hunter_payout = 0;
+        "SELECT status, COUNT(*) as cnt, COALESCE(SUM(platform_fee), 0) as total_fee FROM placements GROUP BY status"
+      ).all() as { status: string; cnt: number; total_fee: number }[];
+      let total_count = 0, pending_payment_count = 0, paid_count = 0, cancelled_count = 0, total_revenue = 0;
       for (const r of rows) {
-        if (r.status === 'pending_payment') pending_count = r.cnt;
+        total_count += r.cnt;
+        total_revenue += r.total_fee;
+        if (r.status === 'pending_payment') pending_payment_count = r.cnt;
         if (r.status === 'paid') paid_count = r.cnt;
-        total_platform_revenue += r.total_fee;
-        total_hunter_payout += r.total_primary + r.total_referrer;
+        if (r.status === 'cancelled') cancelled_count = r.cnt;
       }
-      return {
-        pending_count, paid_count, total_paid_amount: total_hunter_payout,
-        total_platform_revenue, total_hunter_payout,
-      };
+      return { total_count, pending_payment_count, paid_count, cancelled_count, total_revenue };
     },
   };
 }
