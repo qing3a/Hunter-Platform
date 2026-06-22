@@ -242,6 +242,13 @@ describe('schema-shape: candidate capabilities', () => {
       it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: requires employer_interested state`);
       continue;
     }
+    // delete_my_data wipes the candidate's PII (name → null), which breaks
+    // admin.list_users later in the file (data[1].name becomes null). Same
+    // kind of destructive side-effect as auth.rotate_key.
+    if (cap.name === 'candidate.delete_my_data') {
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: side-effect (wipes user PII) breaks shared beforeAll`);
+      continue;
+    }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
       const r = await client.request({
         method: cap.method,
@@ -271,9 +278,6 @@ describe('schema-shape: admin capabilities', () => {
     'admin.put_config',           // needs valid config key
     'admin.suspend_user',         // 409 if not active
     'admin.unsuspend_user',       // 409 if not suspended
-    'admin.dashboard_stats',      // SCHEMA DRIFT: live response shape differs from response_schema
-    'admin.list_users',           // SCHEMA DRIFT: live response shape differs from response_schema
-    'admin.list_candidates',      // SCHEMA DRIFT: live response shape differs from response_schema
     'admin.adjust_user_quota',    // 404: path :id does not match user_id format
   ]);
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'admin')!.capabilities) {
