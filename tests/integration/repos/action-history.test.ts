@@ -19,9 +19,9 @@ describe('action_history repository', () => {
     const now = '2026-06-17T00:00:00Z';
     users.insert({ id: 'u1', user_type: 'employer', name: 'U1', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'u2', user_type: 'headhunter', name: 'U2', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    db.prepare(`INSERT INTO action_history (user_id, action_type, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'upload_candidate', 'candidate', 'ca_1', 'success', '2026-06-17T00:00:01Z');
-    db.prepare(`INSERT INTO action_history (user_id, action_type, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'express_interest', 'recommendation', 'rec_1', 'success', '2026-06-17T00:00:02Z');
-    db.prepare(`INSERT INTO action_history (user_id, action_type, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', 'recommend_candidate', 'recommendation', 'rec_2', 'success', '2026-06-17T00:00:03Z');
+    db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'headhunter.upload_candidate', 'candidate', 'ca_1', 'success', '2026-06-17T00:00:01Z');
+    db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'employer.express_interest', 'recommendation', 'rec_1', 'success', '2026-06-17T00:00:02Z');
+    db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', 'headhunter.recommend_candidate', 'recommendation', 'rec_2', 'success', '2026-06-17T00:00:03Z');
     (globalThis as any).__ahTestDb = db;
   });
   afterEach(() => {
@@ -33,8 +33,8 @@ describe('action_history repository', () => {
   it('listByUser returns user actions in DESC order', () => {
     const list = repo.listByUser('u1');
     expect(list.length).toBe(2);
-    expect(list[0].action_type).toBe('express_interest');  // newer first
-    expect(list[1].action_type).toBe('upload_candidate');
+    expect(list[0].capability_name).toBe('employer.express_interest');  // newer first
+    expect(list[1].capability_name).toBe('headhunter.upload_candidate');
   });
 
   it('listByUser with limit/offset pagination', () => {
@@ -54,7 +54,7 @@ describe('action_history repository', () => {
       const freshRepo = (globalThis as any).__ahTestDb.__ahRepo;
       void freshRepo; // suppress unused warning
       const id = repo.insert({
-        user_id: 'u1', action_type: 'upload_candidate',
+        user_id: 'u1', capability_name: 'headhunter.upload_candidate',
         target_type: 'candidate', target_id: 'ca_test',
         request_summary_json: null, response_summary_json: '{"anonymized_id":"ca_test"}',
         status: 'success', error_code: null, duration_ms: 42,
@@ -68,20 +68,20 @@ describe('action_history repository', () => {
       expect(rows.length).toBeGreaterThanOrEqual(3);
       const inserted = rows.find(r => r.target_id === 'ca_test');
       expect(inserted).toBeTruthy();
-      expect(inserted!.action_type).toBe('upload_candidate');
+      expect(inserted!.capability_name).toBe('headhunter.upload_candidate');
       expect(inserted!.duration_ms).toBe(42);
     });
 
     it('inserts an error entry with error_code', () => {
       repo.insert({
-        user_id: 'u2', action_type: 'register',
+        user_id: 'u2', capability_name: 'auth.register',
         target_type: null, target_id: null,
         request_summary_json: null, response_summary_json: null,
         status: 'error', error_code: 'RATE_LIMITED', duration_ms: 5,
         created_at: new Date().toISOString(),
       });
       const rows = repo.listByUser('u2');
-      const inserted = rows.find(r => r.action_type === 'register' && r.status === 'error');
+      const inserted = rows.find(r => r.capability_name === 'auth.register' && r.status === 'error');
       expect(inserted).toBeTruthy();
       expect(inserted!.error_code).toBe('RATE_LIMITED');
     });

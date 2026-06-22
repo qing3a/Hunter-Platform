@@ -89,7 +89,7 @@ describe('OTel trace_id propagation', () => {
     const db = openDb(testDb);
     const row = db.prepare(`
       SELECT trace_id FROM action_history
-      WHERE action_type LIKE '%register%' OR action_type LIKE '%auth%'
+      WHERE capability_name LIKE '%register%' OR capability_name LIKE '%auth%'
       ORDER BY id DESC LIMIT 1
     `).get() as { trace_id: string | null } | undefined;
     db.close();

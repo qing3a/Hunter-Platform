@@ -59,7 +59,7 @@ describe('action_history middleware integration', () => {
       user_type: 'headhunter', name: 'Test', contact: `reg_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
     });
     expect(res.status).toBe(200);
-    const rows = db.prepare("SELECT * FROM action_history WHERE action_type = 'register'").all();
+    const rows = db.prepare("SELECT * FROM action_history WHERE capability_name = 'auth.register'").all();
     expect(rows).toHaveLength(1);
     expect((rows[0] as any).status).toBe('success');
     expect((rows[0] as any).target_type).toBe('user');
@@ -83,7 +83,7 @@ describe('action_history middleware integration', () => {
     expect(up.status).toBe(200);
     const anonId = up.body.data.anonymized_id;
 
-    const rows = db.prepare("SELECT * FROM action_history WHERE action_type = 'upload_candidate'").all() as any[];
+    const rows = db.prepare("SELECT * FROM action_history WHERE capability_name = 'headhunter.upload_candidate'").all() as any[];
     expect(rows.length).toBeGreaterThanOrEqual(1);
     const row = rows.find(r => r.target_id === anonId);
     expect(row).toBeTruthy();
@@ -106,7 +106,7 @@ describe('action_history middleware integration', () => {
       user_type: 'employer', name: 'E', contact: `emp_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
     });
     expect(res.status).toBe(200);
-    const row = db.prepare("SELECT * FROM action_history WHERE action_type='register' ORDER BY id DESC LIMIT 1").get() as any;
+    const row = db.prepare("SELECT * FROM action_history WHERE capability_name='auth.register' ORDER BY id DESC LIMIT 1").get() as any;
     expect(row.duration_ms).toBeGreaterThanOrEqual(0);
     expect(row.duration_ms).toBeLessThan(10000);
   });
@@ -164,7 +164,7 @@ describe('action_history middleware integration', () => {
       .send({});
     expect(exInt.status).toBe(200);
 
-    const rows = db.prepare("SELECT * FROM action_history WHERE action_type = 'express_interest'").all() as any[];
+    const rows = db.prepare("SELECT * FROM action_history WHERE capability_name = 'employer.express_interest'").all() as any[];
     expect(rows).toHaveLength(1);
     expect(rows[0].target_type).toBe('recommendation');
     expect(rows[0].target_id).toBe(recId);

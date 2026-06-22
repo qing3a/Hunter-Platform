@@ -35,7 +35,7 @@ describe('user flow', () => {
     } as any);
     expect(fx).toEqual({
       kind: 'admin_action_log',
-      action_type: 'suspend_user',
+      action_type: 'admin.suspend_user',
       target_id: undefined, // set by handler before calling
       reason: 'spam',
     });

@@ -43,7 +43,7 @@ describe('action_history middleware', () => {
     expect(insertMock).toHaveBeenCalledTimes(1);
     const entry = insertMock.mock.calls[0][0];
     expect(entry.user_id).toBe('user_test');
-    expect(entry.action_type).toBe('register');
+    expect(entry.capability_name).toBe('auth.register');
     expect(entry.status).toBe('success');
     expect(entry.duration_ms).toBeGreaterThanOrEqual(0);
   });
@@ -89,7 +89,7 @@ describe('action_history middleware', () => {
     (res as any)._finishCb();
     const entry = insertMock.mock.calls[0][0];
     expect(entry.user_id).toBe('user_newly_registered');
-    expect(entry.action_type).toBe('register');
+    expect(entry.capability_name).toBe('auth.register');
   });
 
   it('does NOT throw when insert fails (fire-and-forget)', () => {

@@ -71,7 +71,7 @@ export function makeAdminDashboardHandler(db: DB) {
       const todayStart = new Date();
       todayStart.setUTCHours(0, 0, 0, 0);
       const placementsToday = (db.prepare(
-        "SELECT COUNT(*) as cnt FROM action_history WHERE action_type = 'placement_created' AND created_at >= ?"
+        "SELECT COUNT(*) as cnt FROM action_history WHERE capability_name = 'employer.create_placement' AND created_at >= ?"
       ).get(todayStart.toISOString()) as { cnt: number }).cnt;
 
       return {
