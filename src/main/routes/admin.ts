@@ -76,7 +76,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.user_type === 'string') filter.user_type = req.query.user_type;
       if (typeof req.query.status === 'string') filter.status = req.query.status;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      respond(res, ListUsersResponseSchema, { ok: true, data: users.list(filter) });
+      respond(res, ListUsersResponseSchema, { ok: true, data: users.list(filter) }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/users/:id/suspend', (req, res, next) => {
