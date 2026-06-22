@@ -14,3 +14,9 @@ test-results/
 .turbo/
 tmp/
 nul
+
+# Runtime config written by admin.put_config API. These are
+# environment-specific state, not deployment config. The legitimate
+# deployment config (industry_map.json etc.) is committed explicitly.
+config/desensitization.json
+config/commission.json
