@@ -38,13 +38,13 @@ export const userFlow: Flow<UserStatus, UserEvent> = defineFlow<UserStatus, User
   sideEffects: {
     'active->suspended': (ctx: any) => ({
       kind: 'admin_action_log',
-      action_type: 'suspend_user',
+      action_type: 'admin.suspend_user',
       target_id: ctx.user_id,
       reason: ctx.reason ?? '',
     }),
     'suspended->deleted': (ctx: any) => ({
       kind: 'admin_action_log',
-      action_type: 'delete_user',
+      action_type: 'candidate.delete_my_data',
       target_id: ctx.user_id,
       reason: ctx.reason ?? 'GDPR delete',
     }),
