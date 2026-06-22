@@ -11,8 +11,43 @@ export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
   const commission = createCommissionHandler(db, encryptionKey);
 
   return {
-    list(filter: { status?: 'pending_payment' | 'paid' | 'cancelled' }): unknown[] {
-      return places.listAll(filter);
+    list(filter: { status?: 'pending_payment' | 'paid' | 'cancelled' }): Array<{
+      id: string; job_id: string; employer_id: string;
+      anonymized_candidate_id: string; primary_headhunter_id: string | null;
+      referrer_headhunter_id: string | null; annual_salary: number;
+      platform_fee: number; primary_share: number; referrer_share: number;
+      status: 'pending_payment' | 'paid' | 'cancelled';
+      created_at: string; updated_at: string;
+    }> {
+      // JOIN jobs to get employer_id (placements table does not store it directly).
+      let sql = `
+        SELECT p.id, p.job_id, j.employer_id AS employer_id,
+               p.anonymized_candidate_id, p.candidate_user_id,
+               p.primary_headhunter_id, p.referrer_headhunter_id,
+               p.annual_salary, p.platform_fee, p.primary_share, p.referrer_share,
+               p.candidate_bonus, p.status, p.created_at, p.updated_at
+        FROM placements p
+        JOIN jobs j ON j.id = p.job_id
+        WHERE 1=1`;
+      const params: any[] = [];
+      if (filter.status) { sql += ' AND p.status = ?'; params.push(filter.status); }
+      sql += ' ORDER BY p.created_at DESC LIMIT 100';
+      const rows = db.prepare(sql).all(...params) as any[];
+      return rows.map((r) => ({
+        id: r.id,
+        job_id: r.job_id,
+        employer_id: r.employer_id,
+        anonymized_candidate_id: r.anonymized_candidate_id,
+        primary_headhunter_id: r.primary_headhunter_id,
+        referrer_headhunter_id: r.referrer_headhunter_id,
+        annual_salary: r.annual_salary,
+        platform_fee: r.platform_fee,
+        primary_share: r.primary_share,
+        referrer_share: r.referrer_share,
+        status: r.status,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      }));
     },
     markPaid(adminUserId: string, placementId: string): { id: string; status: 'paid' } {
       const result = commission.markPaid(adminUserId, placementId);

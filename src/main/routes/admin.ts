@@ -169,7 +169,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
         ? status : undefined;
       const filter: { status?: 'pending_payment' | 'paid' | 'cancelled' } = {};
       if (validStatus) filter.status = validStatus;
-      respond(res, AdminPlacementsListResponseSchema, { ok: true, data: placements.list(filter) });
+      respond(res, AdminPlacementsListResponseSchema, { ok: true, data: placements.list(filter) }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/placements/:id/mark-paid', (req, res, next) => {
