@@ -109,7 +109,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       else if (req.query.in_pool === 'false' || req.query.in_pool === '0') filter.in_pool = false;
       if (typeof req.query.unlock_status === 'string') filter.unlock_status = req.query.unlock_status;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      respond(res, ListCandidatesResponseSchema, { ok: true, data: candidates.list(filter) });
+      respond(res, ListCandidatesResponseSchema, { ok: true, data: candidates.list(filter) }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/candidates/:id/remove-from-pool', (req, res, next) => {
