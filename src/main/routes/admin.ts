@@ -45,7 +45,28 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
 
   // Dashboard
   router.get('/dashboard/stats', (_req, res, next) => {
-    try { respond(res, DashboardStatsResponseSchema, { ok: true, data: dashboard.getStats() }); } catch (e) { next(e); }
+    try {
+      const s = dashboard.getStats();
+      // Flatten the IPC nested shape to the 7-field schema. The handler
+      // is unchanged because dashboardIpc + e2e-m3-admin.test.ts depend
+      // on the nested shape. Two scalars aren't in getStats(); compute
+      // them inline (3 small SELECTs).
+      const candidateCount = (db.prepare('SELECT COUNT(*) AS c FROM candidates_anonymized').get() as { c: number }).c;
+      const activePlacementCount = (db.prepare("SELECT COUNT(*) AS c FROM placements WHERE status IN ('pending_payment','paid')").get() as { c: number }).c;
+      const dailyQuotaUsed = (db.prepare('SELECT COALESCE(SUM(quota_used), 0) AS s FROM users').get() as { s: number }).s;
+      respond(res, DashboardStatsResponseSchema, {
+        ok: true,
+        data: {
+          total_users: s.users.total,
+          total_candidates: candidateCount,
+          total_jobs: s.jobs.total,
+          open_jobs: s.jobs.open,
+          active_placements: activePlacementCount,
+          daily_quota_used: dailyQuotaUsed,
+          webhook_dead_letters: s.webhooks.dead_letter,
+        },
+      }, { strict: true });
+    } catch (e) { next(e); }
   });
 
   // Users
