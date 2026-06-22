@@ -19,6 +19,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 10, description: 'Add jobs.status = claimed (employer has accepted the job)', file: 'migrations/v010_job_status_claimed.sql' },
   { version: 11, description: 'Add trace_id to action_history (OTel correlation)', file: 'migrations/v011_action_history_trace_id.sql' },
   { version: 12, description: 'Add traceparent to webhook_delivery_queue (OTel propagation)', file: 'migrations/v012_webhook_traceparent.sql' },
+  { version: 13, description: 'Rename action_history.action_type → capability_name + migrate 30 values to canonical capability names', file: 'migrations/v013_capability_name.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
