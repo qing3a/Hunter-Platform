@@ -15,84 +15,89 @@ interface RoutePattern {
   action_type: string;
 }
 
-/** Canonical list of every action_type that audit logs may emit. */
+/** Canonical list of every action_type that audit logs may emit.
+ *  Values are the same canonical capability names that the middleware now
+ *  writes to `action_history.capability_name` after the v013 migration. */
 export const ACTION_TYPES = [
   // Auth
-  'register',
-  'rotate_api_key',
+  'auth.register',
+  'auth.rotate_key',
   // Headhunter
-  'upload_candidate',
-  'list_my_candidates',
-  'publish_to_pool',
-  'recommend_candidate',
-  'list_my_recommendations',
-  'withdraw_recommendation',
+  'headhunter.upload_candidate',
+  'headhunter.list_candidates',
+  'headhunter.publish_to_pool',
+  'headhunter.recommend_candidate',
+  'headhunter.list_recommendations',
+  'headhunter.withdraw_recommendation',
+  // Headhunter jobs
+  'headhunter.create_job',
+  'headhunter.list_jobs',
   // Employer
-  'create_job',
-  'list_my_jobs',
-  'browse_talent',
-  'express_interest',
-  'unlock_contact',
-  'create_placement',
-  'list_my_placements',
+  'employer.create_job',
+  'employer.list_jobs',
+  'employer.talent',
+  'employer.express_interest',
+  'employer.unlock_contact',
+  'employer.create_placement',
+  'employer.list_placements',
   // Candidate
-  'list_opportunities',
-  'view_access_log',
-  'approve_unlock',
-  'reject_unlock',
-  'export_my_data',
-  'delete_my_data',
+  'candidate.opportunities',
+  'candidate.access_log',
+  'candidate.approve_unlock',
+  'candidate.reject_unlock',
+  'candidate.export_my_data',
+  'candidate.delete_my_data',
   // User
-  'get_user_status',
-  'get_user_history',
+  'users.get_status',
+  'users.get_history',
   // Config / market (read-only, but still audited for usage)
-  'get_config_industries',
-  'get_config_title_levels',
-  'get_config_salary_bands',
-  'get_market_leaderboard',
+  'config.get_industries',
+  'config.get_title_levels',
+  'config.get_salary_bands',
+  'market.leaderboard',
 ] as const;
 export type ActionType = typeof ACTION_TYPES[number];
 
 const ROUTES: RoutePattern[] = [
   // ---------- Auth ----------
-  { method: 'POST', pattern: '/v1/auth/register',           action_type: 'register' },
-  { method: 'POST', pattern: '/v1/auth/rotate-key',         action_type: 'rotate_api_key' },
+  { method: 'POST', pattern: '/v1/auth/register',           action_type: 'auth.register' },
+  { method: 'POST', pattern: '/v1/auth/rotate-key',         action_type: 'auth.rotate_key' },
 
   // ---------- Headhunter ----------
-  { method: 'POST', pattern: '/v1/headhunter/candidates',                     action_type: 'upload_candidate' },
-  { method: 'GET',  pattern: '/v1/headhunter/candidates',                     action_type: 'list_my_candidates' },
-  { method: 'POST', pattern: '/v1/headhunter/candidates/:id/publish',         action_type: 'publish_to_pool' },
-  { method: 'POST', pattern: '/v1/headhunter/candidates/:id/publish-to-pool', action_type: 'publish_to_pool' },
-  { method: 'POST', pattern: '/v1/headhunter/recommendations',                action_type: 'recommend_candidate' },
-  { method: 'GET',  pattern: '/v1/headhunter/recommendations',                action_type: 'list_my_recommendations' },
-  { method: 'POST', pattern: '/v1/headhunter/recommendations/:id/withdraw',   action_type: 'withdraw_recommendation' },
+  { method: 'POST', pattern: '/v1/headhunter/candidates',                     action_type: 'headhunter.upload_candidate' },
+  { method: 'GET',  pattern: '/v1/headhunter/candidates',                     action_type: 'headhunter.list_candidates' },
+  { method: 'POST', pattern: '/v1/headhunter/candidates/:id/publish',         action_type: 'headhunter.publish_to_pool' },
+  { method: 'POST', pattern: '/v1/headhunter/candidates/:id/publish-to-pool', action_type: 'headhunter.publish_to_pool' },
+  { method: 'POST', pattern: '/v1/headhunter/recommendations',                action_type: 'headhunter.recommend_candidate' },
+  { method: 'GET',  pattern: '/v1/headhunter/recommendations',                action_type: 'headhunter.list_recommendations' },
+  { method: 'POST', pattern: '/v1/headhunter/recommendations/:id/withdraw',   action_type: 'headhunter.withdraw_recommendation' },
 
   // ---------- Employer ----------
-  { method: 'POST', pattern: '/v1/employer/jobs',                              action_type: 'create_job' },
-  { method: 'GET',  pattern: '/v1/employer/jobs',                              action_type: 'list_my_jobs' },
-  { method: 'GET',  pattern: '/v1/employer/talent',                            action_type: 'browse_talent' },
-  { method: 'POST', pattern: '/v1/employer/recommendations/:id/express-interest', action_type: 'express_interest' },
-  { method: 'POST', pattern: '/v1/employer/recommendations/:id/unlock-contact',  action_type: 'unlock_contact' },
-  { method: 'POST', pattern: '/v1/employer/placements',                        action_type: 'create_placement' },
-  { method: 'GET',  pattern: '/v1/employer/placements',                        action_type: 'list_my_placements' },
+  { method: 'POST', pattern: '/v1/employer/jobs',                              action_type: 'employer.create_job' },
+  { method: 'GET',  pattern: '/v1/employer/jobs',                              action_type: 'employer.list_jobs' },
+  { method: 'GET',  pattern: '/v1/employer/talent',                            action_type: 'employer.talent' },
+  { method: 'POST', pattern: '/v1/employer/recommendations/:id/express-interest', action_type: 'employer.express_interest' },
+  { method: 'POST', pattern: '/v1/employer/recommendations/:id/unlock-contact',  action_type: 'employer.unlock_contact' },
+  { method: 'POST', pattern: '/v1/employer/placements',                        action_type: 'employer.create_placement' },
+  { method: 'GET',  pattern: '/v1/employer/placements',                        action_type: 'employer.list_placements' },
 
   // ---------- Candidate ----------
-  { method: 'GET',  pattern: '/v1/candidate/opportunities',                    action_type: 'list_opportunities' },
-  { method: 'GET',  pattern: '/v1/candidate/access-log',                       action_type: 'view_access_log' },
-  { method: 'POST', pattern: '/v1/candidate/recommendations/:id/approve-unlock', action_type: 'approve_unlock' },
-  { method: 'POST', pattern: '/v1/candidate/recommendations/:id/reject-unlock',  action_type: 'reject_unlock' },
-  { method: 'GET',  pattern: '/v1/candidate/export-my-data',                   action_type: 'export_my_data' },
-  { method: 'POST', pattern: '/v1/candidate/delete-my-data',                   action_type: 'delete_my_data' },
+  { method: 'GET',  pattern: '/v1/candidate/opportunities',                    action_type: 'candidate.opportunities' },
+  { method: 'GET',  pattern: '/v1/candidate/access-log',                       action_type: 'candidate.access_log' },
+  { method: 'POST', pattern: '/v1/candidate/recommendations/:id/approve-unlock', action_type: 'candidate.approve_unlock' },
+  { method: 'POST', pattern: '/v1/candidate/recommendations/:id/reject-unlock',  action_type: 'candidate.reject_unlock' },
+  { method: 'GET',  pattern: '/v1/candidate/export-my-data',                   action_type: 'candidate.export_my_data' },
+  { method: 'POST', pattern: '/v1/candidate/delete-my-data',                   action_type: 'candidate.delete_my_data' },
 
   // ---------- User ----------
-  { method: 'GET',  pattern: '/v1/users/:id/status',   action_type: 'get_user_status' },
-  { method: 'GET',  pattern: '/v1/users/:id/history',  action_type: 'get_user_history' },
+  { method: 'GET',  pattern: '/v1/users/:id/status',   action_type: 'users.get_status' },
+  { method: 'GET',  pattern: '/v1/users/:id/history',  action_type: 'users.get_history' },
 
   // ---------- Config / market (optional-auth) ----------
-  { method: 'GET',  pattern: '/v1/config/industries',   action_type: 'get_config_industries' },
-  { method: 'GET',  pattern: '/v1/config/title_levels', action_type: 'get_config_title_levels' },
-  { method: 'GET',  pattern: '/v1/config/salary_bands', action_type: 'get_config_salary_bands' },
-  { method: 'GET',  pattern: '/v1/market/leaderboard',  action_type: 'get_market_leaderboard' },
+  { method: 'GET',  pattern: '/v1/config/industries',   action_type: 'config.get_industries' },
+  { method: 'GET',  pattern: '/v1/config/title_levels', action_type: 'config.get_title_levels' },
+  { method: 'GET',  pattern: '/v1/config/salary_bands', action_type: 'config.get_salary_bands' },
+  { method: 'GET',  pattern: '/v1/market/leaderboard',  action_type: 'market.leaderboard' },
 ];
 
 function matchPattern(pattern: string, actual: string): boolean {
