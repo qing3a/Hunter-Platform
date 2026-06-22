@@ -113,13 +113,10 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
     cleanupDb('shape-admin');
   });
 
-  // TODO: 3 production bugs surfaced by Phase 6 strict mode (handler returns
-  // wrong field names vs the declared zod schema). These are real bugs to fix
-  // in Phase 8; for now we skip them so the rest of the suite can pass.
-  it.skip('admin.remove_from_pool: POST /v1/admin/candidates/:id/remove-from-pool (TODO: handler schema drift — is_public_pool vs removed)');
-  it.skip('admin.clear_user_rate_limit: POST /v1/admin/rate-limit/users/:id/clear (TODO: handler schema drift — deleted vs cleared)');
-  it.skip('admin.placements_summary: GET /v1/admin/placements/summary (TODO: handler schema drift — total_count/pending_payment_count/etc.)');
-
+  // Phase 8: these 3 admin endpoints are now un-skipped (placed at end of
+  // describe block so they run AFTER rate_limit_buckets / mark_paid / cancel —
+  // otherwise e.g. clear_user_rate_limit would empty the buckets before the
+  // rate_limit_buckets test runs).
   it('admin.mark_placement_paid: POST /v1/admin/placements/:id/mark-paid', async () => {
     const r = await client.request({
       method: 'POST', path: `/v1/admin/placements/${placementId}/mark-paid`,
@@ -211,5 +208,54 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
       schema: AdjustQuotaResponseSchema,
     });
     expect(r.status).toBe(200);
+  });
+
+  // --- Phase 8 un-skipped tests ---
+  // Production bugs (handler returned wrong field names vs the zod schema) were
+  // fixed in Tasks 1-3, so strict-mode validation now passes. These are placed
+  // at the end of the describe block so they run AFTER rate_limit_buckets /
+  // mark_paid / cancel — otherwise e.g. clear_user_rate_limit would empty the
+  // buckets before the rate_limit_buckets test runs.
+  it('admin.remove_from_pool: POST /v1/admin/candidates/:id/remove-from-pool', async () => {
+    const r = await client.request({
+      method: 'POST', path: `/v1/admin/candidates/${candidateAnonId}/remove-from-pool`,
+      auth: adminAuthHeader(),
+      schema: RemoveFromPoolResponseSchema,
+    });
+    expect(r.status).toBe(200);
+    expect(r.data.data.removed).toBe(true);
+  });
+
+  it('admin.clear_user_rate_limit: POST /v1/admin/rate-limit/users/:id/clear', async () => {
+    const r = await client.request({
+      method: 'POST', path: `/v1/admin/rate-limit/users/${candidateUserId}/clear`,
+      auth: adminAuthHeader(),
+      schema: ClearRateLimitResponseSchema,
+    });
+    expect(r.status).toBe(200);
+    expect(r.data.data.cleared).toBe(true);
+  });
+
+  it('admin.placements_summary: GET /v1/admin/placements/summary', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/admin/placements/summary',
+      auth: adminAuthHeader(),
+      schema: PlacementsSummaryResponseSchema,
+    });
+    expect(r.status).toBe(200);
+    // After mark_paid + cancel, both placements are no longer pending_payment.
+    // The exact counts depend on which call was processed first, so we only
+    // assert the schema-shape invariants here (not numeric values).
+    expect(typeof r.data.data.total_count).toBe('number');
+    expect(typeof r.data.data.pending_payment_count).toBe('number');
+    expect(typeof r.data.data.paid_count).toBe('number');
+    expect(typeof r.data.data.cancelled_count).toBe('number');
+    expect(typeof r.data.data.total_revenue).toBe('number');
+    // total_count should equal the sum of all status counts
+    expect(r.data.data.total_count).toBe(
+      r.data.data.pending_payment_count +
+        r.data.data.paid_count +
+        r.data.data.cancelled_count
+    );
   });
 });
