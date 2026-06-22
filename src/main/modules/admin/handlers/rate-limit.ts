@@ -20,9 +20,9 @@ export function createAdminRateLimitHandler(db: DB) {
         window_started_at: r.window_start,
       }));
     },
-    clearForUser(user_id: string): { user_id: string; deleted: number } {
-      const result = db.prepare('DELETE FROM rate_limit_buckets WHERE user_id = ?').run(user_id);
-      return { user_id, deleted: Number(result.changes ?? 0) };
+    clearForUser(user_id: string): { user_id: string; cleared: true } {
+      db.prepare('DELETE FROM rate_limit_buckets WHERE user_id = ?').run(user_id);
+      return { user_id, cleared: true };
     },
   };
 }
