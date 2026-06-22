@@ -131,7 +131,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/webhooks/dead-letter', (req, res, next) => {
     try {
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
-      respond(res, DeadLetterListResponseSchema, { ok: true, data: webhooks.listDeadLetter(limit) });
+      respond(res, DeadLetterListResponseSchema, { ok: true, data: webhooks.listDeadLetter(limit) }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/webhooks/:id/retry', (req, res, next) => {
