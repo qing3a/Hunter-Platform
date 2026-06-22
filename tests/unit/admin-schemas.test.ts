@@ -127,3 +127,63 @@ describe('PlacementsSummaryResponseSchema', () => {
     expect(r.success).toBe(true);
   });
 });
+
+// Phase 6: happy-path fixtures for the 3 detached schemas that were
+// detached from the table shape until Phase 6 reshaped the handlers.
+
+describe('RateLimitBucketsResponseSchema', () => {
+  it('accepts a valid bucket', () => {
+    const r = RateLimitBucketsResponseSchema.safeParse({
+      ok: true,
+      data: [{
+        user_id: 'user_1',
+        bucket_key: 'user_1:2026-06-22T00:00:00Z',
+        count: 5,
+        window_started_at: '2026-06-22T00:00:00Z',
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe('AdminPlacementsListResponseSchema', () => {
+  it('accepts a valid placement', () => {
+    const r = AdminPlacementsListResponseSchema.safeParse({
+      ok: true,
+      data: [{
+        id: 'placement_1',
+        job_id: 'job_1',
+        employer_id: 'employer_1',
+        anonymized_candidate_id: 'cand_anon_1',
+        primary_headhunter_id: 'h_1',
+        referrer_headhunter_id: null,
+        annual_salary: 1000000,
+        platform_fee: 100000,
+        primary_share: 70000,
+        referrer_share: 0,
+        status: 'pending_payment',
+        created_at: '2026-06-22T00:00:00Z',
+        updated_at: '2026-06-22T00:00:00Z',
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe('AdminLogListResponseSchema', () => {
+  it('accepts a valid log entry', () => {
+    const r = AdminLogListResponseSchema.safeParse({
+      ok: true,
+      data: [{
+        id: 1,
+        actor: 'admin_1',
+        action_type: 'suspend_user',
+        target_type: 'user',
+        target_id: 'user_x',
+        reason: 'spam',
+        created_at: '2026-06-22T00:00:00Z',
+      }],
+    });
+    expect(r.success).toBe(true);
+  });
+});
