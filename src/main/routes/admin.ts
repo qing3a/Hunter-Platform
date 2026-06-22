@@ -146,7 +146,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/rate-limit/buckets', (req, res, next) => {
     try {
       const user_id = typeof req.query.user_id === 'string' ? req.query.user_id : undefined;
-      respond(res, RateLimitBucketsResponseSchema, { ok: true, data: rateLimit.listBuckets(user_id) });
+      respond(res, RateLimitBucketsResponseSchema, { ok: true, data: rateLimit.listBuckets(user_id) }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/rate-limit/users/:id/clear', (req, res, next) => {
