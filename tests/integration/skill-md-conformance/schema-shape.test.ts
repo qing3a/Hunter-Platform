@@ -155,6 +155,7 @@ function pathParamsFor(capName: string): Record<string, string> {
     case 'admin.unsuspend_user':
     case 'admin.rotate_user_key':
     case 'admin.soft_warn_user':
+    case 'admin.adjust_user_quota':
       return { id: client.ids.get('candidate') ?? '' };
     default:
       return {};
@@ -167,12 +168,10 @@ function pathParamsFor(capName: string): Record<string, string> {
 
 describe('schema-shape: auth capabilities', () => {
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'auth')!.capabilities) {
-    // auth.rotate_key has a destructive side effect: it rotates the API key
-    // for the user, invalidating the original key. Running it in a shared
-    // beforeAll would break all subsequent tests. Skip here; dedicated
-    // coverage lives in the auth.test.ts file in this same directory.
+    // auth.rotate_key rotates the hKey, breaking shared beforeAll tests.
+    // It has its own test in schema-shape-destructive.test.ts (per-test fresh DB).
     if (cap.name === 'auth.rotate_key') {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: side-effect (rotates key) breaks shared beforeAll`);
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: side-effect (rotates key), covered in schema-shape-destructive.test.ts`);
       continue;
     }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
@@ -189,12 +188,12 @@ describe('schema-shape: auth capabilities', () => {
 });
 
 describe('schema-shape: headhunter capabilities', () => {
-  // headhunter.recommend_candidate is already exercised in beforeAll to set
-  // up downstream tests; calling it again in this loop would 409 on duplicate.
+  // headhunter.recommend_candidate is exercised in schema-shape-flow.test.ts
+  // (per-test fresh rec) — can't call it twice on same rec due to UNIQUE constraint.
   const skipHeadhunter = new Set(['headhunter.recommend_candidate']);
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'headhunter')!.capabilities) {
     if (skipHeadhunter.has(cap.name)) {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: already exercised in beforeAll`);
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — covered in schema-shape-flow.test.ts`);
       continue;
     }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
@@ -211,15 +210,18 @@ describe('schema-shape: headhunter capabilities', () => {
 });
 
 describe('schema-shape: employer capabilities', () => {
+  // Multi-step flow capabilities are exercised in schema-shape-flow.test.ts
+  // with proper state machine prerequisites.
+  const skipEmployer = new Set([
+    'employer.express_interest',
+    'employer.unlock_contact',
+    'employer.claim_job',
+    'employer.reject_job',
+    'employer.create_placement',
+  ]);
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'employer')!.capabilities) {
-    const isMultiStep =
-      cap.name.includes('unlock_contact') ||
-      cap.name.includes('placement') ||
-      cap.name === 'employer.express_interest' ||
-      cap.name === 'employer.claim_job' ||
-      cap.name === 'employer.reject_job';
-    if (isMultiStep) {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: requires multi-step prerequisites`);
+    if (skipEmployer.has(cap.name)) {
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — covered in schema-shape-flow.test.ts`);
       continue;
     }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
@@ -237,16 +239,15 @@ describe('schema-shape: employer capabilities', () => {
 
 describe('schema-shape: candidate capabilities', () => {
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'candidate')!.capabilities) {
-    const isMultiStep = cap.name.includes('approve_unlock') || cap.name.includes('reject_unlock');
-    if (isMultiStep) {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: requires employer_interested state`);
+    // delete_my_data wipes the candidate's PII (name → null), breaking admin.list_users later.
+    // It has its own test in schema-shape-destructive.test.ts (per-test fresh DB).
+    if (cap.name === 'candidate.delete_my_data') {
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — covered in schema-shape-destructive.test.ts`);
       continue;
     }
-    // delete_my_data wipes the candidate's PII (name → null), which breaks
-    // admin.list_users later in the file (data[1].name becomes null). Same
-    // kind of destructive side-effect as auth.rotate_key.
-    if (cap.name === 'candidate.delete_my_data') {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: side-effect (wipes user PII) breaks shared beforeAll`);
+    // approve_unlock and reject_unlock are multi-step — covered in schema-shape-flow.test.ts
+    if (cap.name === 'candidate.approve_unlock' || cap.name === 'candidate.reject_unlock') {
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — covered in schema-shape-flow.test.ts`);
       continue;
     }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
@@ -263,26 +264,24 @@ describe('schema-shape: candidate capabilities', () => {
 });
 
 describe('schema-shape: admin capabilities', () => {
-  // Admin endpoints that need pre-existing records (candidate row, placement row,
-  // pending webhook, rate-limit bucket) and return 4xx/5xx on a bare setup.
-  // These are skipped here and called out as TODO; coverage of the error path
-  // is in failure-modes.test.ts.
+  // Admin endpoints needing pre-existing records are exercised in
+  // schema-shape-admin-precondition.test.ts.
   const skipAdmin = new Set([
-    'admin.remove_from_pool',     // needs a candidate row id (anonymized_id)
-    'admin.mark_placement_paid',  // needs a pending placement
-    'admin.cancel_placement',     // needs an existing placement
-    'admin.retry_webhook',        // needs a queued webhook row
-    'admin.rate_limit_buckets',   // 500 on bare DB
-    'admin.clear_user_rate_limit',// 500 on bare DB
-    'admin.placements_summary',   // 500 on bare DB (no placements)
-    'admin.put_config',           // needs valid config key
-    'admin.suspend_user',         // 409 if not active
-    'admin.unsuspend_user',       // 409 if not suspended
-    'admin.adjust_user_quota',    // 404: path :id does not match user_id format
+    'admin.remove_from_pool',
+    'admin.mark_placement_paid',
+    'admin.cancel_placement',
+    'admin.retry_webhook',
+    'admin.rate_limit_buckets',
+    'admin.clear_user_rate_limit',
+    'admin.placements_summary',
+    'admin.put_config',
+    'admin.suspend_user',
+    'admin.unsuspend_user',
+    'admin.adjust_user_quota',
   ]);
   for (const cap of getAllCapabilitySets().find((s) => s.role === 'admin')!.capabilities) {
     if (skipAdmin.has(cap.name)) {
-      it.skip(`${cap.name}: ${cap.method} ${cap.path} — TODO: requires pre-existing record`);
+      it.skip(`${cap.name}: ${cap.method} ${cap.path} — covered in schema-shape-admin-precondition.test.ts`);
       continue;
     }
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
