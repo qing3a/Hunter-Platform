@@ -188,7 +188,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       const limit = req.query.limit ? Number(req.query.limit) : undefined;
       const filter: { limit?: number } = {};
       if (limit !== undefined) filter.limit = limit;
-      respond(res, AdminLogListResponseSchema, { ok: true, data: adminLog.list(filter) });
+      respond(res, AdminLogListResponseSchema, { ok: true, data: adminLog.list(filter) }, { strict: true });
     } catch (e) { next(e); }
   });
 
