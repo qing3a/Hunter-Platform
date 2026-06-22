@@ -4,7 +4,17 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import type { DB } from './connection.js';
+
+// ESM equivalent of __dirname for resolving relative migration paths.
+// In dev (tsx): src/main/db/migrations.ts -> src/main/db/
+// In prod (tsc):  out/main/db/migrations.js -> out/main/db/
+// The .sql files must live alongside this compiled .js file (postbuild
+// step copies them — see scripts/postbuild.sh or package.json scripts).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 1, description: 'M1 baseline (users, candidates, idempotency, rate limit, action history)', file: 'migrations/v001.sql' },

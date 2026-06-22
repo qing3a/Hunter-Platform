@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "node --env-file=.env --import tsx src/main/index.ts",
     "dev:watch": "node --env-file=.env --import tsx scripts/dev-watch.ts",
-    "build": "tsc -p tsconfig.node.json",
+    "build": "tsc -p tsconfig.node.json && node scripts/copy-migrations.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json",
     "start": "node --env-file=.env out/main/index.js",
     "test": "vitest run",
