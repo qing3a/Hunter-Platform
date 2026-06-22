@@ -123,7 +123,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.actor_user_id === 'string') filter.actor_user_id = req.query.actor_user_id;
       if (typeof req.query.recommendation_id === 'string') filter.recommendation_id = req.query.recommendation_id;
       if (req.query.limit) filter.limit = Number(req.query.limit);
-      respond(res, AuditListResponseSchema, { ok: true, data: audit.list(filter) });
+      respond(res, AuditListResponseSchema, { ok: true, data: audit.list(filter) }, { strict: true });
     } catch (e) { next(e); }
   });
 
