@@ -26,12 +26,12 @@ export function createAdminCandidatesHandler(db: DB) {
       params.push(filter.limit ?? 100);
       return db.prepare(sql).all(...params) as any;
     },
-    removeFromPool(anonymized_id: string): { anonymized_id: string; is_public_pool: number } {
+    removeFromPool(anonymized_id: string): { anonymized_id: string; removed: true } {
       const c = candidates.findById(anonymized_id);
       if (!c) throw Errors.notFound('Candidate not found');
       db.prepare("UPDATE candidates_anonymized SET is_public_pool = 0, updated_at = ? WHERE id = ?")
         .run(new Date().toISOString(), anonymized_id);
-      return { anonymized_id, is_public_pool: 0 };
+      return { anonymized_id, removed: true };
     },
   };
 }
