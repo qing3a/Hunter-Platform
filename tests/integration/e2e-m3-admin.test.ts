@@ -40,8 +40,8 @@ describe('M3 E2E: Admin dashboard + actions', () => {
 
   it('admin flow: suspend user, see in list with new status', () => {
     usersIpc.suspend('admin', 'h1', 'policy violation');
-    const list = usersIpc.list({ status: 'suspended' }) as any[];
-    expect(list.some((u) => u.id === 'h1' && u.status === 'suspended')).toBe(true);
+    const list = usersIpc.list({ status: 'suspended' }) as any;
+    expect(list.rows.some((u: any) => u.id === 'h1' && u.status === 'suspended')).toBe(true);
   });
 
   it('admin flow: list dead letter, retry, status → pending', () => {

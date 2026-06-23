@@ -97,7 +97,7 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 |--------|------|------|
 | 🔴 高 | **action_history 中间件落地**（新建 `/v1/admin/action-history`） | ✅ 代码已合 `main`（merge commit `413b6e3`，2026-06-23）；⏳ **待生产部署** |
 | 🔴 高 | **要求 current_company 必填**（消除 industry NULL） | ✅ 代码已合 `feature/require-current-company`（6 commits），⏳ 待合并 + 生产部署；MCP server 待发 v0.1.3 |
-| 低 | **Web 管理后台**（替代 Electron，多管理员） | ✅ **Sub-A** 基础设施已上线（v1.5+）：admin_users 表 + per-admin api_key + login/me/rotate-key 端点 + admin-web (React+Vite) + seed。Sub-B/C/D/E 待开始 |
+| 低 | **Web 管理后台**（替代 Electron，多管理员） | ✅ **Sub-A** 基础设施已上线（v1.5+，merge `ad62db3`）；✅ **Sub-B** 监控仪表盘 + 列表只读已完成 + 合 `feature/web-admin-sub-B` (待 review → merge main)。Sub-C/D/E 待开始 |
 
 > 详细 plan 见 `docs/superpowers/plans/`，design 见 `docs/superpowers/specs/`。
 
@@ -171,7 +171,9 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | admin_users 表 | `src/main/db/repositories/admin-users.ts` |
 | admin auth handler | `src/main/modules/admin/handlers/auth.ts`（login/rotate-key/me） |
 | admin seed | `src/main/seed/admin.ts`（读 SEED_ADMIN_PASSWORD env） |
-| Admin Web UI | `admin-web/`（React + Vite + TS）；build 到 `out/admin/` |
+| Admin Web UI 列表页 | `admin-web/src/pages/{Users,Candidates,Dashboard}Page.tsx` |
+| Admin API typed wrappers | `admin-web/src/api/{users,candidates,dashboard,raw}.ts` |
+| Admin Web UI | `admin-web/`（React + Vite + TS + vitest+RTL）；build 到 `out/admin/` |
 | action_history 中间件 | `src/main/modules/audit/action-history-middleware.ts` |
 | action_history repo | `src/main/db/repositories/action-history.ts` |
 | capability 映射 | `src/main/capabilities/` + `src/main/modules/audit/route-action-map.ts` |
