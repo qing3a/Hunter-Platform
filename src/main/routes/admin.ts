@@ -13,6 +13,7 @@ import {
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
   ActionHistoryListResponseSchema,
   AdminLoginRequestSchema, AdminLoginResponseSchema, AdminMeResponseSchema, AdminRotateKeyResponseSchema,
+  ListUsersEnvelopeSchema, ListCandidatesEnvelopeSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -75,6 +76,8 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
           active_placements: activePlacementCount,
           daily_quota_used: dailyQuotaUsed,
           webhook_dead_letters: s.webhooks.dead_letter,
+          today_new_users: s.today_new_users,
+          trend_30d: s.trend_30d,
         },
       }, { strict: true });
     } catch (e) { next(e); }
@@ -83,11 +86,24 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   // Users
   router.get('/users', (req, res, next) => {
     try {
-      const filter: { user_type?: string; status?: string; limit?: number } = {};
+      const filter: { user_type?: string; status?: string; keyword?: string; limit?: number; offset?: number } = {};
       if (typeof req.query.user_type === 'string') filter.user_type = req.query.user_type;
       if (typeof req.query.status === 'string') filter.status = req.query.status;
-      if (req.query.limit) filter.limit = Number(req.query.limit);
-      respond(res, ListUsersResponseSchema, { ok: true, data: users.list(filter) }, { strict: true });
+      if (typeof req.query.keyword === 'string' && req.query.keyword.length > 0) filter.keyword = req.query.keyword;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      filter.limit = pageSize;
+      filter.offset = (page - 1) * pageSize;
+      const { rows, total } = users.list(filter);
+      respond(res, ListUsersEnvelopeSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/users/:id/suspend', (req, res, next) => {
@@ -115,12 +131,25 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   // Candidates
   router.get('/candidates', (req, res, next) => {
     try {
-      const filter: { in_pool?: boolean; unlock_status?: string; limit?: number } = {};
+      const filter: { in_pool?: boolean; unlock_status?: string; keyword?: string; limit?: number; offset?: number } = {};
       if (req.query.in_pool === 'true' || req.query.in_pool === '1') filter.in_pool = true;
       else if (req.query.in_pool === 'false' || req.query.in_pool === '0') filter.in_pool = false;
       if (typeof req.query.unlock_status === 'string') filter.unlock_status = req.query.unlock_status;
-      if (req.query.limit) filter.limit = Number(req.query.limit);
-      respond(res, ListCandidatesResponseSchema, { ok: true, data: candidates.list(filter) }, { strict: true });
+      if (typeof req.query.keyword === 'string' && req.query.keyword.length > 0) filter.keyword = req.query.keyword;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      filter.limit = pageSize;
+      filter.offset = (page - 1) * pageSize;
+      const { rows, total } = candidates.list(filter);
+      respond(res, ListCandidatesEnvelopeSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/candidates/:id/remove-from-pool', (req, res, next) => {

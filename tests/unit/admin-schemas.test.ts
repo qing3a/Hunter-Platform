@@ -24,6 +24,7 @@ describe('DashboardStatsResponseSchema', () => {
       data: {
         total_users: 10, total_candidates: 5, total_jobs: 3, open_jobs: 2,
         active_placements: 1, daily_quota_used: 100, webhook_dead_letters: 0,
+        today_new_users: 2, trend_30d: Array(30).fill(0),
       },
     });
     expect(r.success).toBe(true);

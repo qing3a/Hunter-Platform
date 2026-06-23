@@ -19,6 +19,10 @@ const AdminCandidateSchema = z.object({
   anonymized_id: IdString,
   candidate_user_id: IdString,
   headhunter_id: IdString,
+  // PII-masked (see src/main/lib/mask.ts). Admin can drill into user details
+  // via /v1/admin/users if they need the full name/email.
+  masked_name: z.string(),
+  masked_email: z.string(),
   industry: z.string().nullable(),
   title_level: z.string().nullable(),
   is_public_pool: z.union([z.literal(0), z.literal(1)]),
@@ -110,6 +114,9 @@ const DashboardStatsSchema = z.object({
   active_placements: z.number().int(),
   daily_quota_used: z.number().int(),
   webhook_dead_letters: z.number().int(),
+  // Sub-B additions: today new users + 30-day daily-new trend (oldest → newest)
+  today_new_users: z.number().int(),
+  trend_30d: z.array(z.number().int()).length(30),
 });
 
 const ConfigEntrySchema = z.record(z.string(), z.unknown());
@@ -161,6 +168,30 @@ export const ActionHistoryListResponseSchema = z.object({
   data: z.array(AdminActionHistoryItemSchema),
   pagination: AdminActionHistoryPaginationSchema,
 });
+
+// Sub-B: shared pagination schema + paginated envelope for users/candidates list.
+const PaginationSchema = z.object({
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  has_more: z.boolean(),
+});
+
+const ListUsersEnvelopeSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(UserPublicSchema),
+  pagination: PaginationSchema,
+});
+
+export { PaginationSchema, ListUsersEnvelopeSchema };
+
+const ListCandidatesEnvelopeSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(AdminCandidateSchema),
+  pagination: PaginationSchema,
+});
+
+export { ListCandidatesEnvelopeSchema };
 
 // Admin auth (Sub-A of Task #3): login / me / rotate-key schemas.
 // See docs/superpowers/specs/2026-06-23-web-admin-sub-A-design.md §2.
