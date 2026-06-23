@@ -26,17 +26,29 @@ After installing, your AI agent can directly call these tools:
 
 ## Install
 
-### Option 1: npm (recommended once published)
+### Option 1: npm from GitHub Packages (recommended, private)
 
 ```bash
-npm install -g @hunter-platform/mcp-server
+# One-time: configure npm to authenticate to GitHub Packages
+cat > ~/.npmrc << 'EOF'
+@qing3a:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT_HERE
+EOF
+chmod 600 ~/.npmrc
+
+# Install
+npm install -g @qing3a/hunter-platform-mcp
+# Or run directly without installing:
+npx -y @qing3a/hunter-platform-mcp
 ```
+
+> **Note**: The `_authToken` must be a GitHub PAT with `read:packages` scope (or a fine-grained token with `Packages: Read` on the `Hunter-Platform` repository). For publishers, `write:packages` is also required.
 
 ### Option 2: From source
 
 ```bash
-git clone https://github.com/convo-ai/hunter-platform.git
-cd hunter-platform/mcp-server
+git clone https://github.com/qing3a/Hunter-Platform.git
+cd Hunter-Platform/mcp-server
 npm install
 npm run build
 ```
@@ -195,6 +207,35 @@ These capabilities exist on the Hunter Platform API but are intentionally NOT ex
 - **Browse internal lists (e.g. `headhunter_pending_claims`)** — niche workflows
 
 Add these by following the pattern in `src/tools/*.ts`.
+
+## Deployment
+
+The MCP server is a **client-side** package — it runs on the same machine as the AI client (Claude Desktop, Cursor, etc.), not on the Hunter Platform server. The Hunter Platform API (qing3.top) does not need to be modified for MCP to work.
+
+### Architecture
+
+```
+┌──────────────┐  stdio/MCP   ┌──────────────────┐  HTTPS/REST   ┌─────────────────┐
+│  AI Client   │◄────────────►│ MCP server (this) │◄─────────────►│  Hunter Platform │
+│ (Claude etc) │              │  + ~/.hunter-     │               │   API (qing3.top)│
+└──────────────┘              │    platform/      │               └─────────────────┘
+                              │    credentials    │
+                              └──────────────────┘
+```
+
+### Server-side install (optional — for verification / automation)
+
+You can install the MCP server on the Hunter Platform server itself to use it in scripts (e.g., to register candidates, post jobs) without an AI client. Verified working on Node 22.11.0:
+
+```bash
+# On the Hunter Platform server (after configuring ~/.npmrc per Option 1)
+mkdir -p /opt/mcp-runtime
+cd /opt/mcp-runtime
+npm install @qing3a/hunter-platform-mcp
+node node_modules/@qing3a/hunter-platform-mcp/out/index.js  # starts stdio MCP server
+```
+
+After `auth_register`, the api_key is persisted to `/root/.hunter-platform/credentials.json` (mode 0600) on the server and is used for all subsequent calls.
 
 ## License
 
