@@ -114,6 +114,9 @@ const DashboardStatsSchema = z.object({
   active_placements: z.number().int(),
   daily_quota_used: z.number().int(),
   webhook_dead_letters: z.number().int(),
+  // Sub-B additions: today new users + 30-day daily-new trend (oldest → newest)
+  today_new_users: z.number().int(),
+  trend_30d: z.array(z.number().int()).length(30),
 });
 
 const ConfigEntrySchema = z.record(z.string(), z.unknown());

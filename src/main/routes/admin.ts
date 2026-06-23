@@ -76,6 +76,8 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
           active_placements: activePlacementCount,
           daily_quota_used: dailyQuotaUsed,
           webhook_dead_letters: s.webhooks.dead_letter,
+          today_new_users: s.today_new_users,
+          trend_30d: s.trend_30d,
         },
       }, { strict: true });
     } catch (e) { next(e); }

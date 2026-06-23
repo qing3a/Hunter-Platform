@@ -14,6 +14,9 @@ export interface DashboardStats {
   webhooks: { pending: number; dead_letter: number };
   activity: { placements_today: number };
   timestamp: string;
+  // Sub-B: today_new_users + 30-day daily-new trend
+  today_new_users: number;
+  trend_30d: number[];
 }
 
 export function makeAdminDashboardHandler(db: DB) {
@@ -74,6 +77,23 @@ export function makeAdminDashboardHandler(db: DB) {
         "SELECT COUNT(*) as cnt FROM action_history WHERE capability_name = 'employer.create_placement' AND created_at >= ?"
       ).get(todayStart.toISOString()) as { cnt: number }).cnt;
 
+      // Sub-B: today_new_users + trend_30d
+      const todayNewUsers = (db.prepare(
+        `SELECT COUNT(*) as cnt FROM users WHERE created_at >= ?`
+      ).get(todayStart.toISOString()) as { cnt: number }).cnt;
+
+      const trend30d: number[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const dayStart = new Date(todayStart);
+        dayStart.setUTCDate(dayStart.getUTCDate() - i);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+        const cnt = (db.prepare(
+          `SELECT COUNT(*) as cnt FROM users WHERE created_at >= ? AND created_at < ?`
+        ).get(dayStart.toISOString(), dayEnd.toISOString()) as { cnt: number }).cnt;
+        trend30d.push(cnt);
+      }
+
       return {
         users: userCounts,
         jobs: jobCounts,
@@ -82,6 +102,8 @@ export function makeAdminDashboardHandler(db: DB) {
         webhooks: { pending: webhooks.countPending(), dead_letter: webhooks.countDeadLetter() },
         activity: { placements_today: placementsToday },
         timestamp: new Date().toISOString(),
+        today_new_users: todayNewUsers,
+        trend_30d: trend30d,
       };
     },
   };
