@@ -11,7 +11,7 @@ export const headhunterCapabilities = defineCapabilitySet({
   capabilities: [
     {
       name: 'headhunter.upload_candidate',
-      description: '上传候选人简历(加密入库,生成脱敏版本)。',
+      description: '上传候选人简历(加密入库,生成脱敏版本)。REQUIRED: current_company must be a non-empty string (1-200 chars); API returns 400 INVALID_PARAMS if missing/empty.',
       method: 'POST', path: '/v1/headhunter/candidates',
       response_schema: UploadCandidateResponseSchema,
       quota_cost: QUOTA_COSTS.upload_candidate,
