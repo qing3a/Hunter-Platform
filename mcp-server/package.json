@@ -1,0 +1,59 @@
+{
+  "name": "@qing3a/hunter-platform-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server exposing Hunter Platform (recruiter marketplace API) as 15 AI-callable tools. Works with Claude Desktop, Cursor, Cline, and any MCP-compatible AI client.",
+  "type": "module",
+  "main": "./out/index.js",
+  "bin": {
+    "hunter-platform-mcp": "./out/index.js"
+  },
+  "files": [
+    "out",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node out/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "hunter-platform",
+    "recruiter",
+    "ai-agent",
+    "claude",
+    "cursor"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qing3a/Hunter-Platform.git",
+    "directory": "mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/qing3a/Hunter-Platform/issues"
+  },
+  "homepage": "https://qing3.top/v1/skill.md",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  }
+}
