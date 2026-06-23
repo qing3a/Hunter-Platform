@@ -27,25 +27,31 @@ export function createAdminUsersHandler(db: DB) {
   }
 
   return {
-    list(filter: { user_type?: string; status?: string; limit?: number }): Array<{
+    list(filter: { user_type?: string; status?: string; keyword?: string; limit?: number; offset?: number }): { rows: Array<{
       id: string; user_type: 'candidate' | 'headhunter' | 'employer'; name: string;
       quota_per_day: number; quota_used: number; quota_reset_at: string;
       reputation: number; status: 'active' | 'suspended' | 'deleted';
       created_at: string;
-    }> {
+    }>; total: number } {
       // Project only the UserPublicSchema fields. Stripping PII (contact, agent_endpoint)
       // and secrets (api_key_hash, api_key_prefix, api_key_expires_at, prev_api_key_*) is
       // the security-critical reason for this change.
-      let sql = `
+      const where: string[] = ['1=1'];
+      const params: any[] = [];
+      if (filter.user_type) { where.push('user_type = ?'); params.push(filter.user_type); }
+      if (filter.status) { where.push('status = ?'); params.push(filter.status); }
+      if (filter.keyword) { where.push('name LIKE ?'); params.push(`%${filter.keyword}%`); }
+
+      const total = (db.prepare(`SELECT COUNT(*) as cnt FROM users WHERE ${where.join(' AND ')}`)
+        .get(...params) as { cnt: number }).cnt;
+
+      const sql = `
         SELECT id, user_type, name, quota_per_day, quota_used, quota_reset_at,
                reputation, status, created_at
-        FROM users WHERE 1=1`;
-      const params: any[] = [];
-      if (filter.user_type) { sql += ' AND user_type = ?'; params.push(filter.user_type); }
-      if (filter.status) { sql += ' AND status = ?'; params.push(filter.status); }
-      sql += ' ORDER BY created_at DESC LIMIT ?';
-      params.push(filter.limit ?? 100);
-      return db.prepare(sql).all(...params) as any;
+        FROM users WHERE ${where.join(' AND ')}
+        ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      const rows = db.prepare(sql).all(...params, filter.limit ?? 20, filter.offset ?? 0) as any;
+      return { rows, total };
     },
     suspend(adminUserId: string, user_id: string, reason: string): { user_id: string; status: string; reason: string } {
       const u = users.findById(user_id);

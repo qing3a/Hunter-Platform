@@ -162,6 +162,22 @@ export const ActionHistoryListResponseSchema = z.object({
   pagination: AdminActionHistoryPaginationSchema,
 });
 
+// Sub-B: shared pagination schema + paginated envelope for users/candidates list.
+const PaginationSchema = z.object({
+  total: z.number().int(),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  has_more: z.boolean(),
+});
+
+const ListUsersEnvelopeSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(UserPublicSchema),
+  pagination: PaginationSchema,
+});
+
+export { PaginationSchema, ListUsersEnvelopeSchema };
+
 // Admin auth (Sub-A of Task #3): login / me / rotate-key schemas.
 // See docs/superpowers/specs/2026-06-23-web-admin-sub-A-design.md §2.
 const AdminLoginRequestSchema = z.object({

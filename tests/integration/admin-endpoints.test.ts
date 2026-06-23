@@ -91,6 +91,8 @@ describe('admin endpoints integration', () => {
       const res = await request(app).get('/v1/admin/users').set('Authorization', adminAuth);
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.pagination).toBeDefined();
+      expect(res.body.pagination.total).toBeGreaterThanOrEqual(0);
     });
 
     it('POST /v1/admin/users/:id/suspend requires reason', async () => {
