@@ -19,6 +19,10 @@ const AdminCandidateSchema = z.object({
   anonymized_id: IdString,
   candidate_user_id: IdString,
   headhunter_id: IdString,
+  // PII-masked (see src/main/lib/mask.ts). Admin can drill into user details
+  // via /v1/admin/users if they need the full name/email.
+  masked_name: z.string(),
+  masked_email: z.string(),
   industry: z.string().nullable(),
   title_level: z.string().nullable(),
   is_public_pool: z.union([z.literal(0), z.literal(1)]),
@@ -177,6 +181,14 @@ const ListUsersEnvelopeSchema = z.object({
 });
 
 export { PaginationSchema, ListUsersEnvelopeSchema };
+
+const ListCandidatesEnvelopeSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(AdminCandidateSchema),
+  pagination: PaginationSchema,
+});
+
+export { ListCandidatesEnvelopeSchema };
 
 // Admin auth (Sub-A of Task #3): login / me / rotate-key schemas.
 // See docs/superpowers/specs/2026-06-23-web-admin-sub-A-design.md §2.
