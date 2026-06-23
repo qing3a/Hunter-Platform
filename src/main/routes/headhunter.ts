@@ -22,7 +22,7 @@ const UploadSchema = z.object({
   name: z.string().min(1).max(100),
   phone: z.string().min(1).max(50),
   email: z.string().email(),
-  current_company: z.string().max(200).optional(),
+  current_company: z.string().min(1).max(200),
   current_title: z.string().max(100).optional(),
   expected_salary: z.number().int().positive().optional(),
   years_experience: z.number().int().min(0).max(60).optional(),
