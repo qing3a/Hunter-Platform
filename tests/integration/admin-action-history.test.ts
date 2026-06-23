@@ -9,7 +9,8 @@ describe('admin /v1/admin/action-history', () => {
   let app: any;
   let db: any;
   const ADMIN_PWD = 'admin-test-pwd-12345';
-  const adminAuth = `Bearer ${ADMIN_PWD}`;
+  const ADMIN_EMAIL = 'admin@ah-test.com';
+  let adminAuth = ''; // assigned after login in beforeAll
 
   beforeAll(async () => {
     try { fs.unlinkSync(testDb); } catch {}
@@ -17,7 +18,7 @@ describe('admin /v1/admin/action-history', () => {
     try { fs.unlinkSync(testDb + '-shm'); } catch {}
     process.env.PLATFORM_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
     process.env.WEBHOOK_HMAC_SECRET = 'test-secret-1234567890';
-    process.env.ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PWD, 4);
+    process.env.ADMIN_PASSWORD_HASH = 'DEPRECATED'; // legacy — code no longer reads it
     process.env.DATABASE_PATH = testDb;
     process.env.NODE_ENV = 'test';
     const { createAppFromDb } = await import('../../src/main/server');
@@ -27,6 +28,18 @@ describe('admin /v1/admin/action-history', () => {
     db = openDb(testDb);
     runMigrations(db);
     app = createAppFromDb(db, loadEnv());
+
+    // Seed: admin user (Sub-A per-admin api_key auth replaces shared password)
+    const pwdHash = bcrypt.hashSync(ADMIN_PWD, 4);
+    const keyHash = bcrypt.hashSync('hp_admin_ahtest_aaaa', 4);
+    db.prepare(`INSERT INTO admin_users (id, name, email, password_hash, api_key_hash, api_key_prefix, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      'adm_ah', 'AH Admin', ADMIN_EMAIL, pwdHash, keyHash, 'hp_admin_ahtest', 'super', 'active',
+      '2026-06-17T00:00:00Z', '2026-06-17T00:00:00Z'
+    );
+    // Login to obtain the real api_key (login rotates it)
+    const loginResp = await request(app).post('/v1/admin/auth/login')
+      .send({ email: ADMIN_EMAIL, password: ADMIN_PWD });
+    adminAuth = `Bearer ${loginResp.body.data.api_key}`;
 
     // Seed: 2 users + 3 action_history rows
     db.prepare(`

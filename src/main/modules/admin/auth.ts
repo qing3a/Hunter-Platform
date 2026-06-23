@@ -11,6 +11,11 @@ const API_KEY_PREFIX_LEN = 18; // matches handlers/auth.ts generateAdminApiKey
 export function createAdminAuthMiddleware(db: DB): RequestHandler {
   const repo = createAdminUsersRepo(db);
   return (req: Request, _res: Response, next: NextFunction): void => {
+    // Login is public — it IS the way to obtain a bearer token. Skip auth
+    // for POST /auth/login so callers without a key can authenticate.
+    if (req.method === 'POST' && req.path === '/auth/login') {
+      return next();
+    }
     const auth = req.headers.authorization;
     if (!auth || !auth.startsWith('Bearer ') || auth.length <= 7) {
       return next(Errors.unauthorized('Admin auth requires "Authorization: Bearer <admin_api_key>"'));

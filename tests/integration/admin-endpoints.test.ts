@@ -9,7 +9,8 @@ describe('admin endpoints integration', () => {
   let app: any;
   let db: any;
   const ADMIN_PWD = 'admin-test-pwd-12345';
-  const adminAuth = `Bearer ${ADMIN_PWD}`;
+  const ADMIN_EMAIL = 'admin@default.com';
+  let adminAuth = ''; // assigned after login in beforeAll
 
   beforeAll(async () => {
     try { fs.unlinkSync(testDb); } catch {}
@@ -17,7 +18,7 @@ describe('admin endpoints integration', () => {
     try { fs.unlinkSync(testDb + '-shm'); } catch {}
     process.env.PLATFORM_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
     process.env.WEBHOOK_HMAC_SECRET = 'test-secret-1234567890';
-    process.env.ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PWD, 4);
+    process.env.ADMIN_PASSWORD_HASH = 'DEPRECATED'; // 故意设，确保代码不读
     process.env.DATABASE_PATH = testDb;
     process.env.NODE_ENV = 'test';
     const { createAppFromDb } = await import('../../src/main/server');
@@ -27,6 +28,18 @@ describe('admin endpoints integration', () => {
     db = openDb(testDb);
     runMigrations(db);
     app = createAppFromDb(db, loadEnv());
+
+    // Seed an admin user (Sub-A: per-admin api_key auth replaces shared password)
+    const pwdHash = bcrypt.hashSync(ADMIN_PWD, 4);
+    const keyHash = bcrypt.hashSync('hp_admin_legacykey_aaaa', 4);
+    db.prepare(`INSERT INTO admin_users (id, name, email, password_hash, api_key_hash, api_key_prefix, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      'adm_default', 'Default Admin', ADMIN_EMAIL, pwdHash, keyHash, 'hp_admin_legacy', 'super', 'active',
+      '2026-06-23T00:00:00Z', '2026-06-23T00:00:00Z'
+    );
+    // Login to obtain the real api_key (login rotates the key)
+    const loginResp = await request(app).post('/v1/admin/auth/login')
+      .send({ email: ADMIN_EMAIL, password: ADMIN_PWD });
+    adminAuth = `Bearer ${loginResp.body.data.api_key}`;
   });
 
   afterAll(() => { if (db) db.close(); });

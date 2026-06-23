@@ -16,7 +16,10 @@ const EnvSchema = z.object({
   // Multi-key mode (M5 P1#13). Format: v1:<b64>,v2:<b64>,...
   PLATFORM_ENCRYPTION_KEYS: z.string().optional(),
   WEBHOOK_HMAC_SECRET: z.string().min(16),
-  ADMIN_PASSWORD_HASH: z.string().min(20),
+  // Legacy shared admin password hash — deprecated in v1.5 (Sub-A of Task #3).
+  // New admin auth uses per-admin api_key from admin_users table. Kept optional
+  // so test environments and pre-seed prod boot don't fail validation.
+  ADMIN_PASSWORD_HASH: z.string().optional(),
   DATABASE_PATH: z.string().default('./data/hunter.db'),
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
