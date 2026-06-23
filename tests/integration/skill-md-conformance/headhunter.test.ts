@@ -27,7 +27,7 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
   it('POST /v1/headhunter/candidates uploads a candidate', async () => {
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateId, name: 'C1', phone: '13800000001', email: 'c1@x.com' },
+      body: { candidate_user_id: candidateId, name: 'C1', phone: '13800000001', email: 'c1@x.com' , current_company: '字节跳动' },
     });
     expect(r.status).toBe(200);
     expect(r.data.data.anonymized_id).toBeDefined();
@@ -38,7 +38,7 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
     await client.request({ method: 'POST', path: `/v1/employer/claim-jobs/${jobId}`, auth: eKey });
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateId, name: 'C2', phone: '13800000002', email: 'c2@x.com' },
+      body: { candidate_user_id: candidateId, name: 'C2', phone: '13800000002', email: 'c2@x.com' , current_company: '字节跳动' },
     });
     const anonId = candRes.data.data.anonymized_id;
     const r = await client.request({
@@ -62,7 +62,7 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
     // Create fresh rec to withdraw
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateId, name: 'W', phone: '13800000003', email: 'w@x.com' },
+      body: { candidate_user_id: candidateId, name: 'W', phone: '13800000003', email: 'w@x.com' , current_company: '字节跳动' },
     });
     const anonId = candRes.data.data.anonymized_id;
     const recRes = await client.request({
@@ -81,7 +81,7 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
     // First upload a candidate to publish
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateId, name: 'Pub', phone: '13800000004', email: 'pub@x.com' },
+      body: { candidate_user_id: candidateId, name: 'Pub', phone: '13800000004', email: 'pub@x.com' , current_company: '字节跳动' },
     });
     const candId = candRes.data.data.anonymized_id;
     const r = await client.request({

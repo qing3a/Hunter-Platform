@@ -25,7 +25,7 @@ describe('skill.md: trace_id propagation (Phase 2)', () => {
     // Trigger an action that writes to action_history (auth/register doesn't, but headhunter/candidates does)
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: key,
-      body: { candidate_user_id: client.ids.get('candidate'), name: 'TraceC', phone: '13800000002', email: 'tc2@x.com' },
+      body: { candidate_user_id: client.ids.get('candidate'), name: 'TraceC', phone: '13800000002', email: 'tc2@x.com' , current_company: '字节跳动' },
     });
     expect(r.status).toBe(200);
     const traceId = r.headers['x-trace-id'];

@@ -39,6 +39,7 @@ describe('previously-missing endpoints (Bug 2 regression)', () => {
     // Upload candidate
     const up = await request(app).post('/v1/headhunter/candidates').set('Authorization', `Bearer ${headhunterKey}`).send({
       candidate_user_id: candidateId, name: 'X', phone: '13800000000', email: 'x@x.com',
+      current_company: '字节跳动',
       current_company: '字节跳动', current_title: 'P6', expected_salary: 700000, years_experience: 8, education_school: '清华', skills: ['React'],
     });
     anonymizedId = up.body.data.anonymized_id;

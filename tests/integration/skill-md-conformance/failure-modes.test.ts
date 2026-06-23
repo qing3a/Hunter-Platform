@@ -39,7 +39,7 @@ describe('failure-modes: 401 (no auth)', () => {
   it('POST /v1/headhunter/candidates without Authorization → 401', async () => {
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates',
-      body: { name: 'X', phone: '13800000001', email: 'x@x.com' },
+      body: { name: 'X', phone: '13800000001', email: 'x@x.com' , current_company: '字节跳动' },
     });
     expect(r.status).toBe(401);
     expect(r.data.error.code).toBe('UNAUTHORIZED');
@@ -94,7 +94,7 @@ describe('failure-modes: 409 (invalid state transition)', () => {
 
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: client.ids.get('candidate'), name: 'C409Cand', phone: '13800009000', email: 'c409c@x.com' },
+      body: { candidate_user_id: client.ids.get('candidate'), name: 'C409Cand', phone: '13800009000', email: 'c409c@x.com' , current_company: '字节跳动' },
     });
     hCandidateId = candRes.data.data.anonymized_id;
 
@@ -149,7 +149,7 @@ describe('failure-modes: 429 (quota exhausted)', () => {
   it('POST /v1/headhunter/candidates when quota exhausted → 429', async () => {
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: client.ids.get('candidate'), name: 'AfterQuota', phone: '13800008888', email: 'aq@x.com' },
+      body: { candidate_user_id: client.ids.get('candidate'), name: 'AfterQuota', phone: '13800008888', email: 'aq@x.com' , current_company: '字节跳动' },
     });
     expect(r.status).toBe(429);
     expect(r.data.error.code).toBe('INSUFFICIENT_QUOTA');
