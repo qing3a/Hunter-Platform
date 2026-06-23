@@ -634,6 +634,7 @@ Headers:
 | POST   | `/v1/admin/placements/:id/cancel` | 取消 |
 | GET    | `/v1/admin/placements/summary` | 汇总 |
 | GET    | `/v1/admin/admin-log` | 管理员操作日志 |
+| GET    | `/v1/admin/login-events` | admin 登录日志（?admin_id&success&email&from&until&page&pageSize） |
 
 ---
 
@@ -1404,6 +1405,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
 | GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
 | GET | `/v1/admin/admin-log` | `admin.admin_log` | 0 | — | db.admin_action_log.list |
+| GET | `/v1/admin/login-events` | `admin.login_events` | 0 | — | db.admin_login_events.list |
 
 > - `admin.ping`: Admin 健康检查 ping。
 > - `admin.dashboard_stats`: 平台总览统计(用户/候选人/job/placement 数)。

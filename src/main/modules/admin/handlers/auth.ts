@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { Errors } from '../../../errors.js';
 import type { DB } from '../../../db/connection.js';
 import { createAdminUsersRepo, type AdminUserRow } from '../../../db/repositories/admin-users.js';
+import { createAdminLoginEventsRepo } from '../../../db/repositories/admin-login-events.js';
 import { respond } from '../../../responses.js';
 import {
   AdminLoginRequestSchema,
@@ -25,26 +26,62 @@ async function generateAdminApiKey(): Promise<{ hash: string; key: string; prefi
 
 export function createAdminAuthHandler(db: DB) {
   const repo = createAdminUsersRepo(db);
+  const loginEventsRepo = createAdminLoginEventsRepo(db);
+
+  // Helper that NEVER throws (so it can't break login main flow)
+  const recordLoginEvent = (
+    success: boolean,
+    adminUserId: string | null,
+    email: string,
+    reason: string | null,
+    req: Request,
+  ) => {
+    try {
+      loginEventsRepo.insert({
+        admin_user_id: adminUserId,
+        email,
+        success: success ? 1 : 0,
+        failure_reason: reason,
+        ip: req.ip ?? null,
+        user_agent: (req.headers['user-agent'] as string | undefined) ?? null,
+      });
+    } catch (e) {
+      console.warn('[admin-login-events] failed to record login event:', (e as Error).message);
+    }
+  };
 
   return {
     /** POST /v1/admin/auth/login */
     async login(req: Request, res: Response, next: (e?: any) => void) {
       try {
         const parsed = AdminLoginRequestSchema.safeParse(req.body);
-        if (!parsed.success) throw Errors.invalidParams('email and password required');
+        if (!parsed.success) {
+          recordLoginEvent(false, null, String(req.body?.email ?? ''), 'invalid_request', req);
+          throw Errors.invalidParams('email and password required');
+        }
         const { email, password } = parsed.data;
 
         const row = repo.findByEmail(email);
-        if (!row) throw Errors.unauthorized('Invalid email or password');
-        if (row.status === 'suspended') throw Errors.forbidden('Admin account suspended');
+        if (!row) {
+          recordLoginEvent(false, null, email, 'unknown_email', req);
+          throw Errors.unauthorized('Invalid email or password');
+        }
+        if (row.status === 'suspended') {
+          recordLoginEvent(false, row.id, email, 'suspended', req);
+          throw Errors.forbidden('Admin account suspended');
+        }
 
         const ok = await bcrypt.compare(password, row.password_hash);
-        if (!ok) throw Errors.unauthorized('Invalid email or password');
+        if (!ok) {
+          recordLoginEvent(false, row.id, email, 'invalid_password', req);
+          throw Errors.unauthorized('Invalid email or password');
+        }
 
         // Always generate a fresh api_key on login (clients should rotate on demand anyway)
         const { hash, key, prefix } = await generateAdminApiKey();
         repo.updateApiKey(row.id, hash, prefix, new Date().toISOString());
         repo.updateLastLogin(row.id, new Date().toISOString());
+        recordLoginEvent(true, row.id, email, null, req);
 
         respond(res, AdminLoginResponseSchema, {
           ok: true,

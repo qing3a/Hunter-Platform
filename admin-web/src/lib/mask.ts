@@ -21,3 +21,11 @@ export function maskEmail(email: string): string {
   const tld = domain.slice(dotIdx);
   return `${maskedLocal}@***${tld}`;
 }
+
+// Sub-D1: mask phone/contact numbers. Keeps last 2 digits visible.
+export function maskContact(value: string): string {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return '**';
+  return '*'.repeat(digits.length - 2) + digits.slice(-2);
+}
