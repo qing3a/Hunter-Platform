@@ -97,7 +97,7 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 |--------|------|------|
 | 🔴 高 | **action_history 中间件落地**（新建 `/v1/admin/action-history`） | ✅ 代码已合 `main`（merge commit `413b6e3`，2026-06-23）；⏳ **待生产部署** |
 | 🔴 高 | **要求 current_company 必填**（消除 industry NULL） | ✅ 代码已合 `feature/require-current-company`（6 commits），⏳ 待合并 + 生产部署；MCP server 待发 v0.1.3 |
-| 低 | **Web 管理后台**（替代 Electron，多管理员） | ⏳ 待 brainstorm；建议拆子项目 |
+| 低 | **Web 管理后台**（替代 Electron，多管理员） | ✅ **Sub-A** 基础设施已上线（v1.5+）：admin_users 表 + per-admin api_key + login/me/rotate-key 端点 + admin-web (React+Vite) + seed。Sub-B/C/D/E 待开始 |
 
 > 详细 plan 见 `docs/superpowers/plans/`，design 见 `docs/superpowers/specs/`。
 
@@ -167,7 +167,11 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | 类别 | 路径 |
 |------|------|
 | HTTP 路由 | `src/main/routes/*.ts`（admin.ts, users.ts, etc.） |
-| Admin 鉴权 | `src/main/modules/admin/auth.ts`（bcrypt bearer） |
+| Admin 鉴权 | `src/main/modules/admin/auth.ts`（per-admin api_key 查 admin_users 表） |
+| admin_users 表 | `src/main/db/repositories/admin-users.ts` |
+| admin auth handler | `src/main/modules/admin/handlers/auth.ts`（login/rotate-key/me） |
+| admin seed | `src/main/seed/admin.ts`（读 SEED_ADMIN_PASSWORD env） |
+| Admin Web UI | `admin-web/`（React + Vite + TS）；build 到 `out/admin/` |
 | action_history 中间件 | `src/main/modules/audit/action-history-middleware.ts` |
 | action_history repo | `src/main/db/repositories/action-history.ts` |
 | capability 映射 | `src/main/capabilities/` + `src/main/modules/audit/route-action-map.ts` |

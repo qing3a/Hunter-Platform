@@ -606,8 +606,10 @@ Headers:
 
 ## 🛠 X. Admin API（运维 / 服务器 AI 管理接口）
 
-> **鉴权**：所有端点（包括 `/v1/admin/ping`）都需要 `Authorization: Bearer <ADMIN_PASSWORD>`。
-> 密码哈希通过环境变量 `ADMIN_PASSWORD_HASH`（bcrypt 格式）配置。
+> **鉴权**：所有 admin 端点需要 `Authorization: Bearer <admin_api_key>`（除 `/v1/admin/auth/login` 是公开的）。
+> Admin 用户存在 `admin_users` 表（v014+）；通过 POST /v1/admin/auth/login 登录获取 api_key（每次登录 rotate）。
+> 首次部署：在 .env 设 SEED_ADMIN_PASSWORD 启动服务自动 seed super admin (admin@qing3.top)。
+> 旧的 `ADMIN_PASSWORD_HASH` 环境变量已废弃（v1.5+），新代码完全不读。
 
 | Method | Path | 说明 |
 |--------|------|------|
