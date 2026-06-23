@@ -21,6 +21,7 @@ export default function Layout({ children, adminName }: { children: React.ReactN
         <NavLink to="/admin/" style={navStyle}>Dashboard</NavLink>
         <NavLink to="/admin/users" style={navStyle}>Users</NavLink>
         <NavLink to="/admin/candidates" style={navStyle}>Candidates</NavLink>
+        <NavLink to="/admin/audit" style={navStyle}>Audit</NavLink>
         <NavLink to="/admin/profile" style={navStyle}>Profile</NavLink>
         <div className="spacer" />
         <span>{adminName}</span>
