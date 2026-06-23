@@ -279,7 +279,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 
 | Method | Path | 描述 | 配额 |
 |--------|------|------|------|
-| POST | `/v1/headhunter/candidates` | 上传候选人（自动脱敏） | 5 |
+| POST | `/v1/headhunter/candidates` | 上传候选人（自动脱敏）— `current_company` **Required**（1-200 字符，非空） | 5 |
 | GET  | `/v1/headhunter/candidates` | 我的候选人列表 | 1 |
 | POST | `/v1/headhunter/candidates/{id}/publish-to-pool` | 共享到公开池 | 2 |
 | POST | `/v1/headhunter/recommendations` | 推荐给雇主 | 5 |

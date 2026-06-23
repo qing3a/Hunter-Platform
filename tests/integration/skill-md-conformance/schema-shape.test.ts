@@ -45,7 +45,7 @@ beforeAll(async () => {
   // Pre-create resources needed by per-capability tests.
   const candRes = await client.request({
     method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-    body: { candidate_user_id: client.ids.get('candidate'), name: 'Cand1', phone: '13800000001', email: 'cand1@x.com' },
+    body: { candidate_user_id: client.ids.get('candidate'), name: 'Cand1', phone: '13800000001', email: 'cand1@x.com' , current_company: '字节跳动' },
   });
   hCandidateId = candRes.data.data.anonymized_id as string;
 
@@ -97,7 +97,7 @@ function bodyFor(capName: string): unknown | undefined {
     case 'auth.rotate_key':
       return undefined; // GET-ish; no body
     case 'headhunter.upload_candidate':
-      return { candidate_user_id: client.ids.get('candidate'), name: 'BodyC', phone: '13800009999', email: 'bodyc@x.com' };
+      return { candidate_user_id: client.ids.get('candidate'), name: 'BodyC', phone: '13800009999', email: 'bodyc@x.com', current_company: '字节跳动' };
     case 'headhunter.recommend_candidate':
       return { anonymized_candidate_id: hCandidateId, job_id: eJobId };
     case 'headhunter.withdraw_recommendation':

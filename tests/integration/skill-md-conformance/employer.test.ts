@@ -28,7 +28,7 @@ describe('skill.md: employer (scenarios 6-9)', () => {
     // Upload candidate + create recommendation for express-interest flow
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateId, name: 'EmpCand', phone: '13800000010', email: 'emp@x.com' },
+      body: { candidate_user_id: candidateId, name: 'EmpCand', phone: '13800000010', email: 'emp@x.com' , current_company: '字节跳动' },
     });
     const recRes = await client.request({
       method: 'POST', path: '/v1/headhunter/recommendations', auth: hKey,

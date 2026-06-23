@@ -39,7 +39,7 @@ describe('skill.md: candidate (scenarios 10-12)', () => {
     const candId = client.ids.get('candidate')!;
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candId, name: 'Cu', phone: '13800000020', email: 'cu@x.com' },
+      body: { candidate_user_id: candId, name: 'Cu', phone: '13800000020', email: 'cu@x.com' , current_company: '字节跳动' },
     });
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
@@ -68,7 +68,7 @@ describe('skill.md: candidate (scenarios 10-12)', () => {
     const candId = client.ids.get('candidate')!;
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candId, name: 'Rej', phone: '13800000021', email: 'rej@x.com' },
+      body: { candidate_user_id: candId, name: 'Rej', phone: '13800000021', email: 'rej@x.com' , current_company: '字节跳动' },
     });
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,

@@ -28,7 +28,7 @@ describe('skill.md: state machine invalid transitions (Phase 3)', () => {
     // Headhunter creates a candidate (needs candidate_user_id)
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: client.ids.get('candidate'), name: 'X', phone: '13800000001', email: 'x@x.com' },
+      body: { candidate_user_id: client.ids.get('candidate'), name: 'X', phone: '13800000001', email: 'x@x.com' , current_company: '字节跳动' },
     });
     const anonId = candRes.data.data.anonymized_id;
     // Recommend

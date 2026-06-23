@@ -48,7 +48,7 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
     // 1. Create a public-pool candidate via public API
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: candidateUserId, name: 'AdminCand', phone: '13800000020', email: 'ac20@x.com' },
+      body: { candidate_user_id: candidateUserId, name: 'AdminCand', phone: '13800000020', email: 'ac20@x.com' , current_company: '字节跳动' },
     });
     candidateAnonId = candRes.data.data.anonymized_id;
     db.prepare("UPDATE candidates_anonymized SET is_public_pool = 1 WHERE id = ?")

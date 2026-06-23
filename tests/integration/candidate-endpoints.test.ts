@@ -39,6 +39,7 @@ describe('candidate endpoints — opportunities + access_log', () => {
       .set('Authorization', `Bearer ${hh.body.data.api_key}`)
       .send({
         candidate_user_id: candId, name: 'X', phone: '13800138000', email: 'x@x.com',
+        current_company: '字节跳动',
         current_company: 'A', current_title: 'T',
         expected_salary: 100000, years_experience: 1,
         education_school: 'S', skills: [],

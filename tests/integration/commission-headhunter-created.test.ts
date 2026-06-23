@@ -34,6 +34,7 @@ describe('commission 70/30 split - headhunter created job', () => {
     // B 上传候选人
     const candRes = await request(app).post('/v1/headhunter/candidates').set('Authorization', `Bearer ${hhB.api_key}`).send({
       candidate_user_id: cand.id, name: 'X', phone: '13800138000', email: 'x@x.com',
+      current_company: '字节跳动',
       current_company: '字节跳动', current_title: 'P6',
       expected_salary: 600000, years_experience: 5, education_school: 'S', skills: ['React'],
     });
@@ -77,6 +78,7 @@ describe('commission 70/30 split - headhunter created job', () => {
     // A 上传候选人
     const candRes = await request(app).post('/v1/headhunter/candidates').set('Authorization', `Bearer ${hhA.api_key}`).send({
       candidate_user_id: cand.id, name: 'X', phone: '13800138000', email: 'x@x.com',
+      current_company: '字节跳动',
       current_company: '字节跳动', current_title: 'P6',
       expected_salary: 600000, years_experience: 5, education_school: 'S', skills: ['React'],
     });
@@ -112,6 +114,7 @@ describe('commission 70/30 split - headhunter created job', () => {
     // B 上传候选人
     const candRes = await request(app).post('/v1/headhunter/candidates').set('Authorization', `Bearer ${hhB.api_key}`).send({
       candidate_user_id: cand.id, name: 'X', phone: '13800138000', email: 'x@x.com',
+      current_company: '字节跳动',
       current_company: '字节跳动', current_title: 'P6',
       expected_salary: 600000, years_experience: 5, education_school: 'S', skills: ['React'],
     });

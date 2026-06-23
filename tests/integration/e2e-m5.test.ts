@@ -49,7 +49,7 @@ describe('M5 E2E: metrics + versioned crypto', () => {
       .post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${h.body.data.api_key}`)
       .send({
-        candidate_user_id: c.body.data.id, name: 'X', phone: '13800000000', email: 'x@x.com',
+        candidate_user_id: c.body.data.id, name: 'X', phone: '13800000000', email: 'x@x.com', current_company: '字节跳动',
       });
     const db = openDb(testDb);
     const row = db.prepare('SELECT name_enc FROM candidates_private LIMIT 1').get() as { name_enc: string };

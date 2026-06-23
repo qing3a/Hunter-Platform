@@ -47,7 +47,7 @@ describe('schema-shape: multi-step flow (per-test fresh recommendation)', () => 
     const ts = Date.now();
     const candRes = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: hKey,
-      body: { candidate_user_id: client.ids.get('candidate'), name: `FlowCand${ts}`, phone: '13800000010', email: `fc-${ts}@x.com` },
+      body: { candidate_user_id: client.ids.get('candidate'), name: `FlowCand${ts}`, phone: '13800000010', email: `fc-${ts}@x.com`, current_company: '字节跳动' },
     });
     recAnonymizedId = candRes.data.data.anonymized_id;
     const eJobRes = await client.request({

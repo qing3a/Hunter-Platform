@@ -75,6 +75,7 @@ describe('M1 end-to-end', () => {
         .send({
           candidate_user_id: candidateId,
           name: 'X', phone: '13900000000', email: `x${i}-e2e@x.com`,
+          current_company: '字节跳动',
           skills: ['X'],
         });
       if (i % 10 === 9) {
@@ -90,6 +91,7 @@ describe('M1 end-to-end', () => {
       .send({
         candidate_user_id: candidateId,
         name: 'Y', phone: '13900000001', email: 'y-e2e@x.com',
+        current_company: '字节跳动',
         skills: ['Y'],
       });
     expect(r.status).toBe(429);
