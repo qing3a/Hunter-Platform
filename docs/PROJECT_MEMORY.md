@@ -30,6 +30,64 @@
 | action_history 中间件 | 每条业务请求都写审计（v1.4 起挂载） | v1.4 |
 | capability_name 标准化 | v013 迁移：30 个能力名 | v1.4 |
 | bcrypt cost-10 admin password | 生产 `.env` 用 `$2a$10$` 哈希 | v1.0 |
+| current_company 必填 | 新上传候选人 industry 永不为 NULL | 2026-06-23 |
+
+---
+
+## 1b. 生产部署速查（实测 2026-06-23）
+
+| 项 | 实际值 |
+|----|--------|
+| 服务器 IP | `101.201.110.129`（已在 `~/.ssh/known_hosts`） |
+| SSH 用户 | `root` |
+| SSH 私钥 | `D:\Downloads\cc.pem`（Windows 路径）/ `/d/Downloads/cc.pem`（bash） |
+| **API 实际路径** | **`/opt/hunter-platform/`**（不是 PROJECT_MEMORY.md 之前的 `/www/wwwroot/...`） |
+| 服务管理 | `systemd: hunter-platform.service` |
+| 重启命令 | `systemctl restart hunter-platform` |
+| 启动命令 | `node --experimental-sqlite --env-file=/opt/hunter-platform/.env /opt/hunter-platform/out/main/index.js` |
+| **生产无 git**（scp 同步即可） | 本地 build → scp `out/*` → restart |
+| Admin 密码路径 | `/opt/hunter-platform/.admin-password`（不在 `.env` 里） |
+| MCP 安装路径 | `/root/.npm-global/lib/@qing3a/hunter-platform-mcp/` |
+| MCP PAT | `/root/.npmrc` 里有 `_authToken=ghp_xxx` |
+
+### 标准部署流程
+
+```bash
+# 1. 本地 build
+cd /d/dev/hunter-platform && pnpm build
+
+# 2. scp out/ 到生产（无 rsync）
+scp -r -i "/d/Downloads/cc.pem" out/* root@101.201.110.129:/opt/hunter-platform/out/
+
+# 3. 重启服务
+ssh -i "/d/Downloads/cc.pem" root@101.201.110.129 \
+  'systemctl restart hunter-platform'
+
+# 4. 验证（注意生产无 api.hunter-platform.com 的外网 DNS，从生产 localhost 测）
+ssh -i "/d/Downloads/cc.pem" root@101.201.110.129 \
+  'curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/v1/admin/ping'
+# Expected: 401 (auth required)
+```
+
+### 发布 MCP server
+
+```bash
+# 本地
+cd /d/dev/hunter-platform/mcp-server
+export GH_TOKEN=$(ssh -i /d/Downloads/cc.pem root@101.201.110.129 \
+  'grep _authToken /root/.npmrc | sed "s/.*=//"')
+pnpm publish --no-git-checks
+
+# 生产升级
+ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
+```
+
+### 已知生产怪异
+
+- `systemd` 启动加 `--experimental-sqlite` 标志（Node 22 内置 sqlite 但要 flag）
+- 服务 PID 通常在 350000+（systemd 启动慢）
+- 启动后 ~2 秒才响应；smoke 测试前 `sleep 2`
+- 当前 Node v22.11.0，可接受 v22+ 任意版本
 
 ---
 
