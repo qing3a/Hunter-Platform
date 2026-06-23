@@ -309,6 +309,11 @@ export async function startApiServer(opts: { port?: number } = {}): Promise<http
   const db = openDb(env.DATABASE_PATH);
   runMigrations(db);
 
+  // Sub-A of Task #3: seed first admin if admin_users empty and SEED_ADMIN_PASSWORD is set.
+  // (Done before app starts so login is immediately available once the port is bound.)
+  const { seedAdminIfEmpty } = await import('./seed/admin.js');
+  await seedAdminIfEmpty(db);
+
   const app = createAppFromDb(db, env);
   startWebhookWorkerBackground(db, env);
   startMetricsRefresh(10_000, db);

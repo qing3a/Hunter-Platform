@@ -55,6 +55,29 @@ describe('admin auth endpoints', () => {
 
   afterAll(() => { if (db) db.close(); });
 
+  describe('seed admin', () => {
+    it('10. seed creates admin when table empty + SEED_ADMIN_PASSWORD set', async () => {
+      const freshTestDb = path.join(__dirname, '../../tmp/admin-seed-test.db');
+      try { fs.unlinkSync(freshTestDb); } catch {}
+      try { fs.unlinkSync(freshTestDb + '-wal'); } catch {}
+      try { fs.unlinkSync(freshTestDb + '-shm'); } catch {}
+      process.env.DATABASE_PATH = freshTestDb;
+      process.env.SEED_ADMIN_PASSWORD = 'seed-test-pwd';
+      process.env.SEED_ADMIN_EMAIL = 'seed@test.com';
+      const { openDb } = await import('../../src/main/db/connection');
+      const { runMigrations } = await import('../../src/main/db/migrations');
+      const freshDb = openDb(freshTestDb);
+      runMigrations(freshDb);
+      const { seedAdminIfEmpty } = await import('../../src/main/seed/admin');
+      await seedAdminIfEmpty(freshDb);
+      const row = freshDb.prepare('SELECT * FROM admin_users WHERE id = ?').get('adm_default_seed') as any;
+      expect(row).toBeTruthy();
+      expect(row.email).toBe('seed@test.com');
+      expect(row.role).toBe('super');
+      freshDb.close();
+    });
+  });
+
   // ---- login ----
   it('1. POST login wrong email → 401', async () => {
     const r = await request(app).post('/v1/admin/auth/login')
