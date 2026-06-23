@@ -619,7 +619,8 @@ Headers:
 | POST   | `/v1/admin/users/:id/adjust-quota` | 调整 quota |
 | GET    | `/v1/admin/candidates` | 候选人列表 |
 | POST   | `/v1/admin/candidates/:id/remove-from-pool` | 从人才池移除 |
-| GET    | `/v1/admin/audit` | 审计日志 |
+| GET    | `/v1/admin/audit` | 审计日志（unlock_audit_log — 4 步解锁流水）|
+| GET    | `/v1/admin/action-history` | 业务操作审计（`?user_id&capability_name&status&since&until&limit&offset`，读 action_history 全量）|
 | GET    | `/v1/admin/webhooks/dead-letter` | 死信 webhook |
 | POST   | `/v1/admin/webhooks/:id/retry` | 重试 webhook |
 | GET    | `/v1/admin/rate-limit/buckets` | 限流桶列表 |

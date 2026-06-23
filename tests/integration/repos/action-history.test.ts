@@ -86,4 +86,47 @@ describe('action_history repository', () => {
       expect(inserted!.error_code).toBe('RATE_LIMITED');
     });
   });
+
+  describe('list (admin filter)', () => {
+    it('returns all rows when no filter', () => {
+      const result = repo.list({});
+      expect(result.total).toBe(3);
+      expect(result.rows.length).toBe(3);
+    });
+
+    it('filters by user_id', () => {
+      const result = repo.list({ user_id: 'u1' });
+      expect(result.total).toBe(2);
+      expect(result.rows.every(r => r.user_id === 'u1')).toBe(true);
+    });
+
+    it('filters by capability_name', () => {
+      const result = repo.list({ capability_name: 'headhunter.recommend_candidate' });
+      expect(result.total).toBe(1);
+      expect(result.rows[0].user_id).toBe('u2');
+    });
+
+    it('filters by status', () => {
+      const result = repo.list({ status: 'error' });
+      expect(result.total).toBe(0);
+    });
+
+    it('filters by since/until (inclusive)', () => {
+      const result = repo.list({ since: '2026-06-17T00:00:02Z', until: '2026-06-17T00:00:02Z' });
+      expect(result.total).toBe(1);
+      expect(result.rows[0].capability_name).toBe('employer.express_interest');
+    });
+
+    it('respects limit/offset and returns total unchanged', () => {
+      const page1 = repo.list({ limit: 2, offset: 0 });
+      expect(page1.total).toBe(3);
+      expect(page1.rows.length).toBe(2);
+      const page2 = repo.list({ limit: 2, offset: 2 });
+      expect(page2.total).toBe(3);
+      expect(page2.rows.length).toBe(1);
+      // pages should be disjoint
+      const allIds = [...page1.rows, ...page2.rows].map(r => r.id);
+      expect(new Set(allIds).size).toBe(3);
+    });
+  });
 });

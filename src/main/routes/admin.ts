@@ -11,6 +11,7 @@ import {
   ConfigGetResponseSchema, ConfigPutResponseSchema, AdminPlacementsListResponseSchema,
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
+  ActionHistoryListResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -20,6 +21,7 @@ import { createAdminRateLimitHandler } from '../modules/admin/handlers/rate-limi
 import { createAdminConfigHandler } from '../modules/admin/handlers/config.js';
 import { createAdminPlacementsHandler } from '../modules/admin/handlers/placements.js';
 import { createAdminAdminLogHandler } from '../modules/admin/handlers/admin-log.js';
+import { createAdminActionHistoryHandler } from '../modules/admin/handlers/action-history.js';
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
@@ -32,6 +34,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const config = createAdminConfigHandler();
   const placements = createAdminPlacementsHandler(db, encryptionKey);
   const adminLog = createAdminAdminLogHandler(db);
+  const actionHistory = createAdminActionHistoryHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
 
   // Ping — admin-gated liveness check. Returns the same shape as before so
@@ -124,6 +127,38 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.recommendation_id === 'string') filter.recommendation_id = req.query.recommendation_id;
       if (req.query.limit) filter.limit = Number(req.query.limit);
       respond(res, AuditListResponseSchema, { ok: true, data: audit.list(filter) }, { strict: true });
+    } catch (e) { next(e); }
+  });
+
+  // Action history (business action audit log — distinct from /audit which
+  // reads unlock_audit_log). See spec §2 in
+  // docs/superpowers/specs/2026-06-23-admin-action-history-endpoint-design.md
+  router.get('/action-history', (req, res, next) => {
+    try {
+      const status = req.query.status;
+      if (status !== undefined && status !== 'success' && status !== 'error') {
+        throw Errors.invalidParams('status must be "success" or "error"');
+      }
+      const limit = req.query.limit !== undefined ? Number(req.query.limit) : 100;
+      const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
+      if (!Number.isFinite(limit) || limit < 1 || limit > 1000) {
+        throw Errors.invalidParams('limit must be a number 1-1000');
+      }
+      if (!Number.isFinite(offset) || offset < 0) {
+        throw Errors.invalidParams('offset must be a number >= 0');
+      }
+      const filter: { user_id?: string; capability_name?: string; status?: 'success' | 'error'; since?: string; until?: string; limit?: number; offset?: number } = { limit, offset };
+      if (typeof req.query.user_id === 'string')         filter.user_id = req.query.user_id;
+      if (typeof req.query.capability_name === 'string') filter.capability_name = req.query.capability_name;
+      if (status === 'success' || status === 'error')     filter.status = status;
+      if (typeof req.query.since === 'string')           filter.since = req.query.since;
+      if (typeof req.query.until === 'string')           filter.until = req.query.until;
+      const { rows, total } = actionHistory.list(filter);
+      respond(res, ActionHistoryListResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, limit, offset, has_more: offset + rows.length < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
 

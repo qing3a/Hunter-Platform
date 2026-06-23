@@ -36,6 +36,28 @@ const AuditItemSchema = z.object({
   created_at: ISODateTime,
 });
 
+const AdminActionHistoryItemSchema = z.object({
+  id: z.number().int(),
+  user_id: IdString,
+  capability_name: z.string(),
+  target_type: z.string().nullable(),
+  target_id: z.string().nullable(),
+  request_summary_json: z.string().nullable(),
+  response_summary_json: z.string().nullable(),
+  status: z.enum(['success', 'error']),
+  error_code: z.string().nullable(),
+  duration_ms: z.number().int().nullable(),
+  trace_id: z.string().nullable(),
+  created_at: ISODateTime,
+});
+
+const AdminActionHistoryPaginationSchema = z.object({
+  total: z.number().int(),
+  limit: z.number().int(),
+  offset: z.number().int(),
+  has_more: z.boolean(),
+});
+
 const DeadLetterItemSchema = z.object({
   id: z.number().int(),
   target_user_id: IdString,
@@ -134,3 +156,8 @@ export const CancelPlacementResponseSchema = EnvelopeSchema(
 );
 export const PlacementsSummaryResponseSchema = EnvelopeSchema(PlacementsSummarySchema);
 export const AdminLogListResponseSchema = EnvelopeSchema(z.array(AdminLogItemSchema));
+export const ActionHistoryListResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(AdminActionHistoryItemSchema),
+  pagination: AdminActionHistoryPaginationSchema,
+});
