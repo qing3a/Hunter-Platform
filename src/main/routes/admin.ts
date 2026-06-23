@@ -14,6 +14,7 @@ import {
   ActionHistoryListResponseSchema,
   AdminLoginRequestSchema, AdminLoginResponseSchema, AdminMeResponseSchema, AdminRotateKeyResponseSchema,
   ListUsersEnvelopeSchema, ListCandidatesEnvelopeSchema,
+  LoginEventsListResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -26,6 +27,7 @@ import { createAdminAdminLogHandler } from '../modules/admin/handlers/admin-log.
 import { createAdminActionHistoryHandler } from '../modules/admin/handlers/action-history.js';
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
 import { createAdminAuthHandler } from '../modules/admin/handlers/auth.js';
+import { createAdminLoginEventsHandler } from '../modules/admin/handlers/login-events.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -40,6 +42,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const actionHistory = createAdminActionHistoryHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
   const auth = createAdminAuthHandler(db);
+  const loginEvents = createAdminLoginEventsHandler(db);
 
   // Auth (login is public; rotate-key + me require bearer)
   router.post('/auth/login', (req, res, next) => auth.login(req, res, next));
@@ -261,6 +264,39 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       const filter: { limit?: number } = {};
       if (limit !== undefined) filter.limit = limit;
       respond(res, AdminLogListResponseSchema, { ok: true, data: adminLog.list(filter) }, { strict: true });
+    } catch (e) { next(e); }
+  });
+
+  // Admin login events (Sub-D1)
+  router.get('/login-events', (req, res, next) => {
+    try {
+      const adminId = typeof req.query.admin_id === 'string' ? req.query.admin_id : undefined;
+      const successFilter = req.query.success === '1' || req.query.success === '0'
+        ? Number(req.query.success) as 0 | 1 : undefined;
+      const email = typeof req.query.email === 'string' ? req.query.email : undefined;
+      const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+      const until = typeof req.query.until === 'string' ? req.query.until : undefined;
+      const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 50;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 200) {
+        throw Errors.invalidParams('pageSize must be 1-200');
+      }
+      const filter: { admin_user_id?: string; success?: 0 | 1; email?: string; from?: string; until?: string; limit: number; offset: number } = {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      };
+      if (adminId) filter.admin_user_id = adminId;
+      if (successFilter !== undefined) filter.success = successFilter;
+      if (email) filter.email = email;
+      if (from) filter.from = from;
+      if (until) filter.until = until;
+      const { rows, total } = loginEvents.list(filter);
+      respond(res, LoginEventsListResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
 

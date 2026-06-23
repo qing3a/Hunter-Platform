@@ -185,6 +185,24 @@ const ListUsersEnvelopeSchema = z.object({
 
 export { PaginationSchema, ListUsersEnvelopeSchema };
 
+// Sub-D1: admin_login_events list schema
+const AdminLoginEventSchema = z.object({
+  id: z.number().int(),
+  admin_user_id: z.string().nullable(),
+  email: z.string(),
+  success: z.union([z.literal(0), z.literal(1)]),
+  failure_reason: z.string().nullable(),
+  ip: z.string().nullable(),
+  user_agent: z.string().nullable(),
+  created_at: ISODateTime,
+});
+
+export const LoginEventsListResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(AdminLoginEventSchema),
+  pagination: PaginationSchema,
+});
+
 const ListCandidatesEnvelopeSchema = z.object({
   ok: z.literal(true),
   data: z.array(AdminCandidateSchema),

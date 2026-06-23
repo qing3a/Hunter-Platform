@@ -58,6 +58,8 @@ describe('admin login events', () => {
     expect(latest.success).toBe(1);
     expect(latest.admin_user_id).toBe('adm_login');
     expect(latest.failure_reason).toBeNull();
+    // Update adminApiKey — login rotates it, so subsequent API tests must use the fresh key
+    adminApiKey = res.body.data.api_key;
   });
 
   it('records login_event on failed login (wrong password)', async () => {
