@@ -90,7 +90,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const validated = parseResult.data as Record<string, unknown>;
   const perCallApiKey = typeof validated.api_key === 'string' ? validated.api_key : undefined;
   const apiKey = resolveApiKey(perCallApiKey);
-  if (!apiKey) {
+  // auth_register is the only tool that does NOT need an api_key (it's how
+  // you get one in the first place). All other tools require it.
+  if (name !== 'auth_register' && !apiKey) {
     return {
       content: [{
         type: 'text' as const,
@@ -108,7 +110,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   // Build a client for this call.
   const perCallBaseUrl = typeof validated.base_url === 'string' ? validated.base_url : undefined;
   const client = new HunterClient({
-    apiKey,
+    apiKey: apiKey ?? undefined,
     baseUrl: perCallBaseUrl ?? resolveBaseUrl(),
   });
 
