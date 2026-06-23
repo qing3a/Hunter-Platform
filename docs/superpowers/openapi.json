@@ -1496,7 +1496,7 @@
     },
     "/v1/headhunter/candidates": {
       "post": {
-        "summary": "Upload a candidate (headhunter-only)",
+        "summary": "Upload a candidate (headhunter-only; current_company REQUIRED, 1-200 chars)",
         "security": [
           {
             "ApiKey": []
