@@ -12,6 +12,7 @@ import {
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
   ActionHistoryListResponseSchema,
+  AdminLoginRequestSchema, AdminLoginResponseSchema, AdminMeResponseSchema, AdminRotateKeyResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -23,6 +24,7 @@ import { createAdminPlacementsHandler } from '../modules/admin/handlers/placemen
 import { createAdminAdminLogHandler } from '../modules/admin/handlers/admin-log.js';
 import { createAdminActionHistoryHandler } from '../modules/admin/handlers/action-history.js';
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
+import { createAdminAuthHandler } from '../modules/admin/handlers/auth.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -36,6 +38,12 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const adminLog = createAdminAdminLogHandler(db);
   const actionHistory = createAdminActionHistoryHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
+  const auth = createAdminAuthHandler(db);
+
+  // Auth (login is public; rotate-key + me require bearer)
+  router.post('/auth/login', (req, res, next) => auth.login(req, res, next));
+  router.post('/auth/rotate-key', (req, res, next) => auth.rotateKey(req, res, next));
+  router.get('/me', (req, res, next) => auth.me(req, res, next));
 
   // Ping — admin-gated liveness check. Returns the same shape as before so
   // ops dashboards that hit this endpoint can keep using it; the difference

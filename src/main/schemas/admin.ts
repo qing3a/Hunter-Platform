@@ -161,3 +161,45 @@ export const ActionHistoryListResponseSchema = z.object({
   data: z.array(AdminActionHistoryItemSchema),
   pagination: AdminActionHistoryPaginationSchema,
 });
+
+// Admin auth (Sub-A of Task #3): login / me / rotate-key schemas.
+// See docs/superpowers/specs/2026-06-23-web-admin-sub-A-design.md §2.
+const AdminLoginRequestSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+const AdminLoginResponseSchema = EnvelopeSchema(
+  z.object({
+    admin_user_id: IdString,
+    name: z.string(),
+    email: z.string(),
+    role: z.enum(['admin', 'super']),
+    api_key: z.string(),
+  })
+);
+
+const AdminMeResponseSchema = EnvelopeSchema(
+  z.object({
+    id: IdString,
+    name: z.string(),
+    email: z.string(),
+    role: z.enum(['admin', 'super']),
+    status: z.enum(['active', 'suspended']),
+    last_login_at: ISODateTime.nullable(),
+    created_at: ISODateTime,
+  })
+);
+
+const AdminRotateKeyResponseSchema = EnvelopeSchema(
+  z.object({
+    api_key: z.string(),
+  })
+);
+
+export {
+  AdminLoginRequestSchema,
+  AdminLoginResponseSchema,
+  AdminMeResponseSchema,
+  AdminRotateKeyResponseSchema,
+};

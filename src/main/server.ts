@@ -222,7 +222,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // /v1/admin/* — all routes (including /ping) require the admin bearer token.
   // The admin auth middleware rejects unauthenticated and non-admin requests
   // with 401 UNAUTHORIZED.
-  app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(), createAdminRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(db), createAdminRouter(db, env.PLATFORM_ENCRYPTION_KEY));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
@@ -308,6 +308,11 @@ export async function startApiServer(opts: { port?: number } = {}): Promise<http
   const env = loadEnv();
   const db = openDb(env.DATABASE_PATH);
   runMigrations(db);
+
+  // Sub-A of Task #3: seed first admin if admin_users empty and SEED_ADMIN_PASSWORD is set.
+  // (Done before app starts so login is immediately available once the port is bound.)
+  const { seedAdminIfEmpty } = await import('./seed/admin.js');
+  await seedAdminIfEmpty(db);
 
   const app = createAppFromDb(db, env);
   startWebhookWorkerBackground(db, env);

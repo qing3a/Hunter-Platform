@@ -344,6 +344,52 @@
         }
       }
     },
+    "/v1/admin/auth/login": {
+      "post": {
+        "summary": "Admin login (returns api_key; rotates existing key)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login success; data.api_key is the new bearer token" },
+          "400": { "description": "Invalid params" },
+          "401": { "description": "Invalid email or password" },
+          "403": { "description": "Admin account suspended" }
+        }
+      }
+    },
+    "/v1/admin/auth/rotate-key": {
+      "post": {
+        "summary": "Rotate admin api_key (invalidates old)",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "New key" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/v1/admin/me": {
+      "get": {
+        "summary": "Current admin info",
+        "security": [{ "AdminBearer": [] }],
+        "responses": {
+          "200": { "description": "Admin info" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
     "/v1/admin/dashboard/stats": {
       "get": {
         "summary": "Platform dashboard statistics",

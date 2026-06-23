@@ -10,9 +10,15 @@ import { z, type ZodTypeAny } from 'zod';
 const nodeRequire = createRequire(import.meta.url);
 const bcrypt = nodeRequire('bcryptjs') as typeof import('bcryptjs');
 
-/** Plaintext admin password for the test environment. The corresponding
- *  bcrypt hash is set into ADMIN_PASSWORD_HASH by freshApp(). */
+/** Plaintext admin password for the test environment. Used by freshApp() to
+ *  seed an admin in the admin_users table and then log in to obtain a real
+ *  api_key (the legacy shared ADMIN_PASSWORD_HASH is deprecated in v1.5). */
 export const ADMIN_PLAINTEXT = 'admin-test-password-1234567890';
+export const ADMIN_EMAIL = 'admin@conformance.test';
+
+/** Cached admin api_key for the most recent freshApp() call. adminAuthHeader()
+ *  returns `Bearer <this>`. Reset on each freshApp(). */
+let cachedAdminApiKey: string | null = null;
 
 /** Per-test-file DB path. Re-created on every test for isolation. */
 export function tmpDbPath(name: string): string {
@@ -29,13 +35,10 @@ export async function freshApp(name: string): Promise<{ app: Express; dbPath: st
   }
   process.env.PLATFORM_ENCRYPTION_KEY = Buffer.alloc(32).toString('base64');
   process.env.WEBHOOK_HMAC_SECRET = 'test-secret-1234567890';
-  // Real bcrypt hash so admin endpoints can actually authenticate.
-  process.env.ADMIN_PASSWORD_HASH = bcrypt.hashSync(ADMIN_PLAINTEXT, 4);
+  process.env.ADMIN_PASSWORD_HASH = 'DEPRECATED'; // legacy env var — code no longer reads it
   process.env.DATABASE_PATH = dbPath;
   process.env.NODE_ENV = 'test';
-  if (!bcrypt.compareSync(ADMIN_PLAINTEXT, process.env.ADMIN_PASSWORD_HASH)) {
-    throw new Error('freshApp: bcrypt hash does not verify against plaintext');
-  }
+
   // Use the createAppFromDb pattern (matches tests/integration/admin-endpoints.test.ts).
   // Going through createApp() also works, but using the lower-level path lets us
   // keep the open DB connection so the trace.test.ts can query action_history.
@@ -46,6 +49,22 @@ export async function freshApp(name: string): Promise<{ app: Express; dbPath: st
   const db = openDb(dbPath);
   runMigrations(db);
   const app = createAppFromDb(db, loadEnv());
+
+  // Seed a known admin and log in to obtain the real api_key (Sub-A auth).
+  const pwdHash = bcrypt.hashSync(ADMIN_PLAINTEXT, 4);
+  const keyHash = bcrypt.hashSync('hp_admin_conformancekey', 4);
+  db.prepare(`INSERT INTO admin_users (id, name, email, password_hash, api_key_hash, api_key_prefix, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    'adm_conformance', 'Conformance Admin', ADMIN_EMAIL, pwdHash, keyHash, 'hp_admin_confor', 'super', 'active',
+    '2026-06-23T00:00:00Z', '2026-06-23T00:00:00Z'
+  );
+  const supertest = (await import('supertest')).default;
+  const loginResp = await supertest(app).post('/v1/admin/auth/login')
+    .send({ email: ADMIN_EMAIL, password: ADMIN_PLAINTEXT });
+  if (loginResp.status !== 200) {
+    throw new Error(`freshApp: admin login failed: ${loginResp.status} ${JSON.stringify(loginResp.body)}`);
+  }
+  cachedAdminApiKey = loginResp.body.data.api_key as string;
+
   return { app, dbPath, db };
 }
 
@@ -126,11 +145,14 @@ export class ConformanceClient {
   }
 }
 
-/** Admin endpoints require Bearer <ADMIN_PASSWORD>. The hash of this
- *  password is set in freshApp() via bcrypt.hashSync. Returns the
- *  Authorization header value. */
+/** Admin endpoints require Bearer <admin_api_key> (Sub-A: per-admin api_key
+ *  auth). The api_key is obtained by logging in during freshApp() and cached
+ *  for the lifetime of the test file. */
 export function adminAuthHeader(): string {
-  return `Bearer ${ADMIN_PLAINTEXT}`;
+  if (!cachedAdminApiKey) {
+    throw new Error('adminAuthHeader: no admin api_key cached — call freshApp() first');
+  }
+  return `Bearer ${cachedAdminApiKey}`;
 }
 
 export const z_ = z;
