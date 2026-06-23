@@ -16,7 +16,36 @@ export interface ActionHistoryEntry {
   created_at: string;
 }
 
+/**
+ * Filter for admin action_history queries. All fields optional; missing
+ * fields are omitted from the SQL WHERE clause.
+ */
+export interface ActionHistoryListFilter {
+  user_id?: string;
+  capability_name?: string;
+  status?: 'success' | 'error';
+  since?: string;  // ISO 8601 inclusive lower bound
+  until?: string;  // ISO 8601 inclusive upper bound
+  limit?: number;  // default 100, max 1000 (validated in route)
+  offset?: number; // default 0
+}
+
 export function createActionHistoryRepo(db: DB) {
+  /**
+   * Build dynamic WHERE clause + bound params for admin list queries.
+   * Each defined filter is AND-joined; missing filters are omitted.
+   */
+  function buildWhere(filter: ActionHistoryListFilter): { sql: string; params: Array<string | number> } {
+    const where: string[] = [];
+    const params: Array<string | number> = [];
+    if (filter.user_id)         { where.push('user_id = ?');         params.push(filter.user_id); }
+    if (filter.capability_name) { where.push('capability_name = ?'); params.push(filter.capability_name); }
+    if (filter.status)          { where.push('status = ?');          params.push(filter.status); }
+    if (filter.since)           { where.push('created_at >= ?');     params.push(filter.since); }
+    if (filter.until)           { where.push('created_at <= ?');     params.push(filter.until); }
+    return { sql: where.length ? ' WHERE ' + where.join(' AND ') : '', params };
+  }
+
   const listByUserStmt = db.prepare(
     'SELECT * FROM action_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
   );
@@ -67,6 +96,25 @@ export function createActionHistoryRepo(db: DB) {
     },
     countByUser(userId: string): number {
       return (countByUserStmt.get(userId) as { cnt: number }).cnt;
+    },
+    /**
+     * List action_history rows with optional filters. Returns rows + total
+     * count (for pagination). Sorted by created_at DESC (newest first).
+     *
+     * Used by GET /v1/admin/action-history. The route layer is responsible
+     * for validating limit ∈ [1, 1000] and offset ≥ 0 before calling.
+     */
+    list(filter: ActionHistoryListFilter): { rows: ActionHistoryEntry[]; total: number } {
+      const { sql: whereSql, params } = buildWhere(filter);
+      const limit = filter.limit ?? 100;
+      const offset = filter.offset ?? 0;
+      const total = (db.prepare(
+        `SELECT COUNT(*) AS c FROM action_history${whereSql}`
+      ).get(...params) as { c: number }).c;
+      const rows = db.prepare(
+        `SELECT * FROM action_history${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+      ).all(...params, limit, offset) as unknown as ActionHistoryEntry[];
+      return { rows, total };
     },
   };
 }
