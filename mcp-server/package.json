@@ -1,6 +1,6 @@
 {
   "name": "@qing3a/hunter-platform-mcp",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "description": "Model Context Protocol server exposing Hunter Platform (recruiter marketplace API) as 15 AI-callable tools. Works with Claude Desktop, Cursor, Cline, and any MCP-compatible AI client.",
   "type": "module",
   "main": "./out/index.js",

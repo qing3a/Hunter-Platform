@@ -237,6 +237,23 @@ node node_modules/@qing3a/hunter-platform-mcp/out/index.js  # starts stdio MCP s
 
 After `auth_register`, the api_key is persisted to `/root/.hunter-platform/credentials.json` (mode 0600) on the server and is used for all subsequent calls.
 
+## Breaking Changes
+
+### v0.1.3 — `headhunter_upload_candidate` requires `current_company`
+
+Starting v0.1.3, the `headhunter_upload_candidate` tool **requires** the `current_company` parameter.
+The Hunter Platform API returns HTTP 400 with `INVALID_PARAMS` if `current_company` is missing, null, or empty string.
+
+**Migration**: ensure your agent always passes `current_company` when uploading candidates.
+
+```typescript
+// v0.1.2 and earlier (worked without current_company)
+headhunter_upload_candidate({ candidate_user_id, name, phone, email });
+
+// v0.1.3 (REQUIRED)
+headhunter_upload_candidate({ candidate_user_id, name, phone, email, current_company: '字节跳动' });
+```
+
 ## License
 
 MIT
