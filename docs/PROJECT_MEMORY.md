@@ -38,7 +38,7 @@
 | 优先级 | 任务 | 状态 |
 |--------|------|------|
 | 🔴 高 | **action_history 中间件落地**（新建 `/v1/admin/action-history`） | ✅ 代码已合 `main`（merge commit `413b6e3`，2026-06-23）；⏳ **待生产部署** |
-| 🔴 高 | **industry_map.json 扩展 + fallback**（候选人 industry NULL 太多） | ⏳ 待 brainstorm → plan → impl |
+| 🔴 高 | **要求 current_company 必填**（消除 industry NULL） | ✅ 代码已合 `feature/require-current-company`（6 commits），⏳ 待合并 + 生产部署；MCP server 待发 v0.1.3 |
 | 低 | **Web 管理后台**（替代 Electron，多管理员） | ⏳ 待 brainstorm；建议拆子项目 |
 
 > 详细 plan 见 `docs/superpowers/plans/`，design 见 `docs/superpowers/specs/`。
@@ -96,7 +96,7 @@
 | 项 | 值 |
 |----|----|
 | 包名 | `@qing3a/hunter-platform-mcp`（私有 registry `npm.pkg.github.com/qing3a`） |
-| 最新版本 | v0.1.2（含 deploy 模式 + auto-load credentials） |
+| 最新版本 | v0.1.2 已发布；v0.1.3 在 `feature/require-current-company`（标记 `headhunter_upload_candidate` requires `current_company`） |
 | 凭证存储 | 本机 `<user-home>/.hunter-platform-mcp/credentials.json` |
 | 凭证格式 | `{ apiKey, apiBaseUrl, userId }`；deploy 模式 = 1 user + 1 base URL |
 | 部署方式 | GitHub Packages PAT 写入生产服务器 `~/.npmrc` 后 `npm install @qing3a/hunter-platform-mcp` |
