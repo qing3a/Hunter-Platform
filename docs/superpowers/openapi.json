@@ -708,6 +708,26 @@
         }
       }
     },
+    "/v1/admin/login-events": {
+      "get": {
+        "summary": "List admin login events (success + failure) — Sub-D1",
+        "security": [{ "AdminBearer": [] }],
+        "parameters": [
+          { "name": "admin_id", "in": "query", "schema": { "type": "string" } },
+          { "name": "success", "in": "query", "schema": { "type": "string", "enum": ["0", "1"] } },
+          { "name": "email", "in": "query", "schema": { "type": "string" } },
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "until", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 50, "maximum": 200 } }
+        ],
+        "responses": {
+          "200": { "description": "Login events list (paginated envelope)" },
+          "400": { "description": "Invalid page or pageSize" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
     "/": {
       "get": {
         "summary": "Public landing page (HTML, no auth) — marketplace overview",

@@ -220,4 +220,20 @@ describe('admin endpoints integration', () => {
       expect(Array.isArray(res.body.data)).toBe(true);
     });
   });
+
+  describe('Sub-D1 regression: admin-log endpoint unchanged', () => {
+    it('GET /v1/admin/admin-log still returns array of admin actions', async () => {
+      const res = await request(app).get('/v1/admin/admin-log').set('Authorization', adminAuth);
+      expect(res.status).toBe(200);
+      expect(res.body.ok).toBe(true);
+      expect(Array.isArray(res.body.data)).toBe(true);
+      if (res.body.data.length > 0) {
+        const row = res.body.data[0];
+        expect(row).toHaveProperty('id');
+        expect(row).toHaveProperty('actor');
+        expect(row).toHaveProperty('action_type');
+        expect(row).toHaveProperty('created_at');
+      }
+    });
+  });
 });
