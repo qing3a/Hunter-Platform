@@ -7,6 +7,9 @@ export type AdminLogRow = {
   target_type: string | null;
   target_id: string | null;
   reason: string | null;
+  // Raw details_json envelope (e.g. { previous_quota, new_quota, reason }
+  // for adjust-quota). Used by AuditPage "详情" drawer.
+  details_json: string | null;
   created_at: string;
 };
 

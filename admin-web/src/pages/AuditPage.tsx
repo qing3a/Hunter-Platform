@@ -99,7 +99,7 @@ function AdminActionsTab() {
                     onClick={() => setDrawer({
                       open: true,
                       title: `${row.action_type} @ ${formatDate(row.created_at)}`,
-                      json: row.reason ? `Reason: ${row.reason}` : null,
+                      json: row.details_json,  // AuditJsonDrawer handles string|null
                     })}
                     data-testid={`admin-log-detail-${row.id}`}
                   >

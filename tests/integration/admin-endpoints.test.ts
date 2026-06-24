@@ -235,5 +235,25 @@ describe('admin endpoints integration', () => {
         expect(row).toHaveProperty('created_at');
       }
     });
+
+    it('GET /v1/admin/admin-log returns details_json for each row (Sub-C Plan 2 follow-up)', async () => {
+      // Seed one admin_action_log row with a non-null details_json envelope
+      // (the shape used by adjust-quota: { previous_quota, new_quota, reason }).
+      const detailsJson = JSON.stringify({
+        previous_quota: 100, new_quota: 50, reason: 'details_json integration test',
+      });
+      db.prepare(`INSERT INTO admin_action_log
+        (admin_user_id, action, target_type, target_id, details_json, created_at)
+        VALUES (?, 'adjust_user_quota', 'user', 'u_test', ?, datetime('now'))`)
+        .run('adm_default', detailsJson);
+
+      const res = await request(app).get('/v1/admin/admin-log').set('Authorization', adminAuth);
+      expect(res.status).toBe(200);
+      const row = res.body.data.find((r: any) => r.action_type === 'adjust_user_quota' && r.target_id === 'u_test');
+      expect(row).toBeDefined();
+      expect(row.details_json).toBe(detailsJson);
+      // reason is still flattened for backward compat
+      expect(row.reason).toBe('details_json integration test');
+    });
   });
 });

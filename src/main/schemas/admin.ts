@@ -105,6 +105,10 @@ const AdminLogItemSchema = z.object({
   target_type: z.string().nullable(),
   target_id: z.string().nullable(),
   reason: z.string().nullable(),
+  // Raw details_json envelope (e.g. { previous_quota, new_quota, reason }
+  // for adjust-quota). Optional + nullable for backward compat with rows
+  // that pre-date this field. admin-web AuditPage parses and displays it.
+  details_json: z.string().nullable().optional(),
   created_at: ISODateTime,
 });
 

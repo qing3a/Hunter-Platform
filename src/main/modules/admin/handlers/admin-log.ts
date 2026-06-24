@@ -6,9 +6,12 @@ export function createAdminAdminLogHandler(db: DB) {
     list(filter: { admin_id?: string; target_type?: string; target_id?: string; limit?: number }): Array<{
       id: number; actor: string; action_type: string;
       target_type: string | null; target_id: string | null;
-      reason: string | null; created_at: string;
+      reason: string | null; details_json: string | null; created_at: string;
     }> {
-      // Project only the AdminLogItemSchema fields and flatten details_json.reason.
+      // Project only the AdminLogItemSchema fields. Flatten details_json.reason
+      // for backward compat, AND include the raw details_json so admin-web
+      // AuditPage can show the full audit envelope (previous_quota/new_quota
+      // for adjust-quota, etc.). See docs/superpowers/specs/.../design.md §3.7.
       let sql = `
         SELECT id, admin_user_id, action, target_type, target_id, details_json, created_at
         FROM admin_action_log WHERE 1=1`;
@@ -40,6 +43,7 @@ export function createAdminAdminLogHandler(db: DB) {
           target_type: r.target_type,
           target_id: r.target_id,
           reason,
+          details_json: r.details_json,
           created_at: r.created_at,
         };
       });
