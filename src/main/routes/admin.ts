@@ -15,7 +15,7 @@ import {
   AdminLoginRequestSchema, AdminLoginResponseSchema, AdminMeResponseSchema, AdminRotateKeyResponseSchema,
   ListUsersEnvelopeSchema, ListCandidatesEnvelopeSchema,
   LoginEventsListResponseSchema,
-  ListJobsResponseSchema,
+  ListJobsResponseSchema, ListRecommendationsResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -30,6 +30,7 @@ import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.j
 import { createAdminAuthHandler } from '../modules/admin/handlers/auth.js';
 import { createAdminLoginEventsHandler } from '../modules/admin/handlers/login-events.js';
 import { createAdminJobsHandler } from '../modules/admin/handlers/jobs.js';
+import { createAdminRecommendationsHandler } from '../modules/admin/handlers/recommendations.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -46,6 +47,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const auth = createAdminAuthHandler(db);
   const loginEvents = createAdminLoginEventsHandler(db);
   const jobs = createAdminJobsHandler(db);
+  const recommendations = createAdminRecommendationsHandler(db);
 
   // Auth (login is public; rotate-key + me require bearer)
   router.post('/auth/login', (req, res, next) => auth.login(req, res, next));
@@ -263,6 +265,42 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       filter.offset = (page - 1) * pageSize;
       const { rows, total } = jobs.list(filter);
       respond(res, ListJobsResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
+    } catch (e) { next(e); }
+  });
+
+  // Recommendations
+  router.get('/recommendations', (req, res, next) => {
+    try {
+      const validStatuses = [
+        'pending', 'employer_interested', 'candidate_approved', 'unlocked',
+        'rejected_employer', 'rejected_candidate', 'withdrawn', 'placed',
+      ] as const;
+      const filter: { status?: typeof validStatuses[number]; keyword?: string; from?: string; until?: string; limit?: number; offset?: number } = {};
+      if (typeof req.query.status === 'string') {
+        if (!(validStatuses as readonly string[]).includes(req.query.status)) {
+          throw Errors.invalidParams('status must be one of: ' + validStatuses.join(','));
+        }
+        filter.status = req.query.status as typeof validStatuses[number];
+      }
+      if (typeof req.query.keyword === 'string' && req.query.keyword.length > 0) {
+        filter.keyword = req.query.keyword;
+      }
+      if (typeof req.query.from === 'string') filter.from = req.query.from;
+      if (typeof req.query.until === 'string') filter.until = req.query.until;
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      filter.limit = pageSize;
+      filter.offset = (page - 1) * pageSize;
+      const { rows, total } = recommendations.list(filter);
+      respond(res, ListRecommendationsResponseSchema, {
         ok: true,
         data: rows,
         pagination: { total, page, pageSize, has_more: page * pageSize < total },
