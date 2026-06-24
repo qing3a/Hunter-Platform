@@ -41,7 +41,7 @@ export function createNotificationsRouter(db: DB): Router {
         since: q.since,
         limit: q.limit,
         offset: q.offset,
-      });
+      } as any);  // exactOptionalPropertyTypes: build filter with whatever was set
       const has_more = rows.length === q.limit;
       const items = rows.map(r => ({
         id: r.id, category: r.category, title: r.title, body: r.body,
@@ -56,9 +56,10 @@ export function createNotificationsRouter(db: DB): Router {
   router.post('/:id/read', (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user as User;
-      const readAt = handler.markRead(req.params.id, user.id);
+      const id = String(req.params.id);
+      const readAt = handler.markRead(id, user.id);
       if (readAt === null) throw Errors.notFound('Notification not found');
-      respond(res, MarkReadResponseSchema, { ok: true, data: { id: req.params.id, read_at: readAt } });
+      respond(res, MarkReadResponseSchema, { ok: true, data: { id, read_at: readAt } });
     } catch (e) { next(e); }
   });
 
@@ -75,9 +76,10 @@ export function createNotificationsRouter(db: DB): Router {
   router.delete('/:id', (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user as User;
-      const ok = handler.delete(req.params.id, user.id);
+      const id = String(req.params.id);
+      const ok = handler.delete(id, user.id);
       if (!ok) throw Errors.notFound('Notification not found');
-      respond(res, DeleteNotificationResponseSchema, { ok: true, data: { id: req.params.id } });
+      respond(res, DeleteNotificationResponseSchema, { ok: true, data: { id } });
     } catch (e) { next(e); }
   });
 

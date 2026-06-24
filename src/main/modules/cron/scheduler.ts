@@ -74,7 +74,7 @@ function cleanupNotifications(db?: DB): void {
   try {
     const m = getHunterMetrics();
     if (m?.notificationsCleanupDeletedTotal) {
-      m.notificationsCleanupDeletedTotal.inc(result.changes);
+      m.notificationsCleanupDeletedTotal.inc(Number(result.changes));
     }
   } catch {
     // Metrics not yet initialized in some test contexts; safe to skip.

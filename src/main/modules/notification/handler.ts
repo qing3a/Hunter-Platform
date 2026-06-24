@@ -38,20 +38,25 @@ export function createNotificationHandler(db: DB) {
     list(input: ListInput) {
       const rows = repo.listByUser({
         user_id: input.userId,
-        unread: input.unread,
-        category: input.category,
-        since: input.since,
-        limit: input.limit,
-        offset: input.offset,
+        ...(input.unread !== undefined && { unread: input.unread }),
+        ...(input.category !== undefined && { category: input.category }),
+        ...(input.since !== undefined && { since: input.since }),
+        ...(input.limit !== undefined && { limit: input.limit }),
+        ...(input.offset !== undefined && { offset: input.offset }),
       });
       const unread_count = repo.countUnread(input.userId);
       return { rows, unread_count };
     },
 
     markRead(id: string, userId: string): string | null {
+      // Look up first: if already read, return the original read_at (idempotent).
+      // If not found OR not owned by user, return null.
+      const existing = repo.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      if (existing.read_at) return existing.read_at;
       const now = new Date().toISOString();
       const updated = repo.markRead(id, userId, now);
-      if (!updated) return null;  // not found OR not yours
+      if (!updated) return null;  // race: someone else read it; fall through to existing.read_at
       return now;
     },
 

@@ -42,7 +42,7 @@ describe('pnpm conformance:gen', () => {
     expect(fs.existsSync(OUT)).toBe(true);
   });
 
-  it('output contains 46 it.todo stubs (one per capability)', () => {
+  it('output contains 50 it.todo stubs (one per capability)', () => {
     const src = fs.readFileSync(OUT, 'utf8');
     const stubCount = (src.match(/it\.todo\(/g) ?? []).length;
     const expectedCount = getAllCapabilitySets().reduce(
@@ -50,15 +50,15 @@ describe('pnpm conformance:gen', () => {
       0,
     );
     expect(stubCount).toBe(expectedCount);
-    expect(expectedCount).toBe(46);
+    expect(expectedCount).toBe(50);
   });
 
-  it('output contains 5 describe blocks (one per role)', () => {
+  it('output contains 6 describe blocks (one per set)', () => {
     const src = fs.readFileSync(OUT, 'utf8');
     const roles = getAllCapabilitySets().map((s) => s.role).sort();
     const describeCount = (src.match(/^describe\(/gm) ?? []).length;
     expect(describeCount).toBe(roles.length);
-    expect(describeCount).toBe(5);
+    expect(describeCount).toBe(6);
     for (const role of roles) {
       expect(src).toContain(`describe('${role}'`);
     }

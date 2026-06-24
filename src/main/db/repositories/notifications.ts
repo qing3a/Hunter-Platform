@@ -149,7 +149,7 @@ export function createNotificationsRepo(db: DB) {
       const offset = filter.offset ?? 0;
       const sql = `SELECT * FROM notifications WHERE ${where.join(' AND ')} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
-      return db.prepare(sql).all(...params) as NotificationRow[];
+      return db.prepare(sql).all(...params) as unknown as NotificationRow[];
     },
 
     countUnread(userId: string): number {
@@ -164,7 +164,7 @@ export function createNotificationsRepo(db: DB) {
 
     markAllRead(userId: string, readAt: string): number {
       const result = markAllReadStmt.run(readAt, userId);
-      return result.changes;
+      return Number(result.changes);
     },
 
     delete(id: string, userId: string): boolean {
@@ -174,7 +174,7 @@ export function createNotificationsRepo(db: DB) {
 
     deleteExpired(now: string): number {
       const result = db.prepare('DELETE FROM notifications WHERE expires_at < ?').run(now);
-      return result.changes;
+      return Number(result.changes);
     },
   };
 }
