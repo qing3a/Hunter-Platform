@@ -145,9 +145,17 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   });
   router.post('/users/:id/adjust-quota', (req, res, next) => {
     try {
+      const adminUserId = (req as any).user?.id;
+      if (!adminUserId) throw Errors.unauthorized();
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
       const new_quota = Number(req.body?.new_quota);
-      if (!Number.isFinite(new_quota)) throw Errors.invalidParams('new_quota must be a number');
-      respond(res, AdjustQuotaResponseSchema, { ok: true, data: users.adjustQuota(req.params.id, new_quota) });
+      if (!Number.isFinite(new_quota)) {
+        throw Errors.invalidParams('new_quota must be a number');
+      }
+      respond(res, AdjustQuotaResponseSchema, {
+        ok: true,
+        data: users.adjustQuota(adminUserId, req.params.id, new_quota, reason),
+      });
     } catch (e) { next(e); }
   });
 
