@@ -15,6 +15,7 @@ import {
   AdminLoginRequestSchema, AdminLoginResponseSchema, AdminMeResponseSchema, AdminRotateKeyResponseSchema,
   ListUsersEnvelopeSchema, ListCandidatesEnvelopeSchema,
   LoginEventsListResponseSchema,
+  ListJobsResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -28,6 +29,7 @@ import { createAdminActionHistoryHandler } from '../modules/admin/handlers/actio
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
 import { createAdminAuthHandler } from '../modules/admin/handlers/auth.js';
 import { createAdminLoginEventsHandler } from '../modules/admin/handlers/login-events.js';
+import { createAdminJobsHandler } from '../modules/admin/handlers/jobs.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -43,6 +45,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const dashboard = makeAdminDashboardHandler(db);
   const auth = createAdminAuthHandler(db);
   const loginEvents = createAdminLoginEventsHandler(db);
+  const jobs = createAdminJobsHandler(db);
 
   // Auth (login is public; rotate-key + me require bearer)
   router.post('/auth/login', (req, res, next) => auth.login(req, res, next));
@@ -234,6 +237,37 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   });
   router.put('/config/:key', (req, res, next) => {
     try { respond(res, ConfigPutResponseSchema, { ok: true, data: config.set(req.params.key, req.body) }); } catch (e) { next(e); }
+  });
+
+  // Jobs
+  router.get('/jobs', (req, res, next) => {
+    try {
+      const filter: { status?: 'open' | 'claimed' | 'paused' | 'closed' | 'filled'; keyword?: string; limit?: number; offset?: number } = {};
+      const validStatuses = ['open', 'claimed', 'paused', 'closed', 'filled'] as const;
+      if (typeof req.query.status === 'string') {
+        if (!(validStatuses as readonly string[]).includes(req.query.status)) {
+          throw Errors.invalidParams('status must be open/claimed/paused/closed/filled');
+        }
+        filter.status = req.query.status as typeof validStatuses[number];
+      }
+      if (typeof req.query.keyword === 'string' && req.query.keyword.length > 0) {
+        filter.keyword = req.query.keyword;
+      }
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      filter.limit = pageSize;
+      filter.offset = (page - 1) * pageSize;
+      const { rows, total } = jobs.list(filter);
+      respond(res, ListJobsResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
+    } catch (e) { next(e); }
   });
 
   // Placements

@@ -185,6 +185,49 @@ const ListUsersEnvelopeSchema = z.object({
 
 export { PaginationSchema, ListUsersEnvelopeSchema };
 
+// Sub-C Plan 1: Jobs + Recommendations list schemas
+const JobRowSchema = z.object({
+  id: IdString,
+  employer_id: IdString,
+  employer_name: z.string(),
+  title: z.string(),
+  status: z.enum(['open', 'claimed', 'paused', 'closed', 'filled']),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const RecommendationRowSchema = z.object({
+  id: IdString,
+  job_id: IdString,
+  job_title: z.string(),
+  anonymized_candidate_id: IdString,
+  headhunter_id: IdString,
+  headhunter_name: z.string(),
+  status: z.enum([
+    'pending', 'employer_interested', 'candidate_approved', 'unlocked',
+    'rejected_employer', 'rejected_candidate', 'withdrawn', 'placed',
+  ]),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const ListJobsResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(JobRowSchema),
+  pagination: PaginationSchema,
+});
+
+const ListRecommendationsResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(RecommendationRowSchema),
+  pagination: PaginationSchema,
+});
+
+export {
+  JobRowSchema, RecommendationRowSchema,
+  ListJobsResponseSchema, ListRecommendationsResponseSchema,
+};
+
 // Sub-D1: admin_login_events list schema
 const AdminLoginEventSchema = z.object({
   id: z.number().int(),
