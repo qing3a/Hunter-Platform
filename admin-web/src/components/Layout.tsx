@@ -23,6 +23,8 @@ export default function Layout({ children, adminName }: { children: React.ReactN
           <NavLink to="/" end style={linkStyle}>仪表盘</NavLink>
           <NavLink to="/users" style={linkStyle}>用户</NavLink>
           <NavLink to="/candidates" style={linkStyle}>候选人</NavLink>
+          <NavLink to="/jobs" style={linkStyle}>职位</NavLink>
+          <NavLink to="/recommendations" style={linkStyle}>推荐</NavLink>
           <NavLink to="/audit" style={linkStyle}>审计</NavLink>
           <NavLink to="/profile" style={linkStyle}>我的</NavLink>
         </nav>
