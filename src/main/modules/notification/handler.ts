@@ -1,4 +1,4 @@
-import { createNotificationsRepo, type NotificationInsert, type NotificationListFilter } from '../../db/repositories/notifications.js';
+import { createNotificationsRepo, type NotificationInsert, type NotificationListFilter, type NotificationRow } from '../../db/repositories/notifications.js';
 import type { DB } from '../../db/connection.js';
 
 export interface SendInput {
@@ -18,6 +18,13 @@ export function createNotificationHandler(db: DB) {
   const repo = createNotificationsRepo(db);
 
   return {
+    /** Look up a single notification, scoped to the requesting user. */
+    findOne(id: string, userId: string): NotificationRow | null {
+      const row = repo.findById(id);
+      if (!row || row.user_id !== userId) return null;
+      return row;
+    },
+
     /** Send a new notification. Optionally upsert by dedupKey. */
     send(input: SendInput): string {
       const payload_json = input.payload ? JSON.stringify(input.payload) : null;

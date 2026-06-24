@@ -1,6 +1,6 @@
 import { defineCapabilitySet } from './types.js';
 import {
-  ListNotificationsResponseSchema, MarkReadResponseSchema,
+  ListNotificationsResponseSchema, GetNotificationResponseSchema, MarkReadResponseSchema,
   MarkAllReadResponseSchema, DeleteNotificationResponseSchema,
 } from '../schemas/notifications.js';
 
@@ -21,6 +21,15 @@ export const notificationsCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.notifications.listByUser'],
+    },
+    {
+      name: 'notifications.get',
+      description: '拉取单条通知详情',
+      method: 'GET', path: '/v1/notifications/:id',
+      response_schema: GetNotificationResponseSchema,
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.notifications.findById'],
     },
     {
       name: 'notifications.mark_read',

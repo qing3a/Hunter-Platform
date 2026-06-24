@@ -75,6 +75,31 @@ describe('notifications conformance (v1.9.0)', () => {
     expect(res.status).toBe(401);
   });
 
+  // ----- notifications.get -----
+
+  it('notifications.get: GET /v1/notifications/:id returns own notification', async () => {
+    const res = await client.request({ method: 'GET', path: '/v1/notifications/notif_a1', auth: userKey });
+    expect(res.status).toBe(200);
+    expect(res.data.data.id).toBe('notif_a1');
+    expect(res.data.data.category).toBe('unlock_granted');
+    expect(res.data.data.read_at).toBeNull();
+  });
+
+  it('notifications.get: 404 for non-existent id', async () => {
+    const res = await client.request({ method: 'GET', path: '/v1/notifications/notif_doesnotexist', auth: userKey });
+    expect(res.status).toBe(404);
+  });
+
+  it('notifications.get: 404 for other user notification (no cross-user read)', async () => {
+    const res = await client.request({ method: 'GET', path: '/v1/notifications/notif_b1', auth: userKey });
+    expect(res.status).toBe(404);
+  });
+
+  it('notifications.get: 401 without auth', async () => {
+    const res = await client.request({ method: 'GET', path: '/v1/notifications/notif_x' });
+    expect(res.status).toBe(401);
+  });
+
   // ----- notifications.mark_read -----
 
   it('notifications.mark_read: POST /v1/notifications/:id/read marks own notification as read', async () => {

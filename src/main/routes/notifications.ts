@@ -7,7 +7,7 @@ import { createNotificationHandler } from '../modules/notification/handler.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
 import {
-  ListNotificationsResponseSchema, MarkReadResponseSchema,
+  ListNotificationsResponseSchema, GetNotificationResponseSchema, MarkReadResponseSchema,
   MarkAllReadResponseSchema, DeleteNotificationResponseSchema,
 } from '../schemas/notifications.js';
 import type { User } from '../../shared/types.js';
@@ -49,6 +49,22 @@ export function createNotificationsRouter(db: DB): Router {
         read_at: r.read_at, created_at: r.created_at, expires_at: r.expires_at,
       }));
       respond(res, ListNotificationsResponseSchema, { ok: true, data: { items, unread_count, has_more } });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/notifications/:id
+  router.get('/:id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as any).user as User;
+      const id = String(req.params.id);
+      const row = handler.findOne(id, user.id);
+      if (!row) throw Errors.notFound('Notification not found');
+      const item = {
+        id: row.id, category: row.category, title: row.title, body: row.body,
+        payload: row.payload_json ? JSON.parse(row.payload_json) : null,
+        read_at: row.read_at, created_at: row.created_at, expires_at: row.expires_at,
+      };
+      respond(res, GetNotificationResponseSchema, { ok: true, data: item });
     } catch (e) { next(e); }
   });
 

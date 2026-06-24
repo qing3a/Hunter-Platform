@@ -107,6 +107,31 @@ describe('notifications HTTP endpoints', () => {
     expect(res.body.data.items.length).toBe(200);
   });
 
+  // --- GET /v1/notifications/:id ---
+
+  it('returns own notification by id', async () => {
+    const id = notifs.insert({ user_id: 'u1', category: 'a', title: 't', created_at: NOW });
+    const res = await request(app).get(`/v1/notifications/${id}`).set('Authorization', `Bearer ${u1Key}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(id);
+  });
+
+  it('returns 404 for non-existent id', async () => {
+    const res = await request(app).get('/v1/notifications/notif_doesnotexist').set('Authorization', `Bearer ${u1Key}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 for other user notification', async () => {
+    const id = notifs.insert({ user_id: 'u2', category: 'a', title: 't', created_at: NOW });
+    const res = await request(app).get(`/v1/notifications/${id}`).set('Authorization', `Bearer ${u1Key}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await request(app).get('/v1/notifications/notif_x');
+    expect(res.status).toBe(401);
+  });
+
   // --- POST /v1/notifications/:id/read ---
 
   it('marks own notification as read', async () => {

@@ -42,7 +42,7 @@ describe('pnpm conformance:gen', () => {
     expect(fs.existsSync(OUT)).toBe(true);
   });
 
-  it('output contains 50 it.todo stubs (one per capability)', () => {
+  it('output contains 51 it.todo stubs (one per capability)', () => {
     const src = fs.readFileSync(OUT, 'utf8');
     const stubCount = (src.match(/it\.todo\(/g) ?? []).length;
     const expectedCount = getAllCapabilitySets().reduce(
@@ -50,7 +50,7 @@ describe('pnpm conformance:gen', () => {
       0,
     );
     expect(stubCount).toBe(expectedCount);
-    expect(expectedCount).toBe(50);
+    expect(expectedCount).toBe(51);
   });
 
   it('output contains 6 describe blocks (one per set)', () => {

@@ -20,6 +20,11 @@ export const ListNotificationsResponseSchema = z.object({
   }),
 });
 
+export const GetNotificationResponseSchema = z.object({
+  ok: z.literal(true),
+  data: NotificationItemSchema,
+});
+
 export const MarkReadResponseSchema = z.object({
   ok: z.literal(true),
   data: z.object({
