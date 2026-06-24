@@ -179,7 +179,7 @@ describe('admin endpoints integration', () => {
       const res = await request(app)
         .post(`/v1/admin/users/${testUserId}/adjust-quota`)
         .set('Authorization', adminAuth)
-        .send({ new_quota: 50 });
+        .send({ new_quota: 50, reason: 'integration test adjustment' });
       expect(res.status).toBe(200);
       expect(res.body.data.new_quota).toBe(50);
     });
