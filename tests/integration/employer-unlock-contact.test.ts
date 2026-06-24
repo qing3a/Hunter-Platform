@@ -69,4 +69,19 @@ describe('employer handler - unlockContact', () => {
     const entries = localAudit.listByRecommendation('rec_1');
     expect(entries.some((e: any) => e.action === 'unlock_delivery')).toBe(true);
   });
+
+  it('unlockContact triggers an unlock_granted notification to the candidate (v1.9.0)', async () => {
+    const { createNotificationTrigger } = await import('../../src/main/modules/notification/trigger');
+    const { createNotificationsRepo } = await import('../../src/main/db/repositories/notifications');
+    const { createEmployerHandler: createEH } = await import('../../src/main/modules/employer/handler');
+    const notif = createNotificationTrigger(localDb);
+    const notifsRepo = createNotificationsRepo(localDb);
+    const employerWithNotif = createEH(localDb, notif);
+    const e: any = { id: 'e1', user_type: 'employer' };
+    employerWithNotif.unlockContact(e, { recommendation_id: 'rec_1' }, { encryptionKey });
+    const list = notifsRepo.listByUser({ user_id: 'c1' });
+    expect(list.length).toBe(1);
+    expect(list[0].category).toBe('unlock_granted');
+    expect(list[0].dedup_key).toBe('unlock:c1:e1');
+  });
 });
