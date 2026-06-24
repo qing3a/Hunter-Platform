@@ -5,7 +5,7 @@ export default function Layout({ children, adminName }: { children: React.ReactN
   const navigate = useNavigate();
   const logout = () => {
     clearToken();
-    navigate('/admin/login');
+    navigate('/login');
   };
   const navStyle = ({ isActive }: { isActive: boolean }) => ({
     color: 'white',
@@ -17,15 +17,15 @@ export default function Layout({ children, adminName }: { children: React.ReactN
   return (
     <>
       <nav className="nav">
-        <strong>Hunter Admin</strong>
-        <NavLink to="/admin/" style={navStyle}>Dashboard</NavLink>
-        <NavLink to="/admin/users" style={navStyle}>Users</NavLink>
-        <NavLink to="/admin/candidates" style={navStyle}>Candidates</NavLink>
-        <NavLink to="/admin/audit" style={navStyle}>Audit</NavLink>
-        <NavLink to="/admin/profile" style={navStyle}>Profile</NavLink>
+        <strong>猎头管理后台</strong>
+        <NavLink to="/" end style={navStyle}>仪表盘</NavLink>
+        <NavLink to="/users" style={navStyle}>用户</NavLink>
+        <NavLink to="/candidates" style={navStyle}>候选人</NavLink>
+        <NavLink to="/audit" style={navStyle}>审计</NavLink>
+        <NavLink to="/profile" style={navStyle}>我的</NavLink>
         <div className="spacer" />
         <span>{adminName}</span>
-        <button className="btn btn-danger" onClick={logout} style={{ marginLeft: 12 }}>Logout</button>
+        <button className="btn btn-danger" onClick={logout} style={{ marginLeft: 12 }}>退出登录</button>
       </nav>
       <div className="container">{children}</div>
     </>

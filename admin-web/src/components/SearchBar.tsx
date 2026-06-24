@@ -3,7 +3,7 @@ import { useState } from 'react';
 export type Filter = { label: string; value: string; options: { label: string; value: string }[] };
 
 export default function SearchBar({
-  placeholder = 'Search...',
+  placeholder = '搜索...',
   onSearch,
   filters = [],
 }: {
@@ -35,13 +35,13 @@ export default function SearchBar({
           onChange={e => setValues({ ...values, [f.value]: e.target.value })}
           style={{ padding: '8px 12px', border: '1px solid #ccc', borderRadius: 4 }}
         >
-          <option value="">{f.label}: all</option>
+          <option value="">{f.label}:全部</option>
           {f.options.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
       ))}
-      <button className="btn" onClick={submit}>Search</button>
+      <button className="btn" onClick={submit}>搜索</button>
     </div>
   );
 }

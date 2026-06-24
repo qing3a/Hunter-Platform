@@ -15,11 +15,11 @@ export default function Pagination({
   const hasNext = page * pageSize < total;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
-      <span style={{ color: '#666' }}>Showing {start}-{end} of {total}</span>
+      <span style={{ color: '#666' }}>显示 {start}-{end} 共 {total} 条</span>
       <div style={{ flex: 1 }} />
-      <button className="btn" disabled={!hasPrev} onClick={() => onPageChange(page - 1)}>← Prev</button>
-      <span>Page {page}</span>
-      <button className="btn" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>Next →</button>
+      <button className="btn" disabled={!hasPrev} onClick={() => onPageChange(page - 1)}>上一页</button>
+      <span>第 {page} 页</span>
+      <button className="btn" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>下一页</button>
     </div>
   );
 }

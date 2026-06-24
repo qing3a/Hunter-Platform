@@ -32,7 +32,7 @@ export default function AuditJsonDrawer({
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <button onClick={onClose} className="btn">Close</button>
+          <button onClick={onClose} className="btn">关闭</button>
         </div>
         <AuditDiffView json={json} />
       </aside>

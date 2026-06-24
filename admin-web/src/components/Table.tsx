@@ -10,14 +10,14 @@ export default function Table<T>({
   columns,
   rows,
   loading = false,
-  empty = 'No data',
+  empty = '暂无数据',
 }: {
   columns: Column<T>[];
   rows: T[];
   loading?: boolean;
   empty?: string;
 }) {
-  if (loading) return <div className="card">Loading...</div>;
+  if (loading) return <div className="card">加载中...</div>;
   if (rows.length === 0) return <div className="card">{empty}</div>;
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>

@@ -18,33 +18,33 @@ export default function DashboardPage() {
   }, []);
 
   if (error) return <Layout adminName="..."><div className="error">{error}</div></Layout>;
-  if (!stats) return <Layout adminName="..."><p>Loading...</p></Layout>;
+  if (!stats) return <Layout adminName="..."><p>加载中...</p></Layout>;
 
   return (
     <Layout adminName={me?.name ?? 'Admin'}>
-      <h1>Dashboard</h1>
+      <h1>仪表盘</h1>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <MetricCard label="Total Users" value={stats.total_users} />
-        <MetricCard label="Total Candidates" value={stats.total_candidates} />
-        <MetricCard label="Today New Users" value={stats.today_new_users} hint="vs prior days in trend below" />
-        <MetricCard label="Open Placements" value={stats.active_placements} />
+        <MetricCard label="用户总数" value={stats.total_users} />
+        <MetricCard label="候选人总数" value={stats.total_candidates} />
+        <MetricCard label="今日新增用户" value={stats.today_new_users} hint="下方趋势图显示每日对比" />
+        <MetricCard label="进行中的合作" value={stats.active_placements} />
       </div>
 
-      <h2 style={{ marginTop: 32 }}>User Growth — Last 30 Days</h2>
+      <h2 style={{ marginTop: 32 }}>用户增长 — 最近 30 天</h2>
       <div className="card">
         <Sparkline data={stats.trend_30d} width={600} height={80} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#999', marginTop: 8 }}>
-          <span>30 days ago</span>
-          <span>today</span>
+          <span>30 天前</span>
+          <span>今天</span>
         </div>
       </div>
 
-      <h2 style={{ marginTop: 32 }}>More Stats</h2>
+      <h2 style={{ marginTop: 32 }}>更多统计</h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <MetricCard label="Total Jobs" value={stats.total_jobs} />
-        <MetricCard label="Open Jobs" value={stats.open_jobs} />
-        <MetricCard label="Daily Quota Used" value={stats.daily_quota_used} />
-        <MetricCard label="Webhook Dead Letters" value={stats.webhook_dead_letters} />
+        <MetricCard label="职位总数" value={stats.total_jobs} />
+        <MetricCard label="开放职位" value={stats.open_jobs} />
+        <MetricCard label="今日已用配额" value={stats.daily_quota_used} />
+        <MetricCard label="Webhook 死信" value={stats.webhook_dead_letters} />
       </div>
     </Layout>
   );

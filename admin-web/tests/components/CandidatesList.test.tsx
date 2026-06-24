@@ -53,20 +53,20 @@ describe('CandidatesPage', () => {
       expect(screen.getByText('A***ce')).toBeInTheDocument();
       expect(screen.getByText('B**')).toBeInTheDocument();
     });
-    expect(screen.getByText(/Showing 1-20 of 25/)).toBeInTheDocument();
-    expect(screen.getByText('Page 1')).toBeInTheDocument();
+    expect(screen.getByText(/显示 1-20 共 25 条/)).toBeInTheDocument();
+    expect(screen.getByText('第 1 页')).toBeInTheDocument();
     // Next button should be enabled (has_more=true)
-    const nextBtn = screen.getByText('Next →') as HTMLButtonElement;
+    const nextBtn = screen.getByText('下一页') as HTMLButtonElement;
     expect(nextBtn.disabled).toBe(false);
   });
 
-  it('clicking Next → calls listCandidates with page=2', async () => {
+  it('clicking 下一页 calls listCandidates with page=2', async () => {
     (listCandidates as any)
       .mockResolvedValueOnce({ data: mockRows, pagination: { total: 25, page: 1, pageSize: 20, has_more: true } })
       .mockResolvedValueOnce({ data: [], pagination: { total: 25, page: 2, pageSize: 20, has_more: false } });
     render(<MemoryRouter><CandidatesPage /></MemoryRouter>);
     await waitFor(() => screen.getByText('A***ce'));
-    fireEvent.click(screen.getByText('Next →'));
+    fireEvent.click(screen.getByText('下一页'));
     await waitFor(() => {
       expect(listCandidates).toHaveBeenCalledWith(
         expect.objectContaining({ page: 2, pageSize: 20 })

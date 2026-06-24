@@ -24,31 +24,31 @@ export default function UsersPage() {
 
   const columns: Column<UserRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.id}</code> },
-    { key: 'name', header: 'Name', render: r => r.name },
-    { key: 'type', header: 'Role', render: r => r.user_type },
-    { key: 'status', header: 'Status', render: r => <StatusBadge status={r.status} /> },
-    { key: 'quota', header: 'Quota', render: r => `${r.quota_used}/${r.quota_per_day}` },
-    { key: 'created', header: 'Created', render: r => relativeTime(r.created_at) },
+    { key: 'name', header: '姓名', render: r => r.name },
+    { key: 'type', header: '角色', render: r => r.user_type },
+    { key: 'status', header: '状态', render: r => <StatusBadge status={r.status} /> },
+    { key: 'quota', header: '配额', render: r => `${r.quota_used}/${r.quota_per_day}` },
+    { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
   ];
 
   const filters: Filter[] = [
-    { label: 'Role', value: 'user_type', options: [
-      { label: 'Candidate', value: 'candidate' },
-      { label: 'Headhunter', value: 'headhunter' },
-      { label: 'Employer', value: 'employer' },
+    { label: '角色', value: 'user_type', options: [
+      { label: '候选人', value: 'candidate' },
+      { label: '猎头', value: 'headhunter' },
+      { label: '雇主', value: 'employer' },
     ] },
-    { label: 'Status', value: 'status', options: [
-      { label: 'Active', value: 'active' },
-      { label: 'Suspended', value: 'suspended' },
-      { label: 'Deleted', value: 'deleted' },
+    { label: '状态', value: 'status', options: [
+      { label: '正常', value: 'active' },
+      { label: '已暂停', value: 'suspended' },
+      { label: '已删除', value: 'deleted' },
     ] },
   ];
 
   return (
     <Layout adminName="Admin">
-      <h1>Users</h1>
+      <h1>用户</h1>
       <SearchBar
-        placeholder="Search name..."
+        placeholder="搜索姓名..."
         filters={filters}
         onSearch={(kw) => { setPage(1); load(1, kw); }}
       />
@@ -56,7 +56,7 @@ export default function UsersPage() {
         columns={columns}
         rows={rows}
         loading={loading}
-        empty="No users found"
+        empty="未找到用户"
       />
       <Pagination
         page={pagination.page}

@@ -9,25 +9,33 @@ export function formatDate(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** "3 days ago" / "2 hours ago" / "just now" */
-export function relativeTime(iso: string, now: Date = new Date()): string {
-  if (!iso) return '';
-  const then = new Date(iso);
-  if (Number.isNaN(then.getTime())) return iso;
-  const diffMs = now.getTime() - then.getTime();
-  if (diffMs < 0) return 'in the future';
-  const sec = Math.floor(diffMs / 1000);
-  if (sec < 60) return 'just now';
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  if (day < 30) return `${day}d ago`;
-  const mon = Math.floor(day / 30);
-  if (mon < 12) return `${mon}mo ago`;
-  const yr = Math.floor(day / 365);
-  return `${yr}y ago`;
+/** "3 天前" / "2 小时前" / "刚刚" / "未来" */
+export function relativeTime(iso: Date | string | number, now: number = Date.now()): string {
+  const ts = iso instanceof Date ? iso.getTime() : new Date(iso).getTime();
+  if (Number.isNaN(ts)) return String(iso);
+  const diffMs = ts - now;
+  const absMs = Math.abs(diffMs);
+  const future = diffMs > 0;
+
+  if (absMs < 60_000) return future ? '未来' : '刚刚';
+  if (absMs < 3_600_000) {
+    const n = Math.floor(absMs / 60_000);
+    return future ? `${n} 分钟后` : `${n} 分钟前`;
+  }
+  if (absMs < 86_400_000) {
+    const n = Math.floor(absMs / 3_600_000);
+    return future ? `${n} 小时后` : `${n} 小时前`;
+  }
+  if (absMs < 30 * 86_400_000) {
+    const n = Math.floor(absMs / 86_400_000);
+    return future ? `${n} 天后` : `${n} 天前`;
+  }
+  if (absMs < 365 * 86_400_000) {
+    const n = Math.floor(absMs / (30 * 86_400_000));
+    return future ? `${n} 个月后` : `${n} 个月前`;
+  }
+  const n = Math.floor(absMs / (365 * 86_400_000));
+  return future ? `${n} 年后` : `${n} 年前`;
 }
 
 /** Status → CSS color name (matches styles.css classes if added). */

@@ -15,7 +15,7 @@ export default function AuditPage() {
 
   return (
     <Layout adminName="Admin">
-      <h2>Audit</h2>
+      <h2>审计</h2>
       <nav className="tabs" style={{ marginBottom: 16, borderBottom: '1px solid #ddd' }}>
         {(['admin', 'user', 'login'] as Tab[]).map(t => (
           <button
@@ -30,7 +30,7 @@ export default function AuditPage() {
               fontWeight: tab === t ? 'bold' : 'normal',
             }}
           >
-            {t === 'admin' ? 'Admin Actions' : t === 'user' ? 'User Actions' : 'Login Events'}
+            {t === 'admin' ? '管理员操作' : t === 'user' ? '用户操作' : '登录事件'}
           </button>
         ))}
       </nav>
@@ -63,25 +63,25 @@ function AdminActionsTab() {
     <div>
       <input
         type="text"
-        placeholder="Search by actor email/id..."
+        placeholder="按操作人邮箱/ID 搜索..."
         value={actor}
         onChange={e => { setActor(e.target.value); setPage(1); }}
         style={{ marginBottom: 12, padding: 6, width: 300 }}
       />
-      {loading ? <p>Loading...</p> : (
+      {loading ? <p>加载中...</p> : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ padding: 8, textAlign: 'left' }}>Time</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Actor</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Action</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Target</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Reason</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>时间</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>操作人</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>操作</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>目标</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>原因</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#888' }}>No admin actions recorded</td></tr>
+              <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#888' }}>暂无管理员操作记录</td></tr>
             ) : data.map(row => (
               <tr key={row.id} style={{ borderTop: '1px solid #eee' }}>
                 <td style={{ padding: 8 }}>{formatDate(row.created_at)}</td>
@@ -119,20 +119,20 @@ function UserActionsTab() {
 
   return (
     <div>
-      {loading ? <p>Loading...</p> : (
+      {loading ? <p>加载中...</p> : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ padding: 8, textAlign: 'left' }}>Time</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>User</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Capability</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Status</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Duration</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>时间</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>用户</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>能力</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>状态</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>耗时</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#888' }}>No user actions recorded</td></tr>
+              <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#888' }}>暂无用户操作记录</td></tr>
             ) : data.map(row => (
               <tr key={row.id} style={{ borderTop: '1px solid #eee', cursor: 'pointer' }} onClick={() => setDrawer({ open: true, title: `${row.capability_name} @ ${formatDate(row.created_at)}`, json: row.response_summary_json })}>
                 <td style={{ padding: 8 }}>{formatDate(row.created_at)}</td>
@@ -180,25 +180,25 @@ function LoginEventsTab() {
   return (
     <div>
       <select value={successFilter} onChange={e => { setSuccessFilter(e.target.value as '' | '1' | '0'); setPage(1); }} style={{ marginBottom: 12, padding: 6 }}>
-        <option value="">All events</option>
-        <option value="1">Success only</option>
-        <option value="0">Failure only</option>
+        <option value="">全部事件</option>
+        <option value="1">仅成功</option>
+        <option value="0">仅失败</option>
       </select>
-      {loading ? <p>Loading...</p> : (
+      {loading ? <p>加载中...</p> : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f5f5f5' }}>
-              <th style={{ padding: 8, textAlign: 'left' }}>Time</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Email</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Admin</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Success</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>时间</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>邮箱</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>管理员</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>结果</th>
               <th style={{ padding: 8, textAlign: 'left' }}>IP</th>
-              <th style={{ padding: 8, textAlign: 'left' }}>Reason</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>原因</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#888' }}>No login events recorded</td></tr>
+              <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#888' }}>暂无登录事件记录</td></tr>
             ) : data.map(row => (
               <tr key={row.id} style={{ borderTop: '1px solid #eee' }}>
                 <td style={{ padding: 8 }}>{formatDate(row.created_at)}</td>

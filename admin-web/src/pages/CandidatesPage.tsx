@@ -24,26 +24,26 @@ export default function CandidatesPage() {
 
   const columns: Column<CandidateRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.anonymized_id}</code> },
-    { key: 'name', header: 'Name', render: r => r.masked_name },
-    { key: 'email', header: 'Email', render: r => r.masked_email },
-    { key: 'source', header: 'Source', render: r => <code>{r.headhunter_id}</code> },
-    { key: 'status', header: 'Status', render: r => <StatusBadge status={r.unlock_status} /> },
-    { key: 'created', header: 'Created', render: r => relativeTime(r.created_at) },
+    { key: 'name', header: '姓名', render: r => r.masked_name },
+    { key: 'email', header: '邮箱', render: r => r.masked_email },
+    { key: 'source', header: '来源', render: r => <code>{r.headhunter_id}</code> },
+    { key: 'status', header: '状态', render: r => <StatusBadge status={r.unlock_status} /> },
+    { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
   ];
 
   const filters: Filter[] = [
-    { label: 'Status', value: 'unlock_status', options: [
-      { label: 'Pending', value: 'pending' },
-      { label: 'Unlocked', value: 'unlocked' },
-      { label: 'Locked', value: 'locked' },
+    { label: '状态', value: 'unlock_status', options: [
+      { label: '待处理', value: 'pending' },
+      { label: '已解锁', value: 'unlocked' },
+      { label: '已锁定', value: 'locked' },
     ] },
   ];
 
   return (
     <Layout adminName="Admin">
-      <h1>Candidates</h1>
+      <h1>候选人</h1>
       <SearchBar
-        placeholder="Search name/email..."
+        placeholder="搜索姓名/邮箱..."
         filters={filters}
         onSearch={(kw) => { setPage(1); load(1, kw); }}
       />
@@ -51,7 +51,7 @@ export default function CandidatesPage() {
         columns={columns}
         rows={rows}
         loading={loading}
-        empty="No candidates found"
+        empty="未找到候选人"
       />
       <Pagination
         page={pagination.page}
