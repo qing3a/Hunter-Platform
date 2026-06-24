@@ -89,13 +89,43 @@ export function createAdminUsersHandler(db: DB) {
       if (result.sideEffect) dispatchSideEffect(result.sideEffect, adminUserId);
       return { user_id, status: result.next };
     },
-    adjustQuota(user_id: string, new_quota: number): { user_id: string; new_quota: number } {
-      if (new_quota < 0 || new_quota > 100000) throw Errors.invalidParams('quota must be 0-100000');
+    adjustQuota(
+      adminUserId: string,
+      user_id: string,
+      new_quota: number,
+      reason: string,
+    ): { user_id: string; previous_quota: number; new_quota: number; reason: string } {
+      if (!reason || reason.trim().length < 3) {
+        throw Errors.invalidParams('reason is required (>= 3 chars)');
+      }
+      if (reason.length > 500) {
+        throw Errors.invalidParams('reason must be <= 500 chars');
+      }
+      if (new_quota < 0 || new_quota > 100000) {
+        throw Errors.invalidParams('quota must be 0-100000');
+      }
       const u = users.findById(user_id);
       if (!u) throw Errors.notFound('User not found');
+      const previousQuota = u.quota_per_day;
+      // Old value == new value: skip DB write + audit to avoid noise
+      if (previousQuota === new_quota) {
+        return { user_id, previous_quota: previousQuota, new_quota, reason };
+      }
       db.prepare('UPDATE users SET quota_per_day = ?, updated_at = ? WHERE id = ?')
         .run(new_quota, new Date().toISOString(), user_id);
-      return { user_id, new_quota };
+      // Write audit log
+      adminLog.insert({
+        admin_user_id: adminUserId,
+        action: 'adjust_user_quota',
+        target_type: 'user',
+        target_id: user_id,
+        details_json: JSON.stringify({
+          previous_quota: previousQuota,
+          new_quota,
+          reason,
+        }),
+      });
+      return { user_id, previous_quota: previousQuota, new_quota, reason };
     },
   };
 }
