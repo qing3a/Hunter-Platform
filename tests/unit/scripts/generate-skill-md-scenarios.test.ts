@@ -50,7 +50,8 @@ describe('pnpm conformance:gen', () => {
       0,
     );
     expect(stubCount).toBe(expectedCount);
-    expect(expectedCount).toBe(51);
+    // Sub-C Plan 1 added admin.list_jobs + admin.list_recommendations (+2 = 53)
+    expect(expectedCount).toBe(53);
   });
 
   it('output contains 6 describe blocks (one per set)', () => {
