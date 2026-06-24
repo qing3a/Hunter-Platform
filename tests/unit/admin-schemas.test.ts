@@ -25,6 +25,14 @@ describe('DashboardStatsResponseSchema', () => {
         total_users: 10, total_candidates: 5, total_jobs: 3, open_jobs: 2,
         active_placements: 1, daily_quota_used: 100, webhook_dead_letters: 0,
         today_new_users: 2, trend_30d: Array(30).fill(0),
+        // Sub-C Plan 1 additions
+        today_new_recommendations: 5,
+        recommendations_pending: 3,
+        recommendations_unlocked: 2,
+        jobs_paused: 1,
+        jobs_closed: 1,
+        jobs_filled: 1,
+        total_recommendations: 10,
       },
     });
     expect(r.success).toBe(true);
@@ -55,7 +63,7 @@ describe('AdjustQuotaResponseSchema', () => {
   it('accepts an adjusted result', () => {
     const r = AdjustQuotaResponseSchema.safeParse({
       ok: true,
-      data: { user_id: 'u1', new_quota: 200 },
+      data: { user_id: 'u1', previous_quota: 100, new_quota: 200, reason: 'test' },
     });
     expect(r.success).toBe(true);
   });
