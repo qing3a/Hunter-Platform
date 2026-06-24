@@ -18,24 +18,40 @@ describe('formatDate', () => {
 });
 
 describe('relativeTime', () => {
-  const now = new Date('2026-06-24T12:00:00Z');
-  it('returns "just now" for < 60s', () => {
-    expect(relativeTime('2026-06-24T11:59:30Z', now)).toBe('just now');
+  const NOW = new Date('2026-06-24T12:00:00Z').getTime();
+
+  it('returns 刚刚 for now', () => {
+    expect(relativeTime(new Date(NOW), NOW)).toBe('刚刚');
   });
-  it('returns minutes for < 60min', () => {
-    expect(relativeTime('2026-06-24T11:55:00Z', now)).toBe('5m ago');
+
+  it('returns 未来 for future dates', () => {
+    const future = new Date(NOW + 30_000);
+    expect(relativeTime(future, NOW)).toBe('未来');
   });
-  it('returns hours for < 24h', () => {
-    expect(relativeTime('2026-06-24T09:00:00Z', now)).toBe('3h ago');
+
+  it('returns X 分钟前 for minutes', () => {
+    const t = new Date(NOW - 5 * 60_000);
+    expect(relativeTime(t, NOW)).toBe('5 分钟前');
   });
-  it('returns days for < 30d', () => {
-    expect(relativeTime('2026-06-22T12:00:00Z', now)).toBe('2d ago');
+
+  it('returns X 小时前 for hours', () => {
+    const t = new Date(NOW - 2 * 3_600_000);
+    expect(relativeTime(t, NOW)).toBe('2 小时前');
   });
-  it('returns months for < 12mo', () => {
-    expect(relativeTime('2026-04-24T12:00:00Z', now)).toBe('2mo ago');
+
+  it('returns X 天前 for days', () => {
+    const t = new Date(NOW - 3 * 86_400_000);
+    expect(relativeTime(t, NOW)).toBe('3 天前');
   });
-  it('returns years for >= 1y', () => {
-    expect(relativeTime('2024-06-24T12:00:00Z', now)).toBe('2y ago');
+
+  it('returns X 个月前 for months', () => {
+    const t = new Date(NOW - 5 * 30 * 86_400_000);
+    expect(relativeTime(t, NOW)).toBe('5 个月前');
+  });
+
+  it('returns X 年前 for years', () => {
+    const t = new Date(NOW - 365 * 86_400_000);
+    expect(relativeTime(t, NOW)).toBe('1 年前');
   });
 });
 

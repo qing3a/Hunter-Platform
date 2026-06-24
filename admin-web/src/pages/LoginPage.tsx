@@ -22,7 +22,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       setToken(data.api_key);
-      navigate('/admin/');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -32,15 +32,15 @@ export default function LoginPage() {
 
   return (
     <div className="container">
-      <h1>Hunter Platform Admin</h1>
+      <h1>猎头中介管理后台</h1>
       <form onSubmit={submit} className="card" style={{ maxWidth: 400 }}>
-        <label>Email</label>
+        <label>邮箱</label>
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-        <label>Password</label>
+        <label>密码</label>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
         {error && <div className="error">{error}</div>}
         <button type="submit" className="btn" disabled={loading} style={{ marginTop: 12 }}>
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? '登录中...' : '登录'}
         </button>
       </form>
     </div>

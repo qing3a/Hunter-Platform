@@ -50,17 +50,17 @@ describe('UsersPage', () => {
       expect(screen.getByText('Alice Hunter')).toBeInTheDocument();
       expect(screen.getByText('Bob Inc')).toBeInTheDocument();
     });
-    expect(screen.getByText(/Showing 1-20 of 47/)).toBeInTheDocument();
-    expect(screen.getByText('Page 1')).toBeInTheDocument();
+    expect(screen.getByText(/显示 1-20 共 47 条/)).toBeInTheDocument();
+    expect(screen.getByText('第 1 页')).toBeInTheDocument();
   });
 
-  it('clicking Next → calls listUsers with page=2', async () => {
+  it('clicking 下一页 calls listUsers with page=2', async () => {
     (listUsers as any)
       .mockResolvedValueOnce({ data: mockRows, pagination: { total: 47, page: 1, pageSize: 20, has_more: true } })
       .mockResolvedValueOnce({ data: [], pagination: { total: 47, page: 2, pageSize: 20, has_more: false } });
     render(<MemoryRouter><UsersPage /></MemoryRouter>);
     await waitFor(() => screen.getByText('Alice Hunter'));
-    fireEvent.click(screen.getByText('Next →'));
+    fireEvent.click(screen.getByText('下一页'));
     await waitFor(() => {
       expect(listUsers).toHaveBeenCalledWith(
         expect.objectContaining({ page: 2, pageSize: 20 })
