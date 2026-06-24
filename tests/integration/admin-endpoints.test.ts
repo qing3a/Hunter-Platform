@@ -227,6 +227,8 @@ describe('admin endpoints integration', () => {
       expect(res.status).toBe(200);
       expect(res.body.ok).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.pagination).toBeDefined();
+      expect(typeof res.body.pagination.total).toBe('number');
       if (res.body.data.length > 0) {
         const row = res.body.data[0];
         expect(row).toHaveProperty('id');
@@ -234,6 +236,25 @@ describe('admin endpoints integration', () => {
         expect(row).toHaveProperty('action_type');
         expect(row).toHaveProperty('created_at');
       }
+    });
+
+    it('GET /v1/admin/admin-log supports pagination params (page + pageSize)', async () => {
+      // Seed 5 rows
+      for (let i = 0; i < 5; i++) {
+        db.prepare(`INSERT INTO admin_action_log
+          (admin_user_id, action, target_type, target_id, details_json, created_at)
+          VALUES (?, 'suspend_user', 'user', ?, NULL, datetime('now', ?))`)
+          .run('adm_default', `u_pag_${i}`, `-${i} seconds`);
+      }
+      const r1 = await request(app).get('/v1/admin/admin-log?page=1&pageSize=3').set('Authorization', adminAuth);
+      expect(r1.status).toBe(200);
+      expect(r1.body.data).toHaveLength(3);
+      expect(r1.body.pagination).toMatchObject({ page: 1, pageSize: 3, has_more: true });
+
+      const r2 = await request(app).get('/v1/admin/admin-log?page=2&pageSize=3').set('Authorization', adminAuth);
+      expect(r2.status).toBe(200);
+      expect(r2.body.data.length).toBeGreaterThan(0);
+      expect(r2.body.pagination.page).toBe(2);
     });
 
     it('GET /v1/admin/admin-log returns details_json for each row (Sub-C Plan 2 follow-up)', async () => {

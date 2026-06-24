@@ -197,6 +197,15 @@ const ListUsersEnvelopeSchema = z.object({
   pagination: PaginationSchema,
 });
 
+// Sub-D1 regression fix: paginated envelope (matches users/candidates/jobs/
+// recommendations pattern). Previously the route returned a flat array without
+// pagination, which broke the frontend listAdminLog() helper (required env.pagination).
+export const ListAdminLogResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(AdminLogItemSchema),
+  pagination: PaginationSchema,
+});
+
 export { PaginationSchema, ListUsersEnvelopeSchema };
 
 // Sub-C Plan 1: Jobs + Recommendations list schemas

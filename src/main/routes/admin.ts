@@ -16,6 +16,7 @@ import {
   ListUsersEnvelopeSchema, ListCandidatesEnvelopeSchema,
   LoginEventsListResponseSchema,
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
+  ListAdminLogResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -355,10 +356,25 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   // Admin log
   router.get('/admin-log', (req, res, next) => {
     try {
-      const limit = req.query.limit ? Number(req.query.limit) : undefined;
-      const filter: { limit?: number } = {};
-      if (limit !== undefined) filter.limit = limit;
-      respond(res, AdminLogListResponseSchema, { ok: true, data: adminLog.list(filter) }, { strict: true });
+      const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 200) {
+        throw Errors.invalidParams('pageSize must be 1-200');
+      }
+      const filter: { admin_id?: string; target_type?: string; target_id?: string; limit?: number; offset?: number } = {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      };
+      if (typeof req.query.admin_id === 'string') filter.admin_id = req.query.admin_id;
+      if (typeof req.query.target_type === 'string') filter.target_type = req.query.target_type;
+      if (typeof req.query.target_id === 'string') filter.target_id = req.query.target_id;
+      const { rows, total } = adminLog.list(filter);
+      respond(res, ListAdminLogResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
 
