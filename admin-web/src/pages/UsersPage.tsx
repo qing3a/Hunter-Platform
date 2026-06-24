@@ -4,8 +4,10 @@ import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
 import SearchBar, { type Filter } from '../components/SearchBar';
 import StatusBadge from '../components/StatusBadge';
+import QuotaModal from '../components/QuotaModal';
 import { relativeTime } from '../lib/format';
-import { listUsers, type UserRow } from '../api/users';
+import { listUsers, adjustQuota, type UserRow } from '../api/users';
+import { useToast } from '../lib/toast';
 
 export default function UsersPage() {
   const [rows, setRows] = useState<UserRow[]>([]);
@@ -14,6 +16,10 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [userTypeFilter, setUserTypeFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const toast = useToast();
+  const [quotaModal, setQuotaModal] = useState<{ open: boolean; user: UserRow | null }>({
+    open: false, user: null,
+  });
 
   const load = (p: number, keyword?: string, user_type?: string, status?: string) => {
     setLoading(true);
@@ -29,6 +35,16 @@ export default function UsersPage() {
 
   useEffect(() => { load(page, undefined, userTypeFilter, statusFilter); }, [page, userTypeFilter, statusFilter]);
 
+  const handleAdjustQuota = async (params: { new_quota: number; reason: string }) => {
+    if (!quotaModal.user) return;
+    const result = await adjustQuota(quotaModal.user.id, params.new_quota, params.reason);
+    toast.push({
+      type: 'success',
+      message: `已调整 ${quotaModal.user.name} 配额至 ${result.new_quota}`,
+    });
+    load(page, undefined, userTypeFilter, statusFilter);
+  };
+
   const columns: Column<UserRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.id}</code> },
     { key: 'name', header: '姓名', render: r => r.name },
@@ -36,6 +52,18 @@ export default function UsersPage() {
     { key: 'status', header: '状态', render: r => <StatusBadge status={r.status} /> },
     { key: 'quota', header: '配额', render: r => `${r.quota_used}/${r.quota_per_day}` },
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
+    {
+      key: 'actions', header: '操作',
+      render: r => r.status === 'active' ? (
+        <button
+          onClick={() => setQuotaModal({ open: true, user: r })}
+          className="btn btn-sm"
+          data-testid={`adjust-quota-${r.id}`}
+        >
+          调配额
+        </button>
+      ) : null,
+    },
   ];
 
   const filters: Filter[] = [
@@ -75,6 +103,16 @@ export default function UsersPage() {
         pageSize={pagination.pageSize}
         total={pagination.total}
         onPageChange={setPage}
+      />
+      <QuotaModal
+        open={quotaModal.open}
+        user={quotaModal.user ? {
+          id: quotaModal.user.id,
+          name: quotaModal.user.name,
+          current_quota: quotaModal.user.quota_per_day,
+        } : null}
+        onClose={() => setQuotaModal({ open: false, user: null })}
+        onSubmit={handleAdjustQuota}
       />
     </Layout>
   );
