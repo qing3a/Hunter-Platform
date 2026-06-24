@@ -1,6 +1,7 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { getDb } from '../../db.js';
 import type { DB } from '../../db/connection.js';
+import { getHunterMetrics } from '../metrics/registry.js';
 
 type ScheduledJob = { name: string; task: ScheduledTask };
 
@@ -13,6 +14,7 @@ export function startScheduler(db?: DB): void {
   registerJob('quota-reset', '0 0 * * *', () => resetDailyQuota(useDb));           // daily UTC 0
   registerJob('rate-limit-cleanup', '0 * * * *', () => cleanupRateLimitBuckets(useDb)); // hourly
   registerJob('audit-archive', '0 0 1 * *', () => archiveAuditLogs(useDb));         // 1st of month
+  registerJob('notification-cleanup', '0 2 * * *', () => cleanupNotifications(useDb)); // daily UTC 02:00
 }
 
 export function stopScheduler(): void {
@@ -61,4 +63,20 @@ function archiveAuditLogs(db?: DB): void {
   const d = db ?? getDb();
   const result = d.prepare('DELETE FROM action_history WHERE created_at < ?').run(cutoff.toISOString());
   console.log(`[cron audit-archive] archived (deleted) ${result.changes} old action_history rows`);
+}
+
+function cleanupNotifications(db?: DB): void {
+  const d = db ?? getDb();
+  const now = new Date().toISOString();
+  const result = d.prepare('DELETE FROM notifications WHERE expires_at < ?').run(now);
+  console.log(`[cron notification-cleanup] deleted ${result.changes} expired notifications`);
+  // Bump the prom counter so dashboards/alerting can see the trend.
+  try {
+    const m = getHunterMetrics();
+    if (m?.notificationsCleanupDeletedTotal) {
+      m.notificationsCleanupDeletedTotal.inc(result.changes);
+    }
+  } catch {
+    // Metrics not yet initialized in some test contexts; safe to skip.
+  }
 }

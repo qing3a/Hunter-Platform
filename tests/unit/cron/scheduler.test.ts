@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
 describe('cron scheduler', () => {
-  it('startScheduler registers 3 jobs (quota/cleanup/audit)', async () => {
+  it('startScheduler registers 4 jobs (quota/cleanup/audit/notifications)', async () => {
     const { startScheduler, getScheduledJobs } = await import('../../../src/main/modules/cron/scheduler');
     startScheduler();
     const jobs = getScheduledJobs();
-    expect(jobs).toHaveLength(3);
-    expect(jobs.map(j => j.name).sort()).toEqual(['audit-archive', 'quota-reset', 'rate-limit-cleanup']);
+    expect(jobs).toHaveLength(4);
+    expect(jobs.map(j => j.name).sort()).toEqual(['audit-archive', 'notification-cleanup', 'quota-reset', 'rate-limit-cleanup']);
     // Cleanup so test order independence
     const { stopScheduler } = await import('../../../src/main/modules/cron/scheduler');
     stopScheduler();
@@ -23,7 +23,7 @@ describe('cron scheduler', () => {
     const { startScheduler, getScheduledJobs, stopScheduler } = await import('../../../src/main/modules/cron/scheduler');
     startScheduler();
     startScheduler();
-    expect(getScheduledJobs()).toHaveLength(3);
+    expect(getScheduledJobs()).toHaveLength(4);
     stopScheduler();
   });
 });

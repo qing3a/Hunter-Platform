@@ -47,6 +47,24 @@ function createHunterMetrics(reg: promClient.Registry) {
       buckets: [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05],
       registers: [reg],
     }),
+    // Notifications (v1.9.0): sent / errored / cleaned-up counters
+    notificationsSentTotal: new promClient.Counter({
+      name: 'hunter_notifications_sent_total',
+      help: 'Total notifications sent, by category',
+      labelNames: ['category'] as const,
+      registers: [reg],
+    }),
+    notificationsSendErrorsTotal: new promClient.Counter({
+      name: 'hunter_notifications_send_errors_total',
+      help: 'Total notification send errors, by category and error type',
+      labelNames: ['category', 'error_type'] as const,
+      registers: [reg],
+    }),
+    notificationsCleanupDeletedTotal: new promClient.Counter({
+      name: 'hunter_notifications_cleanup_deleted_total',
+      help: 'Total notifications deleted by cleanup cron',
+      registers: [reg],
+    }),
   };
 }
 
