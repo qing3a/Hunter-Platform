@@ -61,11 +61,13 @@ describe('notification handler', () => {
     expect(unread_count).toBe(2);
   });
 
-  it('markRead() returns ISO string on success, null on missing', () => {
+  it('markRead() returns ISO string on success, idempotent on second call, null on missing', () => {
     const id = handler.send({ userId: 'u1', category: 'a', title: 't' });
-    expect(handler.markRead(id, 'u1')).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    // Idempotent: calling again returns null (already read)
-    expect(handler.markRead(id, 'u1')).toBeNull();
+    const first = handler.markRead(id, 'u1');
+    expect(first).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // Idempotent: calling again returns the same read_at (not null)
+    const second = handler.markRead(id, 'u1');
+    expect(second).toBe(first);
     expect(handler.markRead('notif_does_not_exist', 'u1')).toBeNull();
   });
 
