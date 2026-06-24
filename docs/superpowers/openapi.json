@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "https://api.hunter-platform.com",
+      "url": "https://qing3.top",
       "description": "Production"
     },
     {
@@ -205,6 +205,49 @@
             ]
           },
           "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Notification": {
+        "type": "object",
+        "description": "In-site system notification (polling-based, 30-day TTL, user-scoped)",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "notif_<12-hex>"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "recommendation_accepted",
+              "recommendation_rejected",
+              "unlock_granted",
+              "candidate_viewed",
+              "placement_confirmed",
+              "commission_paid"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": ["string", "null"]
+          },
+          "payload": {
+            "type": ["object", "null"],
+            "additionalProperties": true
+          },
+          "read_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
             "type": "string",
             "format": "date-time"
           }
@@ -1912,6 +1955,237 @@
               }
             }
           }
+        }
+      }
+    },
+    "/v1/notifications/": {
+      "get": {
+        "summary": "List system notifications (in-site messages, 30-day TTL, polling). User-scoped: returns only caller's notifications.",
+        "security": [
+          { "ApiKey": [] }
+        ],
+        "parameters": [
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "boolean", "default": false },
+            "description": "Only return unread (read_at IS NULL)"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by category (recommendation_accepted, unlock_granted, etc.)"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "Only return items with created_at > this ISO 8601 timestamp (for polling)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "items": {
+                              "type": "array",
+                              "items": { "$ref": "#/components/schemas/Notification" }
+                            },
+                            "unread_count": { "type": "integer" },
+                            "has_more": { "type": "boolean" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/notifications/{id}": {
+      "get": {
+        "summary": "Get single notification by id (user-scoped: 404 if not owned by caller)",
+        "security": [
+          { "ApiKey": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": { "$ref": "#/components/schemas/Notification" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "summary": "Delete a single notification (user-scoped)",
+        "security": [
+          { "ApiKey": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/notifications/{id}/read": {
+      "post": {
+        "summary": "Mark notification as read (idempotent — returns current read_at on repeat calls)",
+        "security": [
+          { "ApiKey": [] }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string" },
+                            "read_at": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/notifications/read-all": {
+      "post": {
+        "summary": "Mark all of caller's unread notifications as read",
+        "security": [
+          { "ApiKey": [] }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "marked": { "type": "integer", "description": "Number of notifications marked as read" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },

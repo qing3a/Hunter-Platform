@@ -1,6 +1,6 @@
 # Hunter Platform MCP Server
 
-Expose [Hunter Platform](https://qing3.top) (recruiter marketplace API) as **15 AI-callable tools** via the [Model Context Protocol](https://modelcontextprotocol.io/). Works with Claude Desktop, Cursor, Cline, and any MCP-compatible AI client.
+Expose [Hunter Platform](https://qing3.top) (recruiter marketplace API) as **15 of 46 platform capabilities** as AI-callable tools via the [Model Context Protocol](https://modelcontextprotocol.io/). Works with Claude Desktop, Cursor, Cline, and any MCP-compatible AI client. For full coverage, see [the HTTP API](https://qing3.top/v1/skill.md) directly.
 
 ## What you get
 
@@ -25,6 +25,16 @@ After installing, your AI agent can directly call these tools:
 | **Candidate** | `candidate_reject_unlock` | Reject unlock |
 
 ## Install
+
+### Quick install (Claude Desktop 1.0+, one command)
+
+```bash
+claude mcp add hunter-platform -- npx -y @qing3a/hunter-platform-mcp --env HUNTER_PLATFORM_BASE_URL=https://qing3.top
+```
+
+Restart Claude Desktop. The 15 `hunter_platform_*` tools will appear in your tool list.
+
+For other MCP clients (Cursor, Cline, etc.) or older Claude Desktop versions, use Option 1 or 2 below.
 
 ### Option 1: npm from GitHub Packages (recommended, private)
 
@@ -66,7 +76,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
   "mcpServers": {
     "hunter-platform": {
       "command": "npx",
-      "args": ["-y", "@hunter-platform/mcp-server"],
+      "args": ["-y", "@qing3a/hunter-platform-mcp"],
       "env": {
         "HUNTER_PLATFORM_BASE_URL": "https://qing3.top"
       }
@@ -98,7 +108,7 @@ Settings → MCP → Add new global MCP server:
 {
   "hunter-platform": {
     "command": "npx",
-    "args": ["-y", "@hunter-platform/mcp-server"]
+    "args": ["-y", "@qing3a/hunter-platform-mcp"]
   }
 }
 ```
@@ -112,7 +122,7 @@ Cline MCP settings file (`~/Documents/Cline/MCP/cline_mcp_settings.json` on Wind
   "mcpServers": {
     "hunter-platform": {
       "command": "npx",
-      "args": ["-y", "@hunter-platform/mcp-server"],
+      "args": ["-y", "@qing3a/hunter-platform-mcp"],
       "alwaysAllow": []
     }
   }

@@ -213,7 +213,7 @@ GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability 
 
 ```bash
 curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
-     https://api.hunter-platform.com/v1/users/{id}/status
+     https://qing3.top/v1/users/{id}/status
 ```
 
 > ⚠️ **API key 只在注册时返回一次**，丢失后只能 `POST /v1/auth/rotate-key` 轮换（v2 起可用）。
@@ -347,6 +347,7 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 | Method | Path | 说明 |
 |--------|------|------|
 | GET    | `/v1/notifications` | 拉取列表（支持 `?unread=true&since=<iso>&category=<cat>&limit=N&offset=N`）|
+| GET    | `/v1/notifications/:id` | 拉取单条（跨用户访问返回 404）|
 | POST   | `/v1/notifications/:id/read` | 标记已读（**幂等** —— 重复调用返回相同的 `read_at`）|
 | POST   | `/v1/notifications/read-all` | 全部已读 |
 | DELETE | `/v1/notifications/:id` | 删除 |
@@ -1524,13 +1525,12 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 ## 📚 附录 C. 端点 → OpenAPI 对照
 
-OpenAPI 3 spec 见 [`/v1/openapi.json`](http://localhost:3000/v1/openapi.json)。
+OpenAPI 3 spec 见 [`/v1/openapi.json`](https://qing3.top/v1/openapi.json)。
 
-⚠️ **OpenAPI 覆盖范围**（v1.3 时点）：
-- ✅ 已声明的端点：18 条（核心业务 + 公共 endpoint）
-- ⚠️ **未声明的端点**：`/v1/auth/rotate-key`、`/v1/candidate/delete-my-data`、
-  `/v1/users/{id}/history`、`/v1/market/jobs` 等 11+ 条
-- → **以 skill.md §2 主文为准**，OpenAPI 仅作 schema 参考
+- ✅ OpenAPI 包含**所有 HTTP 端点**（v1.9 时点：74 条路径 / 69 operations）
+- ⚠️ OpenAPI 的 schema 描述比 skill.md 简略；**以 skill.md §2 主文为准**，OpenAPI 仅作 schema 参考
+- 验证：`pnpm openapi:check` 会扫 `src/main/routes/*.ts` 与 openapi.json 对照，保证 0 forward gap
+- 历史说明：本附录在 v1.3 时期曾声称"11+ 端点未声明"，该说法已过时；v1.4 起 openapi.json 已与 routes 保持同步
 
 Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是否覆盖。
 
@@ -1538,7 +1538,7 @@ Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是
 
 ## 📚 附录 D. 相关链接
 
-- 源码仓库：`https://github.com/convo-ai/hunter-platform`（v1）
+- 源码仓库：`https://github.com/qing3a/Hunter-Platform`（v1）
 - 部署文档：`docs/DEPLOYMENT.md`（v1）
 - OpenAPI spec：`docs/superpowers/openapi.json`
 - 监控 dashboard：`/metrics`（Prometheus 格式）
