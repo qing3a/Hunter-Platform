@@ -12,7 +12,9 @@ const UnsuspendResultSchema = z.object({
 });
 const AdjustQuotaResultSchema = z.object({
   user_id: IdString,
+  previous_quota: z.number().int(),
   new_quota: z.number().int(),
+  reason: z.string(),
 });
 
 const AdminCandidateSchema = z.object({
