@@ -5,6 +5,35 @@
 
 ---
 
+## v2.1.1 (Sub-C Plan 2 — Mutation) — 2026-06-25
+
+### 新增功能
+- **UsersPage 调配额按钮**：每行（active 用户）新增「调配额」按钮，弹 QuotaModal 表单
+- **QuotaModal**：new_quota 数字输入 + reason 文本域（3-500 字符） + 客户端校验
+- **Toast 系统**：lib/toast.tsx + ToastProvider + useToast hook，3 秒自动消失
+- **Modal 系统**：portal + ESC + 焦点管理 + body scroll lock
+- **AuditPage 详情列**：Admin Actions tab 加「详情」按钮，点开 AuditJsonDrawer 显示 reason
+
+### Bug 修复（**Breaking**）
+- **`POST /v1/admin/users/:id/adjust-quota` 不写 audit log 的历史 bug**：
+  - handler 现在接 `adminUserId + reason` 参数
+  - reason 必填（3-500 字符校验在 route + handler 双层）
+  - 写 `admin_action_log` 表，action = `adjust_user_quota`
+  - 响应从 `{ user_id, new_quota }` 扩到 `{ user_id, previous_quota, new_quota, reason }`
+
+### 已知限制
+- AuditPage「详情」按钮**暂时只显示 reason**，不显示 details_json（previous_quota/new_quota 结构）。要让 details_json 暴露，需要扩展 `/v1/admin/admin-log` endpoint 返回 details_json 字段。留 Sub-D2 范围。
+
+### 测试
+- 后端 +7 个集成测试
+- 前端 +18 个组件/页面测试（Toast 3 + Modal 4 + QuotaModal 5 + adjustQuota 3 + UsersPage 3）
+
+### Breaking change migration
+- 任何外部调用 `adjust-quota` 的脚本必须在 body 加 `reason: "..."`，否则会 400
+- 响应 schema 变了——前端同步更新，无其他客户端
+
+---
+
 ## v2.1.0 (Sub-C Plan 1 — Read-Only Data) — 2026-06-25
 
 ### 新增功能
