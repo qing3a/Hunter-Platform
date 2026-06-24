@@ -7,27 +7,31 @@ export default function Layout({ children, adminName }: { children: React.ReactN
     clearToken();
     navigate('/login');
   };
-  const navStyle = ({ isActive }: { isActive: boolean }) => ({
+  const linkStyle = ({ isActive }: { isActive: boolean }) => ({
     color: 'white',
     textDecoration: 'none',
-    padding: '8px 12px',
+    padding: '10px 16px',
     borderRadius: 4,
+    display: 'block',
     background: isActive ? 'rgba(255,255,255,0.2)' : 'transparent',
   });
   return (
     <>
-      <nav className="nav">
-        <strong>猎头管理后台</strong>
-        <NavLink to="/" end style={navStyle}>仪表盘</NavLink>
-        <NavLink to="/users" style={navStyle}>用户</NavLink>
-        <NavLink to="/candidates" style={navStyle}>候选人</NavLink>
-        <NavLink to="/audit" style={navStyle}>审计</NavLink>
-        <NavLink to="/profile" style={navStyle}>我的</NavLink>
-        <div className="spacer" />
-        <span>{adminName}</span>
-        <button className="btn btn-danger" onClick={logout} style={{ marginLeft: 12 }}>退出登录</button>
-      </nav>
-      <div className="container">{children}</div>
+      <aside className="sidebar">
+        <div className="sidebar__brand">猎头管理后台</div>
+        <nav className="sidebar__nav">
+          <NavLink to="/" end style={linkStyle}>仪表盘</NavLink>
+          <NavLink to="/users" style={linkStyle}>用户</NavLink>
+          <NavLink to="/candidates" style={linkStyle}>候选人</NavLink>
+          <NavLink to="/audit" style={linkStyle}>审计</NavLink>
+          <NavLink to="/profile" style={linkStyle}>我的</NavLink>
+        </nav>
+        <div className="sidebar__footer">
+          <div className="sidebar__user">{adminName}</div>
+          <button className="btn btn-danger sidebar__logout" onClick={logout}>退出登录</button>
+        </div>
+      </aside>
+      <main className="main">{children}</main>
     </>
   );
 }
