@@ -264,4 +264,90 @@ describe('admin list pagination + dashboard stats (Sub-B)', () => {
       expect(r.body.data.recommendations_unlocked).toBe(1);
     });
   });
+
+  // ---- adjustQuota (Sub-C Plan 2) ----
+  describe('POST /v1/admin/users/:id/adjust-quota', () => {
+    beforeAll(() => {
+      // Reset quota_per_day to 100 for u_1 (Sub-B seed set it to 100; ensure known state)
+      db.prepare(`UPDATE users SET quota_per_day = 100 WHERE id = 'u_1'`).run();
+    });
+
+    it('1. adjusts quota with valid reason → 200 + writes audit', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50, reason: '客户紧急加单' });
+      expect(r.status).toBe(200);
+      expect(r.body.data).toMatchObject({ user_id: 'u_1', previous_quota: 100, new_quota: 50, reason: '客户紧急加单' });
+
+      // Verify audit log row
+      const log = db.prepare(
+        `SELECT * FROM admin_action_log WHERE target_id = 'u_1' AND action = 'adjust_user_quota' ORDER BY id DESC LIMIT 1`
+      ).get() as any;
+      expect(log).toBeTruthy();
+      expect(log.admin_user_id).toBe('adm_subb');
+      const details = JSON.parse(log.details_json);
+      expect(details).toEqual({ previous_quota: 100, new_quota: 50, reason: '客户紧急加单' });
+    });
+
+    it('2. missing reason → 400 INVALID_PARAMS', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50 });
+      expect(r.status).toBe(400);
+      expect(r.body.error.message).toMatch(/reason/);
+    });
+
+    it('3. reason < 3 chars → 400', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50, reason: 'ab' });
+      expect(r.status).toBe(400);
+    });
+
+    it('4. reason > 500 chars → 400', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50, reason: 'a'.repeat(501) });
+      expect(r.status).toBe(400);
+    });
+
+    it('5. new_quota == previous_quota → 200, no audit written', async () => {
+      // Reset to 50 first
+      db.prepare(`UPDATE users SET quota_per_day = 50 WHERE id = 'u_1'`).run();
+      // Count audit rows before
+      const beforeCount = (db.prepare(
+        `SELECT COUNT(*) AS c FROM admin_action_log WHERE target_id = 'u_1' AND action = 'adjust_user_quota'`
+      ).get() as { c: number }).c;
+
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50, reason: '同值不应写 audit' });
+      expect(r.status).toBe(200);
+
+      const afterCount = (db.prepare(
+        `SELECT COUNT(*) AS c FROM admin_action_log WHERE target_id = 'u_1' AND action = 'adjust_user_quota'`
+      ).get() as { c: number }).c;
+      expect(afterCount).toBe(beforeCount);
+    });
+
+    it('6. user not found → 404', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_does_not_exist/adjust-quota')
+        .set('Authorization', adminAuth)
+        .send({ new_quota: 50, reason: 'test missing user' });
+      expect(r.status).toBe(404);
+    });
+
+    it('7. no bearer token → 401', async () => {
+      const r = await request(app)
+        .post('/v1/admin/users/u_1/adjust-quota')
+        .send({ new_quota: 50, reason: 'no auth' });
+      expect(r.status).toBe(401);
+    });
+  });
 });

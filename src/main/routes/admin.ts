@@ -145,7 +145,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   });
   router.post('/users/:id/adjust-quota', (req, res, next) => {
     try {
-      const adminUserId = (req as any).user?.id;
+      const adminUserId = (req as any).admin?.id;
       if (!adminUserId) throw Errors.unauthorized();
       const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
       const new_quota = Number(req.body?.new_quota);
