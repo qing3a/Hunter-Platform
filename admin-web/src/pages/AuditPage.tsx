@@ -47,6 +47,9 @@ function AdminActionsTab() {
   const [data, setData] = useState<AdminLogRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [drawer, setDrawer] = useState<{ open: boolean; title: string; json: string | null }>({
+    open: false, title: '', json: null,
+  });
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -77,11 +80,12 @@ function AdminActionsTab() {
               <th style={{ padding: 8, textAlign: 'left' }}>操作</th>
               <th style={{ padding: 8, textAlign: 'left' }}>目标</th>
               <th style={{ padding: 8, textAlign: 'left' }}>原因</th>
+              <th style={{ padding: 8, textAlign: 'left' }}>详情</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: 12, textAlign: 'center', color: '#888' }}>暂无管理员操作记录</td></tr>
+              <tr><td colSpan={6} style={{ padding: 12, textAlign: 'center', color: '#888' }}>暂无管理员操作记录</td></tr>
             ) : data.map(row => (
               <tr key={row.id} style={{ borderTop: '1px solid #eee' }}>
                 <td style={{ padding: 8 }}>{formatDate(row.created_at)}</td>
@@ -89,12 +93,31 @@ function AdminActionsTab() {
                 <td style={{ padding: 8 }}><code>{row.action_type}</code></td>
                 <td style={{ padding: 8 }}>{row.target_type ? `${row.target_type}:${row.target_id}` : '—'}</td>
                 <td style={{ padding: 8 }}>{row.reason ?? '—'}</td>
+                <td style={{ padding: 8 }}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => setDrawer({
+                      open: true,
+                      title: `${row.action_type} @ ${formatDate(row.created_at)}`,
+                      json: row.reason ? `Reason: ${row.reason}` : null,
+                    })}
+                    data-testid={`admin-log-detail-${row.id}`}
+                  >
+                    详情
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
       <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
+      <AuditJsonDrawer
+        open={drawer.open}
+        onClose={() => setDrawer({ open: false, title: '', json: null })}
+        title={drawer.title}
+        json={drawer.json}
+      />
     </div>
   );
 }
