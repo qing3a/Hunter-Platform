@@ -120,12 +120,18 @@ describe('admin list pagination + dashboard stats (Sub-B)', () => {
   });
 
   it('9. dashboard today_new_users counts only today (UTC)', async () => {
-    // Seed 1 user with created_at = today (UTC midnight)
+    // Seed 1 user with created_at = today (UTC midnight). Use JS-computed UTC
+    // midnight — same logic as handler in routes/admin.ts. Avoids sqlite's
+    // datetime('now', 'start of day') which uses LOCAL timezone, causing
+    // flakiness in non-UTC test environments (e.g. CI in UTC+8).
+    const todayUtc = new Date();
+    todayUtc.setUTCHours(0, 0, 0, 0);
+    const todayIso = todayUtc.toISOString();
     db.prepare(`INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
       quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)
       VALUES ('u_today', 'candidate', 'TodayUser', 't@x', 'h', 'hp_today', 100, 0,
       datetime('now', '+1 day'), 50, 'active',
-      datetime('now', 'start of day'), datetime('now', 'start of day'))`).run();
+      ?, ?)`).run(todayIso, todayIso);
     const r = await request(app).get('/v1/admin/dashboard/stats').set('Authorization', adminAuth);
     expect(r.body.data.today_new_users).toBeGreaterThanOrEqual(1);
   });
