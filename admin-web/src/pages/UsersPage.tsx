@@ -12,15 +12,22 @@ export default function UsersPage() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [userTypeFilter, setUserTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const load = (p: number, keyword?: string) => {
+  const load = (p: number, keyword?: string, user_type?: string, status?: string) => {
     setLoading(true);
-    listUsers({ page: p, pageSize: 20, keyword })
+    listUsers({
+      page: p, pageSize: 20,
+      keyword: keyword || undefined,
+      user_type: user_type || undefined,
+      status: status || undefined,
+    })
       .then(r => { setRows(r.data); setPagination(r.pagination); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => { load(page, undefined, userTypeFilter, statusFilter); }, [page, userTypeFilter, statusFilter]);
 
   const columns: Column<UserRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.id}</code> },
@@ -50,7 +57,12 @@ export default function UsersPage() {
       <SearchBar
         placeholder="搜索姓名..."
         filters={filters}
-        onSearch={(kw) => { setPage(1); load(1, kw); }}
+        onSearch={(kw, f) => {
+          setPage(1);
+          setUserTypeFilter(f.user_type || '');
+          setStatusFilter(f.status || '');
+          load(1, kw, f.user_type, f.status);
+        }}
       />
       <Table<UserRow>
         columns={columns}

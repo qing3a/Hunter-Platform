@@ -73,4 +73,22 @@ describe('CandidatesPage', () => {
       );
     });
   });
+
+  it('7. unlock_status filter passed to listCandidates (Sub-C Plan 1 fix)', async () => {
+    (listCandidates as any).mockResolvedValue({
+      data: mockRows,
+      pagination: { total: 25, page: 1, pageSize: 20, has_more: true },
+    });
+    render(<MemoryRouter><CandidatesPage /></MemoryRouter>);
+    await waitFor(() => screen.getByText('A***ce'));
+    // First select on the page is the unlock_status filter
+    const select = document.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'unlocked' } });
+    fireEvent.click(screen.getByText('搜索'));
+    await waitFor(() => {
+      expect(listCandidates).toHaveBeenCalledWith(
+        expect.objectContaining({ unlock_status: 'unlocked' })
+      );
+    });
+  });
 });

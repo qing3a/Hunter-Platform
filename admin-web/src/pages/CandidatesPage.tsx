@@ -12,15 +12,20 @@ export default function CandidatesPage() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>('');
 
-  const load = (p: number, keyword?: string) => {
+  const load = (p: number, keyword?: string, unlock_status?: string) => {
     setLoading(true);
-    listCandidates({ page: p, pageSize: 20, keyword })
+    listCandidates({
+      page: p, pageSize: 20,
+      keyword: keyword || undefined,
+      unlock_status: unlock_status || undefined,
+    })
       .then(r => { setRows(r.data); setPagination(r.pagination); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page); }, [page]);
+  useEffect(() => { load(page, undefined, statusFilter); }, [page, statusFilter]);
 
   const columns: Column<CandidateRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.anonymized_id}</code> },
@@ -45,7 +50,7 @@ export default function CandidatesPage() {
       <SearchBar
         placeholder="搜索姓名/邮箱..."
         filters={filters}
-        onSearch={(kw) => { setPage(1); load(1, kw); }}
+        onSearch={(kw, f) => { setPage(1); setStatusFilter(f.unlock_status || ''); load(1, kw, f.unlock_status); }}
       />
       <Table<CandidateRow>
         columns={columns}

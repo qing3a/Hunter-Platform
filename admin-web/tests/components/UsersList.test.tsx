@@ -67,4 +67,22 @@ describe('UsersPage', () => {
       );
     });
   });
+
+  it('8. user_type filter passed to listUsers (Sub-C Plan 1 fix)', async () => {
+    (listUsers as any).mockResolvedValue({
+      data: mockRows,
+      pagination: { total: 47, page: 1, pageSize: 20, has_more: true },
+    });
+    render(<MemoryRouter><UsersPage /></MemoryRouter>);
+    await waitFor(() => screen.getByText('Alice Hunter'));
+    // First select on the page is the user_type filter
+    const select = document.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'headhunter' } });
+    fireEvent.click(screen.getByText('搜索'));
+    await waitFor(() => {
+      expect(listUsers).toHaveBeenCalledWith(
+        expect.objectContaining({ user_type: 'headhunter' })
+      );
+    });
+  });
 });
