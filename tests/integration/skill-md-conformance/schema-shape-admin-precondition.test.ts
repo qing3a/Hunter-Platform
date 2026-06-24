@@ -204,7 +204,7 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
     const r = await client.request({
       method: 'POST', path: `/v1/admin/users/${candidateUserId}/adjust-quota`,
       auth: adminAuthHeader(),
-      body: { new_quota: 200 },
+      body: { new_quota: 200, reason: 'precondition test adjustment' },
       schema: AdjustQuotaResponseSchema,
     });
     expect(r.status).toBe(200);
