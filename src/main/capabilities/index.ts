@@ -11,16 +11,18 @@ export { employerCapabilities } from './employer.js';
 export { candidateCapabilities } from './candidate.js';
 export { adminCapabilities } from './admin.js';
 export { authCapabilities } from './auth.js';
+export { notificationsCapabilities } from './notifications.js';
 
 import { headhunterCapabilities } from './headhunter.js';
 import { employerCapabilities } from './employer.js';
 import { candidateCapabilities } from './candidate.js';
 import { adminCapabilities } from './admin.js';
 import { authCapabilities } from './auth.js';
+import { notificationsCapabilities } from './notifications.js';
 import type { Capability, CapabilitySet } from './types.js';
 
 const ALL_SETS: CapabilitySet[] = [
-  headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities, authCapabilities,
+  headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities, authCapabilities, notificationsCapabilities,
 ];
 
 /** Look up a capability by HTTP method + path. Returns undefined if not

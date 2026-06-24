@@ -12,11 +12,15 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   findCapabilityByEndpoint,
   getAllCapabilitySets,
   type Capability,
 } from '../src/main/capabilities/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const ROUTES_DIR = path.join(__dirname, '../src/main/routes');
 
@@ -52,6 +56,7 @@ const MOUNT_PREFIXES: Record<string, string | null> = {
   'candidate.ts':  '/v1/candidate',
   'admin.ts':      '/v1/admin',
   'capabilities.ts': null,
+  'notifications.ts': '/v1/notifications',
   'landing.ts':    null,
 };
 
@@ -74,6 +79,10 @@ function applyMountPrefix(file: string, rawPath: string): string {
   if (prefix === null) {
     return '/' + trimmed;
   }
+  // Empty path (router.get('/', ...)) means the mount itself is the route —
+  // return prefix without trailing slash so the capability check compares
+  // "/v1/notifications" to "/v1/notifications" (not "/v1/notifications/").
+  if (trimmed === '') return prefix;
   return prefix + '/' + trimmed;
 }
 
