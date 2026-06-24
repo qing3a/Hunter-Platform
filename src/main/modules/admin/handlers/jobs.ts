@@ -31,7 +31,7 @@ export function createAdminJobsHandler(db: DB) {
       const total = (db.prepare(`
         SELECT COUNT(*) AS cnt
         FROM jobs j
-        LEFT JOIN users u ON u.id = j.employer_id
+        INNER JOIN users u ON u.id = j.employer_id
         WHERE ${where.join(' AND ')}
       `).get(...params) as { cnt: number }).cnt;
 
@@ -39,7 +39,7 @@ export function createAdminJobsHandler(db: DB) {
         SELECT j.id, j.employer_id, u.name AS employer_name,
                j.title, j.status, j.created_at, j.updated_at
         FROM jobs j
-        LEFT JOIN users u ON u.id = j.employer_id
+        INNER JOIN users u ON u.id = j.employer_id
         WHERE ${where.join(' AND ')}
         ORDER BY j.created_at DESC
         LIMIT ? OFFSET ?

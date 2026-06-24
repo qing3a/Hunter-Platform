@@ -8,6 +8,7 @@ import {
   ConfigGetResponseSchema, ConfigPutResponseSchema, AdminPlacementsListResponseSchema,
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
+  ListJobsResponseSchema, ListRecommendationsResponseSchema,
 } from '../schemas/admin.js';
 
 export const adminCapabilities = defineCapabilitySet({
@@ -192,6 +193,24 @@ export const adminCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: [],
       effects: ['db.admin_action_log.list'],
+    },
+    {
+      name: 'admin.list_jobs',
+      description: '列出所有 jobs(含 employer_name),支持 status 筛选 + 关键词搜索。',
+      method: 'GET', path: '/v1/admin/jobs',
+      response_schema: ListJobsResponseSchema,
+      quota_cost: 0,
+      preconditions: [],
+      effects: ['db.jobs.listAll'],
+    },
+    {
+      name: 'admin.list_recommendations',
+      description: '列出所有 recommendations(含 job_title + headhunter_name),支持 status 筛选 + 关键词 + 时间范围。',
+      method: 'GET', path: '/v1/admin/recommendations',
+      response_schema: ListRecommendationsResponseSchema,
+      quota_cost: 0,
+      preconditions: [],
+      effects: ['db.recommendations.listAll'],
     },
   ],
 });
