@@ -58,6 +58,21 @@ describe('commission handler', () => {
     expect(p.status).toBe('pending_payment');
   });
 
+  it('createPlacement with trigger sends placement_confirmed notification (v1.9.0)', async () => {
+    const { createNotificationTrigger } = await import('../../src/main/modules/notification/trigger');
+    const { createNotificationsRepo } = await import('../../src/main/db/repositories/notifications');
+    const { createCommissionHandler: cch } = await import('../../src/main/modules/commission/handler');
+    const notif = createNotificationTrigger(db);
+    const notifsRepo = createNotificationsRepo(db);
+    const hWithNotif = cch(db, Buffer.alloc(32, 1), notif);
+    const e: any = { id: 'e1', user_type: 'employer' };
+    hWithNotif.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 1_000_000 });
+    // h1 is primary_headhunter in this fixture
+    const list = notifsRepo.listByUser({ user_id: 'h1' });
+    const placementNotifs = list.filter(n => n.category === 'placement_confirmed');
+    expect(placementNotifs.length).toBe(1);
+  });
+
   it('createPlacement rejects duplicate (P1#4)', () => {
     const e: any = { id: 'e1', user_type: 'employer' };
     handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
@@ -113,6 +128,22 @@ describe('commission handler', () => {
     const p = handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     handler.markPaid('admin', p.id);
     expect(places.findById(p.id)?.status).toBe('paid');
+  });
+
+  it('markPaid with trigger sends commission_paid notification (v1.9.0)', async () => {
+    const { createNotificationTrigger } = await import('../../src/main/modules/notification/trigger');
+    const { createNotificationsRepo } = await import('../../src/main/db/repositories/notifications');
+    const { createCommissionHandler: cch } = await import('../../src/main/modules/commission/handler');
+    const notif = createNotificationTrigger(db);
+    const notifsRepo = createNotificationsRepo(db);
+    const hWithNotif = cch(db, Buffer.alloc(32, 1), notif);
+    const e: any = { id: 'e1', user_type: 'employer' };
+    const p = hWithNotif.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
+    hWithNotif.markPaid('admin', p.id);
+    // h1 is primary_headhunter
+    const list = notifsRepo.listByUser({ user_id: 'h1' });
+    const paidNotifs = list.filter(n => n.category === 'commission_paid');
+    expect(paidNotifs.length).toBe(1);
   });
 
   it('markPaid rejects when status is not pending_payment', () => {
