@@ -5,9 +5,14 @@ import { setToken } from '../lib/auth';
 
 type LoginResp = { admin_user_id: string; name: string; email: string; role: string; api_key: string };
 
+// 仅 dev 模式填充默认账号密码(方便调试);production build 自动空表单。
+const DEV_DEFAULTS = import.meta.env.DEV
+  ? { email: 'admin@qing3.top', password: 'local-test-pwd-12345' }
+  : { email: '', password: '' };
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEV_DEFAULTS.email);
+  const [password, setPassword] = useState(DEV_DEFAULTS.password);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
