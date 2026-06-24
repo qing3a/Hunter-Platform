@@ -129,4 +129,139 @@ describe('admin list pagination + dashboard stats (Sub-B)', () => {
     const r = await request(app).get('/v1/admin/dashboard/stats').set('Authorization', adminAuth);
     expect(r.body.data.today_new_users).toBeGreaterThanOrEqual(1);
   });
+
+  // ---- Jobs pagination + filter (Sub-C Plan 1) ----
+  describe('GET /v1/admin/jobs', () => {
+    beforeAll(() => {
+      const now = new Date('2026-06-24T12:00:00Z').getTime();
+      const jobs = [
+        ['job_a', 'open'],
+        ['job_b', 'claimed'],
+        ['job_c', 'paused'],
+        ['job_d', 'closed'],
+        ['job_e', 'filled'],
+        ['job_f', 'open'],
+        ['job_g', 'open'],
+        ['job_h', 'open'],
+      ];
+      for (const [id, status] of jobs) {
+        db.prepare(`INSERT INTO jobs (id, employer_id, title, status, created_at, updated_at)
+          VALUES (?, 'u_1', ?, ?, ?, ?)`).run(
+          id, `Title ${id}`, status,
+          new Date(now - 86400000).toISOString(),
+          new Date(now - 86400000).toISOString()
+        );
+      }
+    });
+
+    it('1. returns paginated envelope', async () => {
+      const r = await request(app).get('/v1/admin/jobs').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination).toMatchObject({ total: 8, page: 1, pageSize: 20, has_more: false });
+      expect(r.body.data).toHaveLength(8);
+    });
+
+    it('2. filters by status=open', async () => {
+      const r = await request(app).get('/v1/admin/jobs?status=open').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination.total).toBe(4);  // job_a, f, g, h (4 'open' in seed)
+      expect(r.body.data.every((j: any) => j.status === 'open')).toBe(true);
+    });
+
+    it('3. filters by keyword (matches title)', async () => {
+      const r = await request(app).get('/v1/admin/jobs?keyword=Title%20job_c').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination.total).toBe(1);
+      expect(r.body.data[0].id).toBe('job_c');
+    });
+
+    it('4. rejects invalid status with 400', async () => {
+      const r = await request(app).get('/v1/admin/jobs?status=invalid').set('Authorization', adminAuth);
+      expect(r.status).toBe(400);
+    });
+  });
+
+  // ---- Recommendations pagination + filter + date range (Sub-C Plan 1) ----
+  describe('GET /v1/admin/recommendations', () => {
+    beforeAll(() => {
+      // Seed candidate_private + candidates_anonymized for FK on recommendations.anonymized_candidate_id
+      // (UNIQUE constraint on (anonymized_candidate_id, job_id) → each rec needs unique candidate)
+      for (let i = 1; i <= 6; i++) {
+        db.prepare(`INSERT INTO candidates_private (id, headhunter_id, candidate_user_id, name_enc, phone_enc, email_enc, created_at, updated_at)
+          VALUES (?, 'u_2', 'u_3', 'x', 'x', 'x', datetime('now'), datetime('now'))`).run(`cp_${i}`);
+        db.prepare(`INSERT INTO candidates_anonymized (id, source_private_id, source_headhunter_id, is_public_pool, unlock_status, created_at, updated_at)
+          VALUES (?, ?, 'u_2', 1, 'locked', datetime('now'), datetime('now'))`).run(`c_${i}`, `cp_${i}`);
+      }
+      const now = Date.now();
+      const recs = [
+        ['rec_a', 'pending',       now - 86400000],
+        ['rec_b', 'unlocked',      now - 2 * 86400000],
+        ['rec_c', 'pending',       now - 3 * 86400000],
+        ['rec_d', 'placed',        now - 4 * 86400000],
+        ['rec_e', 'rejected_employer', now - 5 * 86400000],
+        ['rec_f', 'pending',       now - 10 * 86400000],  // outside 7-day window
+      ];
+      recs.forEach(([id, status, ts], idx) => {
+        db.prepare(`INSERT INTO recommendations
+          (id, headhunter_id, employer_id, anonymized_candidate_id, job_id, status, created_at, updated_at)
+          VALUES (?, 'u_2', 'u_1', ?, 'job_a', ?, ?, ?)`).run(
+          id, `c_${idx + 1}`, status, new Date(ts).toISOString(), new Date(ts).toISOString()
+        );
+      });
+    });
+
+    it('1. returns paginated envelope', async () => {
+      const r = await request(app).get('/v1/admin/recommendations').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination.total).toBe(6);
+      expect(r.body.data[0].id).toBe('rec_a');  // newest first
+    });
+
+    it('2. filters by status=pending', async () => {
+      const r = await request(app).get('/v1/admin/recommendations?status=pending').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination.total).toBe(3);  // rec_a, c, f
+      expect(r.body.data.every((rec: any) => rec.status === 'pending')).toBe(true);
+    });
+
+    it('3. filters by date range (last 7 days)', async () => {
+      const fromDate = new Date(Date.now() - 7 * 86400000).toISOString();
+      const r = await request(app).get(`/v1/admin/recommendations?from=${encodeURIComponent(fromDate)}`).set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.pagination.total).toBe(5);  // excludes rec_f
+    });
+
+    it('4. rejects invalid status with 400', async () => {
+      const r = await request(app).get('/v1/admin/recommendations?status=garbage').set('Authorization', adminAuth);
+      expect(r.status).toBe(400);
+    });
+  });
+
+  // ---- Dashboard stats + 7 new fields (Sub-C Plan 1) ----
+  describe('Dashboard stats 7 new fields', () => {
+    it('1. dashboard stats includes 7 new fields', async () => {
+      const r = await request(app).get('/v1/admin/dashboard/stats').set('Authorization', adminAuth);
+      expect(r.status).toBe(200);
+      expect(r.body.data).toHaveProperty('total_recommendations');
+      expect(r.body.data).toHaveProperty('today_new_recommendations');
+      expect(r.body.data).toHaveProperty('recommendations_pending');
+      expect(r.body.data).toHaveProperty('recommendations_unlocked');
+      expect(r.body.data).toHaveProperty('jobs_paused');
+      expect(r.body.data).toHaveProperty('jobs_closed');
+      expect(r.body.data).toHaveProperty('jobs_filled');
+      expect(typeof r.body.data.total_recommendations).toBe('number');
+    });
+
+    it('2. dashboard stats counts match seeded data', async () => {
+      const r = await request(app).get('/v1/admin/dashboard/stats').set('Authorization', adminAuth);
+      // Seeded: 8 jobs (1 paused + 1 closed + 1 filled) → jobs_paused=1, jobs_closed=1, jobs_filled=1
+      expect(r.body.data.jobs_paused).toBe(1);
+      expect(r.body.data.jobs_closed).toBe(1);
+      expect(r.body.data.jobs_filled).toBe(1);
+      // Seeded: 6 recommendations (3 pending + 1 unlocked + 1 placed + 1 rejected)
+      expect(r.body.data.total_recommendations).toBe(6);
+      expect(r.body.data.recommendations_pending).toBe(3);
+      expect(r.body.data.recommendations_unlocked).toBe(1);
+    });
+  });
 });
