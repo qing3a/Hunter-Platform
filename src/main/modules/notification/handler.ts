@@ -1,0 +1,66 @@
+import { createNotificationsRepo, type NotificationInsert, type NotificationListFilter } from '../../db/repositories/notifications.js';
+import type { DB } from '../../db/connection.js';
+
+export interface SendInput {
+  userId: string;
+  category: string;
+  title: string;
+  body?: string;
+  payload?: Record<string, unknown>;
+  dedupKey?: string;
+}
+
+export interface ListInput extends Omit<NotificationListFilter, 'user_id'> {
+  userId: string;
+}
+
+export function createNotificationHandler(db: DB) {
+  const repo = createNotificationsRepo(db);
+
+  return {
+    /** Send a new notification. Optionally upsert by dedupKey. */
+    send(input: SendInput): string {
+      const payload_json = input.payload ? JSON.stringify(input.payload) : null;
+      const insert: NotificationInsert = {
+        user_id: input.userId,
+        category: input.category,
+        title: input.title,
+        body: input.body ?? null,
+        payload_json,
+        dedup_key: input.dedupKey ?? null,
+      };
+      if (input.dedupKey) {
+        return repo.upsert(insert);
+      }
+      return repo.insert(insert);
+    },
+
+    list(input: ListInput) {
+      const rows = repo.listByUser({
+        user_id: input.userId,
+        unread: input.unread,
+        category: input.category,
+        since: input.since,
+        limit: input.limit,
+        offset: input.offset,
+      });
+      const unread_count = repo.countUnread(input.userId);
+      return { rows, unread_count };
+    },
+
+    markRead(id: string, userId: string): string | null {
+      const now = new Date().toISOString();
+      const updated = repo.markRead(id, userId, now);
+      if (!updated) return null;  // not found OR not yours
+      return now;
+    },
+
+    markAllRead(userId: string): number {
+      return repo.markAllRead(userId, new Date().toISOString());
+    },
+
+    delete(id: string, userId: string): boolean {
+      return repo.delete(id, userId);
+    },
+  };
+}
