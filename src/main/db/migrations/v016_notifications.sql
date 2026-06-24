@@ -24,6 +24,10 @@ CREATE INDEX idx_notifications_user_created
 CREATE INDEX idx_notifications_expires
   ON notifications(expires_at);
 
-CREATE UNIQUE INDEX idx_notifications_dedup
+-- Non-unique index for dedup lookup performance. Uniqueness is enforced in
+-- the repo layer (see notifications.ts upsert() — tries UPDATE first; only
+-- inserts a new row when no unread matching row exists). This lets read rows
+-- be "forgotten" so a subsequent upsert with the same dedup_key can re-notify.
+CREATE INDEX idx_notifications_dedup
   ON notifications(user_id, category, dedup_key)
   WHERE dedup_key IS NOT NULL;
