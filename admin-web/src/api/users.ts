@@ -32,3 +32,21 @@ export async function listUsers(opts: {
   }
   return { data: env.data, pagination: env.pagination };
 }
+
+export type AdjustQuotaResponse = {
+  user_id: string;
+  previous_quota: number;
+  new_quota: number;
+  reason: string;
+};
+
+export async function adjustQuota(userId: string, new_quota: number, reason: string): Promise<AdjustQuotaResponse> {
+  const env = await apiFetchRaw<AdjustQuotaResponse>(`users/${userId}/adjust-quota`, {
+    method: 'POST',
+    body: JSON.stringify({ new_quota, reason }),
+  });
+  if (!env.ok || !env.data) {
+    throw new Error(env.error?.message ?? 'Failed to adjust quota');
+  }
+  return env.data;
+}
