@@ -117,6 +117,14 @@ const DashboardStatsSchema = z.object({
   // Sub-B additions: today new users + 30-day daily-new trend (oldest → newest)
   today_new_users: z.number().int(),
   trend_30d: z.array(z.number().int()).length(30),
+  // Sub-C additions: jobs status detail + recommendations overview
+  total_recommendations: z.number().int(),
+  today_new_recommendations: z.number().int(),
+  recommendations_pending: z.number().int(),
+  recommendations_unlocked: z.number().int(),
+  jobs_paused: z.number().int(),
+  jobs_closed: z.number().int(),
+  jobs_filled: z.number().int(),
 });
 
 const ConfigEntrySchema = z.record(z.string(), z.unknown());

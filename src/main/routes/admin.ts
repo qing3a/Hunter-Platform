@@ -67,16 +67,23 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/dashboard/stats', (_req, res, next) => {
     try {
       const s = dashboard.getStats();
-      // Flatten the IPC nested shape to the 7-field schema. The handler
+      // Flatten the IPC nested shape to the 16-field schema. The handler
       // is unchanged because dashboardIpc + e2e-m3-admin.test.ts depend
       // on the nested shape. Two scalars aren't in getStats(); compute
-      // them inline (3 small SELECTs).
+      // them inline (small SELECTs).
       const candidateCount = (db.prepare('SELECT COUNT(*) AS c FROM candidates_anonymized').get() as { c: number }).c;
       const activePlacementCount = (db.prepare("SELECT COUNT(*) AS c FROM placements WHERE status IN ('pending_payment','paid')").get() as { c: number }).c;
       const dailyQuotaUsed = (db.prepare('SELECT COALESCE(SUM(quota_used), 0) AS s FROM users').get() as { s: number }).s;
+      // Sub-C: today_new_recommendations inline (getStats() doesn't compute this)
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const todayNewRecommendations = (db.prepare(
+        'SELECT COUNT(*) AS c FROM recommendations WHERE created_at >= ?'
+      ).get(todayStart.toISOString()) as { c: number }).c;
       respond(res, DashboardStatsResponseSchema, {
         ok: true,
         data: {
+          // Original 9 fields (Sub-A/B)
           total_users: s.users.total,
           total_candidates: candidateCount,
           total_jobs: s.jobs.total,
@@ -86,6 +93,14 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
           webhook_dead_letters: s.webhooks.dead_letter,
           today_new_users: s.today_new_users,
           trend_30d: s.trend_30d,
+          // Sub-C: 7 new fields
+          total_recommendations: s.recommendations.total,
+          today_new_recommendations: todayNewRecommendations,
+          recommendations_pending: s.recommendations.pending,
+          recommendations_unlocked: s.recommendations.unlocked,
+          jobs_paused: s.jobs.paused,
+          jobs_closed: s.jobs.closed,
+          jobs_filled: s.jobs.filled,
         },
       }, { strict: true });
     } catch (e) { next(e); }
