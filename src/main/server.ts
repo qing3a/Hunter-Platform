@@ -35,6 +35,7 @@ import { createUtf8OnlyMiddleware } from './modules/encoding/index.js';
 import { createAdminAuthMiddleware } from './modules/admin/auth.js';
 import { createAdminRouter } from './routes/admin.js';
 import { createCapabilitiesRouter } from './routes/capabilities.js';
+import { createNotificationsRouter } from './routes/notifications.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -223,6 +224,9 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // The admin auth middleware rejects unauthenticated and non-admin requests
   // with 401 UNAUTHORIZED.
   app.use('/v1/admin', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createAdminAuthMiddleware(db), createAdminRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+
+  // Notifications (4KB body is enough — payload is small structured JSON)
+  app.use('/v1/notifications', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createNotificationsRouter(db));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));

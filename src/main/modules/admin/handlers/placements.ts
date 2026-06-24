@@ -3,12 +3,14 @@ import type { DB } from '../../../db/connection.js';
 import { createPlacementsRepo } from '../../../db/repositories/placements.js';
 import { createAdminActionLogRepo } from '../../../db/repositories/admin-action-log.js';
 import { createCommissionHandler } from '../../commission/handler.js';
+import { createNotificationTrigger } from '../../notification/trigger.js';
 import { Errors } from '../../../errors.js';
 
 export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
   const places = createPlacementsRepo(db);
   const adminLog = createAdminActionLogRepo(db);
-  const commission = createCommissionHandler(db, encryptionKey);
+  const notifTrigger = createNotificationTrigger(db);
+  const commission = createCommissionHandler(db, encryptionKey, notifTrigger);
 
   return {
     list(filter: { status?: 'pending_payment' | 'paid' | 'cancelled' }): Array<{

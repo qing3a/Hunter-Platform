@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
+import { createNotificationTrigger } from '../modules/notification/trigger.js';
 import { createCommissionHandler } from '../modules/commission/handler.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
@@ -48,11 +49,12 @@ const RejectJobSchema = z.object({
 
 export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
-  const handler = createEmployerHandler(db);
+  const notifTrigger = createNotificationTrigger(db);
+  const handler = createEmployerHandler(db, notifTrigger);
   router.use(authMiddleware(db));
   router.use(createRateLimitMiddleware(db));
 
-  const commissionHandler = createCommissionHandler(db, encryptionKey);
+  const commissionHandler = createCommissionHandler(db, encryptionKey, notifTrigger);
 
   router.post('/placements', (req, res, next) => {
     try {

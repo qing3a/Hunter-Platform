@@ -338,6 +338,63 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 
 ---
 
+## 📨 2.7 系统通知 (Notifications)（v1.9.0 起）
+
+平台为关键业务事件提供单向系统通知，客户端通过轮询拉取（不推送）。30 天后自动过期清理。
+
+### 端点
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET    | `/v1/notifications` | 拉取列表（支持 `?unread=true&since=<iso>&category=<cat>&limit=N&offset=N`）|
+| POST   | `/v1/notifications/:id/read` | 标记已读（**幂等** —— 重复调用返回相同的 `read_at`）|
+| POST   | `/v1/notifications/read-all` | 全部已读 |
+| DELETE | `/v1/notifications/:id` | 删除 |
+
+`GET /v1/notifications` 响应字段：
+- `items[]` — 通知列表（按 `created_at` 倒序，已过期的不返回）
+- `unread_count` — 当前未读数（仅未过期）
+- `has_more` — `items.length === limit` 时为 `true`，客户端可翻页
+
+### 触发的事件 (6 个 category)
+
+| category | 接收方 | 触发 |
+|----------|--------|------|
+| `recommendation_accepted` | 猎头 | 雇主接受推荐（**待对应业务事件上线**） |
+| `recommendation_rejected` | 猎头 | 雇主拒绝推荐（**待对应业务事件上线**） |
+| `unlock_granted` | 候选人 | 雇主解锁联系方式 |
+| `candidate_viewed` | 候选人 | 雇主查看简历（**待对应业务事件上线**） |
+| `placement_confirmed` | 猎头 | 创建入职记录（placement_created） |
+| `commission_paid` | 猎头 | 管理员标记佣金已支付（mark_paid） |
+
+### 去重 (dedup) 语义
+
+调用 `notif.notify({ dedupKey: 'k' })` 时：
+- 若 (user_id, category, dedup_key) 存在**未读**行 → **就地更新**（覆盖 title/body/payload，重置 `created_at` 和 `expires_at`），返回原 id
+- 若 (user_id, category, dedup_key) 存在**已读**行 → 插入新行（重新通知）
+- 若不存在 → 插入新行
+
+### 轮询推荐
+
+```http
+GET /v1/notifications?since=2026-06-24T09:55:00Z&limit=50
+Authorization: Bearer <API_KEY>
+```
+
+Agent 应维护 `latest_seen_at`（`created_at` 的最大值），下次用 `since=<latest_seen_at>` 拉增量。
+
+- `limit` 默认 50，上限 200
+- `category` 可选过滤；不填返回全部
+- `unread=true` 只返回未读（与 `since` 可组合）
+- 30 天前创建的行 `expires_at < now`，自动从列表中消失
+
+### 错误处理
+
+- 通知写入失败 → `trigger.notify()` 内部 try/catch 吞掉错误并 log；**主业务调用方不受影响**
+- 所有通知写入 `hunter_notifications_sent_total` / `hunter_notifications_send_errors_total` Prometheus counter
+
+---
+
 ## 🔄 3. 解锁流程状态机
 
 ```
@@ -688,6 +745,7 @@ http://<host>/view/<token>
 | `quota-reset` | `0 0 * * *`（每日 UTC 0）| 重置所有 active user 的 `quota_used = 0` |
 | `rate-limit-cleanup` | `0 * * * *`（每小时）| 删除 `expires_at < now` 的 rate_limit_buckets |
 | `audit-archive` | `0 0 1 * *`（每月 1 号）| 删除 90 天前的 action_history |
+| `notification-cleanup` | `0 2 * * *`（每日 UTC 02:00）| 删除 `expires_at < now` 的 notifications（30 天 TTL） |
 
 > 💡 **Agent 视角**：你**不能**触发这些任务，是平台自动跑的。运维 cron 配置详见 [`OPERATIONS.md`](../OPERATIONS.md)。
 

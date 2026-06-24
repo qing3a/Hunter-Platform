@@ -14,6 +14,7 @@ import { recFlow, jobFlow, applyTransition } from '../../flows/index.js';
 import { QUOTA_COSTS } from '../../../shared/constants.js';
 import { Errors } from '../../errors.js';
 import { SALARY_BANDS } from '../desensitize/mapping.js';
+import type { NotificationTrigger } from '../notification/trigger.js';
 
 export interface CreateJobInput {
   title: string;
@@ -26,7 +27,7 @@ export interface CreateJobInput {
   industry?: string;
 }
 
-export function createEmployerHandler(db: DB) {
+export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger) {
   const jobs = createJobsRepo(db);
   const users = createUsersRepo(db);
   const candidatesAnon = createCandidatesAnonymizedRepo(db);
@@ -34,6 +35,7 @@ export function createEmployerHandler(db: DB) {
   const auditLog = createUnlockAuditLogRepo(db);
   const webhooks = createWebhookQueueRepo(db);
   const quota = createQuotaManager(db);
+  const notif = notifTrigger;
 
   return {
     createJob(user: User, input: CreateJobInput): Job {
@@ -279,6 +281,17 @@ export function createEmployerHandler(db: DB) {
               payload_enc: payloadEnc,
               contains_pii: (transitionResult.sideEffect.contains_pii as 0 | 1 | undefined) ?? 1,
               traceparent: getTraceparentFromContext() ?? null,
+            });
+          }
+
+          // v1.9.0: 通知候选人联系方式被解锁
+          if (notif) {
+            notif.notify({
+              userId: priv.candidate_user_id,
+              category: 'unlock_granted',
+              title: `${user.name ?? '某雇主'} 解锁了您的联系方式`,
+              payload: { recommendation_id: rec.id, employer_id: user.id },
+              dedupKey: `unlock:${priv.candidate_user_id}:${user.id}`,
             });
           }
         } finally {

@@ -10,6 +10,7 @@ import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
 import type { User } from '../../../shared/types.js';
 import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
+import type { NotificationTrigger } from '../notification/trigger.js';
 
 export interface CreatePlacementInput {
   anonymized_candidate_id: string;
@@ -17,7 +18,8 @@ export interface CreatePlacementInput {
   annual_salary: number;
 }
 
-export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
+export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrigger?: NotificationTrigger) {
+  const notif = notifTrigger;
   const places = createPlacementsRepo(db);
   const recs = createRecommendationsRepo(db);
   const jobs = createJobsRepo(db);
@@ -134,6 +136,16 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
         });
       }
 
+      // v1.9.0: notify primary headhunter of placement creation (close to "placement_confirmed")
+      if (notif) {
+        notif.notify({
+          userId: placement.primary_headhunter_id,
+          category: 'placement_confirmed',
+          title: '候选人已确认入职，请等待佣金到账',
+          payload: { placement_id: placement.id, job_id: placement.job_id },
+        });
+      }
+
       return placement;
       });
     },
@@ -152,6 +164,25 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer) {
         target_id: placementId,
         details_json: JSON.stringify({ amount: p.primary_share + p.referrer_share }),
       });
+      // v1.9.0: notify primary headhunter that commission has been paid
+      if (notif) {
+        const amount = p.primary_share + p.referrer_share;
+        notif.notify({
+          userId: p.primary_headhunter_id,
+          category: 'commission_paid',
+          title: `佣金 ${amount} 元已到账`,
+          payload: { placement_id: p.id, amount },
+        });
+        // Also notify the referrer if they get a separate share
+        if (p.referrer_headhunter_id && p.referrer_headhunter_id !== p.primary_headhunter_id) {
+          notif.notify({
+            userId: p.referrer_headhunter_id,
+            category: 'commission_paid',
+            title: `建岗佣金 ${p.referrer_share} 元已到账`,
+            payload: { placement_id: p.id, amount: p.referrer_share },
+          });
+        }
+      }
       return places.findById(placementId)!;
     },
 
