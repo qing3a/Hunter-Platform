@@ -39,10 +39,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <h2 style={{ marginTop: 32 }}>职位状态分布</h2>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <MetricCard label="开放" value={stats.open_jobs} />
+        <MetricCard label="暂停" value={stats.jobs_paused} />
+        <MetricCard label="已关闭" value={stats.jobs_closed} />
+        <MetricCard label="已招到" value={stats.jobs_filled} />
+      </div>
+
+      <h2 style={{ marginTop: 32 }}>推荐数据</h2>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <MetricCard label="推荐总数" value={stats.total_recommendations} />
+        <MetricCard label="今日新增推荐" value={stats.today_new_recommendations} />
+        <MetricCard label="待处理 / 已解锁" value={`${stats.recommendations_pending} / ${stats.recommendations_unlocked}`} />
+      </div>
+
       <h2 style={{ marginTop: 32 }}>更多统计</h2>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <MetricCard label="职位总数" value={stats.total_jobs} />
-        <MetricCard label="开放职位" value={stats.open_jobs} />
         <MetricCard label="今日已用配额" value={stats.daily_quota_used} />
         <MetricCard label="Webhook 死信" value={stats.webhook_dead_letters} />
       </div>
