@@ -10,6 +10,14 @@ export type DashboardStats = {
   webhook_dead_letters: number;
   today_new_users: number;
   trend_30d: number[];
+  // Sub-C additions
+  total_recommendations: number;
+  today_new_recommendations: number;
+  recommendations_pending: number;
+  recommendations_unlocked: number;
+  jobs_paused: number;
+  jobs_closed: number;
+  jobs_filled: number;
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
