@@ -5,6 +5,28 @@
 
 ---
 
+## v2.1.0 (Sub-C Plan 1 — Read-Only Data) — 2026-06-25
+
+### 新增功能
+- **Jobs 列表页**：admin-web `/jobs`，含 status 筛选 + 关键词搜索 + 分页 + 详情侧滑 + CSV 导出
+- **Recommendations 列表页**：`/recommendations`，含 8 种 status 筛选 + 关键词 + 时间范围 + 详情 + 导出
+- **Dashboard 增量**：4 张职位状态卡片（开放/暂停/已关闭/已招到）+ 3 张推荐卡片（总数/今日新增/待处理 vs 已解锁）
+- **后端新 endpoint**：`GET /v1/admin/jobs` + `GET /v1/admin/recommendations`
+- **Dashboard stats +7 字段**：total_recommendations / today_new_recommendations / recommendations_pending / recommendations_unlocked / jobs_paused / jobs_closed / jobs_filled
+- **新 capability**：`admin.list_jobs` + `admin.list_recommendations`
+
+### Bug 修复
+- **Sub-B SearchBar filter 透传**：CandidatesPage / UsersPage 的 status 筛选现在真正传到 API（之前被 silently 丢弃）
+
+### 测试
+- 后端 +10 个集成测试
+- 前端 +28 个组件/页面测试
+
+### 后续
+- **Plan 2**（独立）：adjustQuota 审计修复 + QuotaModal + UsersPage 调配额按钮 + AuditPage 详情列
+
+---
+
 ## v1.8.0 — 2026-06-22
 
 **重点**：API 自检（self-policing）+ 3 个 production bug 修复 + 0 skipped tests + 161 行参考客户端。
