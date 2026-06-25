@@ -56,3 +56,21 @@ export async function adjustQuota(userId: string, new_quota: number, reason: str
   }
   return env.data;
 }
+export async function suspendUser(id: string, reason: string): Promise<{ user_id: string; status: string; reason: string }> {
+  const env = await apiFetchRaw<{ user_id: string; status: string; reason: string }>(`users/${id}/suspend`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  if (!env.ok || !env.data) {
+    throw new Error(env.error?.message ?? 'Failed to suspend user');
+  }
+  return env.data;
+}
+
+export async function unsuspendUser(id: string): Promise<{ user_id: string; status: string }> {
+  const env = await apiFetchRaw<{ user_id: string; status: string }>(`users/${id}/unsuspend`, { method: 'POST' });
+  if (!env.ok || !env.data) {
+    throw new Error(env.error?.message ?? 'Failed to unsuspend user');
+  }
+  return env.data;
+}
