@@ -10,6 +10,7 @@ import {
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
   ListTimelineResponseSchema,
+  ListDeadLetterResponseSchema, ListPlacementsResponseSchema,
 } from '../schemas/admin.js';
 
 export const adminCapabilities = defineCapabilitySet({
@@ -221,6 +222,24 @@ export const adminCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: [],
       effects: ['db.audit.unionAll'],
+    },
+    {
+      name: 'admin.list_dead_letter',
+      description: '列出 webhook 死信队列（含 event_type/min_attempt_count/日期 filter）',
+      method: 'GET', path: '/v1/admin/webhooks/dead-letter',
+      response_schema: ListDeadLetterResponseSchema,
+      quota_cost: 0,
+      preconditions: [],
+      effects: ['db.webhooks.deadLetter.listAll'],
+    },
+    {
+      name: 'admin.list_placements',
+      description: '列出 placements（含 status/日期 filter）',
+      method: 'GET', path: '/v1/admin/placements',
+      response_schema: ListPlacementsResponseSchema,
+      quota_cost: 0,
+      preconditions: [],
+      effects: ['db.placements.listAll'],
     },
   ],
 });

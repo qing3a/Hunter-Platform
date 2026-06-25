@@ -1468,6 +1468,8 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | GET | `/v1/admin/jobs` | `admin.list_jobs` | 0 | — | db.jobs.listAll |
 | GET | `/v1/admin/recommendations` | `admin.list_recommendations` | 0 | — | db.recommendations.listAll |
 | GET | `/v1/admin/timeline/:type/:id` | `admin.get_timeline` | 0 | — | db.audit.unionAll |
+| GET | `/v1/admin/webhooks/dead-letter` | `admin.list_dead_letter` | 0 | — | db.webhooks.deadLetter.listAll |
+| GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
 
 > - `admin.ping`: Admin 健康检查 ping。
 > - `admin.dashboard_stats`: 平台总览统计(用户/候选人/job/placement 数)。
@@ -1492,6 +1494,8 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.list_jobs`: 列出所有 jobs(含 employer_name),支持 status 筛选 + 关键词搜索。
 > - `admin.list_recommendations`: 列出所有 recommendations(含 job_title + headhunter_name),支持 status 筛选 + 关键词 + 时间范围。
 > - `admin.get_timeline`: 获取 user/candidate/job/recommendation 的合并审计时间轴(UNION 3 表)。
+> - `admin.list_dead_letter`: 列出 webhook 死信队列（含 event_type/min_attempt_count/日期 filter）。
+> - `admin.list_placements`: 列出 placements（含 status/日期 filter）。
 
 <!-- CAPABILITIES_END -->
 
