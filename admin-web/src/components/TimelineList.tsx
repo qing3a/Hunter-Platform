@@ -72,7 +72,7 @@ export default function TimelineList({ items, loading, empty }: TimelineListProp
       <AuditJsonDrawer
         open={drawer.open}
         title={drawer.title}
-        data={drawer.data}
+        json={typeof drawer.data === 'string' ? drawer.data : null}
         onClose={() => setDrawer({ open: false, title: '', data: null })}
       />
     </>
