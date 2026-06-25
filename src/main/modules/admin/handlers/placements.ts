@@ -6,6 +6,30 @@ import { createCommissionHandler } from '../../commission/handler.js';
 import { createNotificationTrigger } from '../../notification/trigger.js';
 import { Errors } from '../../../errors.js';
 
+export type PlacementRow = {
+  id: string;
+  job_id: string;
+  employer_id: string;
+  anonymized_candidate_id: string;
+  primary_headhunter_id: string | null;
+  referrer_headhunter_id: string | null;
+  annual_salary: number;
+  platform_fee: number;
+  primary_share: number;
+  referrer_share: number;
+  status: 'pending_payment' | 'paid' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+};
+
+export type ListPlacementsFilter = {
+  status?: 'pending_payment' | 'paid' | 'cancelled';
+  from?: string;
+  until?: string;
+  limit?: number;
+  offset?: number;
+};
+
 export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
   const places = createPlacementsRepo(db);
   const adminLog = createAdminActionLogRepo(db);
@@ -13,29 +37,37 @@ export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
   const commission = createCommissionHandler(db, encryptionKey, notifTrigger);
 
   return {
-    list(filter: { status?: 'pending_payment' | 'paid' | 'cancelled' }): Array<{
-      id: string; job_id: string; employer_id: string;
-      anonymized_candidate_id: string; primary_headhunter_id: string | null;
-      referrer_headhunter_id: string | null; annual_salary: number;
-      platform_fee: number; primary_share: number; referrer_share: number;
-      status: 'pending_payment' | 'paid' | 'cancelled';
-      created_at: string; updated_at: string;
-    }> {
-      // JOIN jobs to get employer_id (placements table does not store it directly).
-      let sql = `
+    list(filter: ListPlacementsFilter = {}): { rows: PlacementRow[]; total: number } {
+      const where: string[] = ['1=1'];
+      const params: any[] = [];
+      if (filter.status) {
+        where.push('p.status = ?');
+        params.push(filter.status);
+      }
+      if (filter.from) {
+        where.push('p.created_at >= ?');
+        params.push(filter.from);
+      }
+      if (filter.until) {
+        where.push('p.created_at < ?');
+        params.push(filter.until);
+      }
+      const whereSql = where.join(' AND ');
+      const total = (db.prepare(
+        `SELECT COUNT(*) AS cnt FROM placements p WHERE ${whereSql}`
+      ).get(...params) as { cnt: number }).cnt;
+      const rows = db.prepare(`
         SELECT p.id, p.job_id, j.employer_id AS employer_id,
-               p.anonymized_candidate_id, p.candidate_user_id,
+               p.anonymized_candidate_id,
                p.primary_headhunter_id, p.referrer_headhunter_id,
                p.annual_salary, p.platform_fee, p.primary_share, p.referrer_share,
-               p.candidate_bonus, p.status, p.created_at, p.updated_at
+               p.status, p.created_at, p.updated_at
         FROM placements p
         JOIN jobs j ON j.id = p.job_id
-        WHERE 1=1`;
-      const params: any[] = [];
-      if (filter.status) { sql += ' AND p.status = ?'; params.push(filter.status); }
-      sql += ' ORDER BY p.created_at DESC LIMIT 100';
-      const rows = db.prepare(sql).all(...params) as any[];
-      return rows.map((r) => ({
+        WHERE ${whereSql}
+        ORDER BY p.created_at DESC LIMIT ? OFFSET ?
+      `).all(...params, filter.limit ?? 20, filter.offset ?? 0) as any[];
+      const projected: PlacementRow[] = rows.map(r => ({
         id: r.id,
         job_id: r.job_id,
         employer_id: r.employer_id,
@@ -50,6 +82,7 @@ export function createAdminPlacementsHandler(db: DB, encryptionKey: Buffer) {
         created_at: r.created_at,
         updated_at: r.updated_at,
       }));
+      return { rows: projected, total };
     },
     markPaid(adminUserId: string, placementId: string): { id: string; status: 'paid' } {
       const result = commission.markPaid(adminUserId, placementId);
