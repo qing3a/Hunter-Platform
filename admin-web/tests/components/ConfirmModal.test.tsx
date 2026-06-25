@@ -40,8 +40,39 @@ describe('ConfirmModal (Sub-D3)', () => {
   });
 
   it('5. variant=danger renders btn-danger class', () => {
-    const { container } = render(<ConfirmModal open={true} title="T" message="M" variant="danger" onConfirm={async () => {}} onClose={() => {}} />);
+    render(<ConfirmModal open={true} title="T" message="M" variant="danger" onConfirm={async () => {}} onClose={() => {}} />);
     const btn = screen.getByTestId('confirm-modal-confirm');
     expect(btn.className).toContain('btn-danger');
+  });
+
+  it('6. requireReason=true shows textarea + blocks short input', async () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ConfirmModal
+        open={true} title="T" message="M"
+        requireReason={true}
+        onConfirm={onConfirm}
+        onClose={() => {}}
+      />
+    );
+    expect(screen.getByTestId('confirm-modal-reason')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
+    expect(onConfirm).not.toHaveBeenCalled();
+    expect(screen.getByText(/原因至少 3 字符/)).toBeTruthy();
+  });
+
+  it('7. requireReason=true passes reason to onConfirm', async () => {
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ConfirmModal
+        open={true} title="T" message="M"
+        requireReason={true}
+        onConfirm={onConfirm}
+        onClose={() => {}}
+      />
+    );
+    fireEvent.change(screen.getByTestId('confirm-modal-reason'), { target: { value: '客户投诉违规行为' } });
+    fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('客户投诉违规行为'));
   });
 });
