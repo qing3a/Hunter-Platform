@@ -11,6 +11,10 @@ import UserTimelinePage from './pages/UserTimelinePage';
 import CandidateTimelinePage from './pages/CandidateTimelinePage';
 import JobTimelinePage from './pages/JobTimelinePage';
 import RecommendationTimelinePage from './pages/RecommendationTimelinePage';
+import UserDetailPage from './pages/UserDetailPage';
+import JobDetailPage from './pages/JobDetailPage';
+import CandidateDetailPage from './pages/CandidateDetailPage';
+import RecommendationDetailPage from './pages/RecommendationDetailPage';
 import WebhookDeadLetterPage from './pages/WebhookDeadLetterPage';
 import PlacementsPage from './pages/PlacementsPage';
 import PrivateRoute from './components/PrivateRoute';
@@ -25,12 +29,16 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
           <Route path="/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+          <Route path="/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
           <Route path="/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
           <Route path="/candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
+          <Route path="/candidates/:id" element={<PrivateRoute><CandidateDetailPage /></PrivateRoute>} />
           <Route path="/candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
           <Route path="/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
+          <Route path="/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
           <Route path="/jobs/:id/timeline" element={<PrivateRoute><JobTimelinePage /></PrivateRoute>} />
           <Route path="/recommendations" element={<PrivateRoute><RecommendationsPage /></PrivateRoute>} />
+          <Route path="/recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
           <Route path="/recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
           <Route path="/webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
           <Route path="/placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />

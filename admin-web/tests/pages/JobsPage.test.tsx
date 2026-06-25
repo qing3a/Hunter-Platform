@@ -49,11 +49,10 @@ describe('JobsPage (Sub-C)', () => {
     await waitFor(() => expect(listJobs).toHaveBeenCalledWith(expect.objectContaining({ page: 2 })));
   });
 
-  it('4. clicking 详情 opens DetailDrawer', async () => {
+  it('4. clicking 详情 navigates to detail page (Sub-D4 update)', async () => {
     renderPage();
-    await waitFor(() => screen.getByText('详情'));
-    fireEvent.click(screen.getByText('详情'));
-    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('detail-link-job_1')).toBeTruthy());
+    expect(screen.getByTestId('detail-link-job_1').getAttribute('href')).toBe('/jobs/job_1');
   });
 
   it('5. CSV button renders', async () => {

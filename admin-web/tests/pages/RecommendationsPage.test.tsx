@@ -45,11 +45,10 @@ describe('RecommendationsPage (Sub-C)', () => {
     await waitFor(() => expect(listRecommendations).toHaveBeenCalledWith(expect.objectContaining({ from: '2026-06-01T00:00:00Z' })));
   });
 
-  it('4. 详情 opens DetailDrawer', async () => {
+  it('4. 详情 navigates to detail page (Sub-D4 update)', async () => {
     renderPage();
-    await waitFor(() => screen.getByText('详情'));
-    fireEvent.click(screen.getByText('详情'));
-    expect(screen.getByRole('dialog')).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('detail-link-rec_1')).toBeTruthy());
+    expect(screen.getByTestId('detail-link-rec_1').getAttribute('href')).toBe('/recommendations/rec_1');
   });
 
   it('5. CSV button visible', async () => {

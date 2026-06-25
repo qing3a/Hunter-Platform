@@ -47,13 +47,10 @@ export default function JobsPage() {
     { key: 'title', header: '职位', render: r => r.title },
     { key: 'status', header: '状态', render: r => <StatusBadge status={r.status} /> },
     { key: 'timeline', header: '时间轴', render: r => (
-      <Link
-        to={`/jobs/${r.id}/timeline`}
-        className="btn btn-sm"
-        data-testid={`timeline-link-${r.id}`}
-      >
-        时间轴
-      </Link>
+      <span>
+        <Link to={`/jobs/${r.id}`} className="btn btn-sm" data-testid={`detail-link-${r.id}`}>详情</Link>{' '}
+        <Link to={`/jobs/${r.id}/timeline`} className="btn btn-sm" data-testid={`timeline-link-${r.id}`}>时间轴</Link>
+      </span>
     ) },
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     { key: 'actions', header: '操作', render: r => (
