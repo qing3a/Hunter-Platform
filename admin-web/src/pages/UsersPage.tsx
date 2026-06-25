@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -54,15 +55,26 @@ export default function UsersPage() {
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     {
       key: 'actions', header: '操作',
-      render: r => r.status === 'active' ? (
-        <button
-          onClick={() => setQuotaModal({ open: true, user: r })}
-          className="btn btn-sm"
-          data-testid={`adjust-quota-${r.id}`}
-        >
-          调配额
-        </button>
-      ) : null,
+      render: r => (
+        <div style={{ display: 'flex', gap: 8 }}>
+          {r.status === 'active' && (
+            <button
+              onClick={() => setQuotaModal({ open: true, user: r })}
+              className="btn btn-sm"
+              data-testid={`adjust-quota-${r.id}`}
+            >
+              调配额
+            </button>
+          )}
+          <Link
+            to={`/users/${r.id}/timeline`}
+            className="btn btn-sm"
+            data-testid={`timeline-link-${r.id}`}
+          >
+            时间轴
+          </Link>
+        </div>
+      ),
     },
   ];
 
