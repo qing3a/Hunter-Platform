@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -34,6 +35,15 @@ export default function CandidatesPage() {
     { key: 'source', header: '来源', render: r => <code>{r.headhunter_id}</code> },
     { key: 'status', header: '状态', render: r => <StatusBadge status={r.unlock_status} /> },
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
+    { key: 'timeline', header: '时间轴', render: r => (
+      <Link
+        to={`/candidates/${r.anonymized_id}/timeline`}
+        className="btn btn-sm"
+        data-testid={`timeline-link-${r.anonymized_id}`}
+      >
+        时间轴
+      </Link>
+    ) },
   ];
 
   const filters: Filter[] = [
