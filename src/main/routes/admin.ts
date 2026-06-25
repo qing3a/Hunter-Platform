@@ -17,6 +17,7 @@ import {
   LoginEventsListResponseSchema,
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
   ListAdminLogResponseSchema,
+  ListTimelineResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -32,6 +33,7 @@ import { createAdminAuthHandler } from '../modules/admin/handlers/auth.js';
 import { createAdminLoginEventsHandler } from '../modules/admin/handlers/login-events.js';
 import { createAdminJobsHandler } from '../modules/admin/handlers/jobs.js';
 import { createAdminRecommendationsHandler } from '../modules/admin/handlers/recommendations.js';
+import { createAdminTimelineHandler } from '../modules/admin/handlers/timeline.js';
 
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -49,6 +51,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const loginEvents = createAdminLoginEventsHandler(db);
   const jobs = createAdminJobsHandler(db);
   const recommendations = createAdminRecommendationsHandler(db);
+  const timeline = createAdminTimelineHandler(db);
 
   // Auth (login is public; rotate-key + me require bearer)
   router.post('/auth/login', (req, res, next) => auth.login(req, res, next));
@@ -371,6 +374,48 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       if (typeof req.query.target_id === 'string') filter.target_id = req.query.target_id;
       const { rows, total } = adminLog.list(filter);
       respond(res, ListAdminLogResponseSchema, {
+        ok: true,
+        data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
+    } catch (e) { next(e); }
+  });
+
+  // Timeline (Sub-D2)
+  router.get('/timeline/:type/:id', (req, res, next) => {
+    try {
+      const validTypes = ['user', 'candidate', 'job', 'recommendation'] as const;
+      if (!(validTypes as readonly string[]).includes(req.params.type)) {
+        throw Errors.invalidParams('type must be user|candidate|job|recommendation');
+      }
+      const id = req.params.id;
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) {
+        throw Errors.invalidParams('id has invalid format');
+      }
+      const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 200) {
+        throw Errors.invalidParams('pageSize must be 1-200');
+      }
+      const sourceParam = typeof req.query.source === 'string' ? req.query.source : '';
+      if (sourceParam && !['admin', 'user', 'unlock'].includes(sourceParam)) {
+        throw Errors.invalidParams('source must be admin|user|unlock');
+      }
+      const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+      const until = typeof req.query.until === 'string' ? req.query.until : undefined;
+      const actor = typeof req.query.actor === 'string' ? req.query.actor : undefined;
+      const { rows, total } = timeline.list({
+        type: req.params.type as any,
+        id,
+        source: sourceParam as any,
+        from,
+        until,
+        actor,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      } as any);
+      respond(res, ListTimelineResponseSchema, {
         ok: true,
         data: rows,
         pagination: { total, page, pageSize, has_more: page * pageSize < total },
