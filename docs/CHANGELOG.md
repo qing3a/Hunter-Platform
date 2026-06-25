@@ -5,6 +5,21 @@
 
 ---
 
+## v2.2.0 (Sub-D2 Plan 1 — Backend Timeline) — 2026-06-25
+
+### 新增功能
+- **Per-Entity Timeline 后端 endpoint**：`GET /v1/admin/timeline/:type/:id`
+  - `type` ∈ `user | candidate | job | recommendation`
+  - UNION 3 个 audit 表（`admin_action_log` + `action_history` + `unlock_audit_log`）
+  - 支持 filter：`source`（admin/user/unlock）、`from`/`until` 时间范围、`actor` LIKE 匹配
+  - Paginated envelope（page + pageSize 1-200）
+- **新 capability**：`admin.get_timeline`（admin role 即可访问，quota_cost: 0）
+
+### 测试
+- 后端 +15 个集成测试（覆盖 4 entity type + filter + 边界）
+
+---
+
 ## v2.1.1 (Sub-C Plan 2 — Mutation) — 2026-06-25
 
 ### 新增功能
