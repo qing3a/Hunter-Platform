@@ -206,7 +206,46 @@ export const ListAdminLogResponseSchema = z.object({
   pagination: PaginationSchema,
 });
 
-export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema };
+export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema };
+
+const DeadLetterRowSchema = z.object({
+  id: z.number().int(),
+  target_user_id: z.string(),
+  event_type: z.string(),
+  attempt_count: z.number().int(),
+  last_error: z.string().nullable(),
+  next_retry_at: z.string().nullable(),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const ListDeadLetterResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(DeadLetterRowSchema),
+  pagination: PaginationSchema,
+});
+
+const PlacementRowSchema = z.object({
+  id: z.string(),
+  job_id: z.string(),
+  employer_id: z.string(),
+  anonymized_candidate_id: z.string(),
+  primary_headhunter_id: z.string().nullable(),
+  referrer_headhunter_id: z.string().nullable(),
+  annual_salary: z.number(),
+  platform_fee: z.number(),
+  primary_share: z.number(),
+  referrer_share: z.number(),
+  status: z.enum(['pending_payment', 'paid', 'cancelled']),
+  created_at: ISODateTime,
+  updated_at: ISODateTime,
+});
+
+const ListPlacementsResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(PlacementRowSchema),
+  pagination: PaginationSchema,
+});
 
 // Sub-D2: per-entity timeline schema. Standardized columns from 3 audit tables
 // (admin_action_log + action_history + unlock_audit_log) via UNION ALL.
