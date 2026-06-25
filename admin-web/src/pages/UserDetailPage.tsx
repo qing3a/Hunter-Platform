@@ -52,7 +52,6 @@ export default function UserDetailPage() {
         <span>配额: {u.quota_used}/{u.quota_per_day}</span>
         <span>创建: {relativeTime(u.created_at)}</span>
       </div>
-      <Link to={`/admin/users/${u.id}/timeline`} className="btn btn-primary" data-testid="user-timeline-link">查看时间轴</Link>
     </Layout>
   );
 }

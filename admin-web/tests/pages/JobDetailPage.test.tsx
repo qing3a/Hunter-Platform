@@ -42,12 +42,7 @@ describe('JobDetailPage (Sub-D4)', () => {
     });
   });
 
-  it('3. has 查看时间轴 link', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByTestId('job-timeline-link')).toBeTruthy());
-  });
-
-  it('4. error state shows error + back link', async () => {
+  it('3. error state shows error + back link', async () => {
     (getJob as any).mockRejectedValueOnce(new Error('not found'));
     renderPage('job_missing');
     await waitFor(() => document.querySelector('[data-testid="job-error-state"]') !== null);

@@ -54,7 +54,6 @@ export default function RecommendationDetailPage() {
         <span>候选: <code>{r.anonymized_candidate_id}</code></span>
         <span>创建: {relativeTime(r.created_at)}</span>
       </div>
-      <Link to={`/admin/recommendations/${r.id}/timeline`} className="btn btn-primary" data-testid="recommendation-timeline-link">查看时间轴</Link>
       </div>
     </Layout>
   );

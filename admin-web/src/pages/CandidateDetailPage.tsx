@@ -55,7 +55,6 @@ export default function CandidateDetailPage() {
         <span>公开池: {c.is_public_pool ? '是' : '否'}</span>
         <span>创建: {relativeTime(c.created_at)}</span>
       </div>
-      <Link to={`/admin/candidates/${c.anonymized_id}/timeline`} className="btn btn-primary" data-testid="candidate-timeline-link">查看时间轴</Link>
     </Layout>
   );
 }

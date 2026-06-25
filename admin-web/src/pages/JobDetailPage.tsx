@@ -52,7 +52,6 @@ export default function JobDetailPage() {
         <span>雇主: {j.employer_name}</span>
         <span>创建: {relativeTime(j.created_at)}</span>
       </div>
-      <Link to={`/admin/jobs/${j.id}/timeline`} className="btn btn-primary" data-testid="job-timeline-link">查看时间轴</Link>
       </div>
     </Layout>
   );

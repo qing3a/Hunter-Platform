@@ -42,12 +42,7 @@ describe('CandidateDetailPage (Sub-D4)', () => {
     await waitFor(() => expect(screen.getByText('A***ce')).toBeTruthy());
   });
 
-  it('3. has 查看时间轴 link', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByTestId('candidate-timeline-link')).toBeTruthy());
-  });
-
-  it('4. error state shows error + back link', async () => {
+  it('3. error state shows error + back link', async () => {
     (getCandidate as any).mockRejectedValueOnce(new Error('not found'));
     renderPage('c_missing');
     await waitFor(() => document.querySelector('[data-testid="candidate-error-state"]') !== null);

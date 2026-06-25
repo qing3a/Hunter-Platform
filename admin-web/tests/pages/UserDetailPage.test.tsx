@@ -39,12 +39,7 @@ describe('UserDetailPage (Sub-D4)', () => {
     await waitFor(() => expect(screen.getByText('Alice')).toBeTruthy());
   });
 
-  it('3. has 查看时间轴 link', async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByTestId('user-timeline-link')).toBeTruthy());
-  });
-
-  it('4. error state shows error + back link', async () => {
+  it('3. error state shows error + back link', async () => {
     (getUser as any).mockRejectedValueOnce(new Error('not found'));
     renderPage('u_missing');
     await waitFor(() => {
