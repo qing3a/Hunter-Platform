@@ -20,6 +20,25 @@
 
 ---
 
+## v2.4.0 (Sub-D4 Plan 2 — Frontend Detail Pages) — 2026-06-25
+
+### 新增功能
+- **4 个 per-entity 详情页**：
+  - `/users/:id` — UserDetailPage（基本信息 + 状态 pill + 时间轴链接）
+  - `/jobs/:id` — JobDetailPage
+  - `/candidates/:id` — CandidateDetailPage
+  - `/recommendations/:id` — RecommendationDetailPage
+- 详情页用 `DataState<T> = {loading: true} | {loading: false; data: T} | {loading: false; error: string}` 三态 pattern
+- 错误处理：主 entity 失败 → 整页错误 + 返回链接
+- 4 个 list page 行末加「详情」Link 跳到对应 detail page（替代 Sub-C 详情 drawer）
+- 4 个 API wrapper（getUser / getJob / getCandidate / getRecommendation）
+
+### 测试
+- 前端 +21 个新测试（API 5 + 4 pages × 4 = 16）
+- Sub-C 2 个测试更新为新 detail 链接
+
+---
+
 ## v2.4.0 (Sub-D4 Plan 1 — Backend Detail + Retry Audit) — 2026-06-25
 
 ### 新增功能
