@@ -266,9 +266,11 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   });
   router.post('/webhooks/:id/retry', (req, res, next) => {
     try {
+      const adminUserId = (req as any).admin?.id;
+      if (!adminUserId) throw Errors.unauthorized();
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) throw Errors.invalidParams('id must be a number');
-      respond(res, RetryWebhookResponseSchema, { ok: true, data: webhooks.retry(id) });
+      respond(res, RetryWebhookResponseSchema, { ok: true, data: webhooks.retry(adminUserId, id) });
     } catch (e) { next(e); }
   });
 
