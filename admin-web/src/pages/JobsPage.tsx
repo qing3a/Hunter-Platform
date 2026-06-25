@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
@@ -25,9 +26,10 @@ export default function JobsPage() {
   const [rows, setRows] = useState<JobRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('');
+  const [keyword, setKeyword] = useUrlParam<string>('keyword', '');
+  const [statusFilter, setStatusFilter] = useUrlParam<JobStatus | ''>('status', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
   const [detail, setDetail] = useState<{ open: boolean; data: unknown; title: string }>({
     open: false, data: null, title: '',
   });
@@ -39,7 +41,7 @@ export default function JobsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page, keyword, statusFilter); }, [page, keyword, statusFilter]);
+  useEffect(() => { load(page, keyword || undefined, (statusFilter || undefined) as JobStatus); }, [page, keyword, statusFilter]);
 
   const columns: Column<JobRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.id}</code> },
@@ -68,9 +70,10 @@ export default function JobsPage() {
           placeholder="搜索职位标题/雇主..."
           filters={statusFilters}
           onSearch={(kw, filters) => {
-            setPage(1);
             setKeyword(kw);
+            setPage(1);
             setStatusFilter((filters.status as JobStatus) || '');
+            load(1, kw, (filters.status as JobStatus) || '');
           }}
         />
         <CsvButton

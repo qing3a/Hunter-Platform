@@ -11,6 +11,12 @@ import { listJobs } from '../../src/api/jobs';
 
 const renderPage = () => render(<MemoryRouter><JobsPage /></MemoryRouter>);
 
+const renderPageWithUrl = (initialUrl: string) => render(
+  <MemoryRouter initialEntries={[initialUrl]}>
+    <JobsPage />
+  </MemoryRouter>
+);
+
 describe('JobsPage (Sub-C)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,4 +71,26 @@ describe('JobsPage (Sub-C)', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('未找到职位')).toBeTruthy());
   });
-});
+
+  it('7. mount reads filter from URL (useUrlParam)', async () => {
+    (listJobs as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 3, pageSize: 20, has_more: false } });
+    renderPageWithUrl('/jobs?status=open&keyword=sen&page=3');
+    await waitFor(() => expect(listJobs).toHaveBeenCalledWith(expect.objectContaining({
+      page: 3,
+      keyword: 'sen',
+      status: 'open',
+    })));
+  });
+
+  it('8. changing filter input updates list via useUrlParam', async () => {
+    (listJobs as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, has_more: false } });
+    renderPage();
+    await waitFor(() => expect(listJobs).toHaveBeenCalledTimes(1));
+    const select = document.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'open' } });
+    fireEvent.click(screen.getByText('搜索'));
+    await waitFor(() => expect(listJobs).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'open' })
+    ));
+  });
+});;
