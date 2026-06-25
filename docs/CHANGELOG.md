@@ -20,6 +20,23 @@
 
 ---
 
+## v2.3.0 (Sub-D3 Plan 1 — Backend Webhooks + Placements) — 2026-06-25
+
+### 新增功能
+- **GET /v1/admin/webhooks/dead-letter**：paginated envelope + 4 个 filter（event_type/min_attempt_count/from/until）
+- **GET /v1/admin/placements**：paginated envelope + 3 个 filter（status/from/until）
+- **新 capability**：`admin.list_dead_letter`（`admin.list_placements` 已存在，更新 response_schema）
+
+### Breaking changes（admin-web 同步修复）
+- 2 个 GET endpoint 之前返回 flat array，现在返回 `{ ok, data, pagination }` envelope
+- 仅 admin-web 调用，影响本项目 frontend（Plan 2 同步上 UI）
+
+### 测试
+- 后端 +13 个集成测试（webhook 死信 6 + placements 7）
+- e2e-m3 测试更新为 envelope 形式
+
+---
+
 ## v2.2.0 (Sub-D2 Plan 2 — Frontend Timeline) — 2026-06-25
 
 ### 新增功能
