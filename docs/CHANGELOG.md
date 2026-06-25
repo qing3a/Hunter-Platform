@@ -20,6 +20,18 @@
 
 ---
 
+## v2.4.1 (Small Fixes — Cap Test Dynamic + useUrlParam) — 2026-06-25
+
+### 改进
+- **cap test 改 dynamic**：删除 hardcoded `expectedCount` 断言，避免每次加 capability 手动改 test
+- **`useUrlParam` 通用 hook**：抽出 single-URL-param primitive，`useTimelineFilters` 重构使用（~30 行 boilerplate 减少）
+- **`useTimelineFilters` 行为不变**（URL 持久化 + filter 行为完全一致）
+
+### 测试
+- 前端 +6 个 useUrlParam unit test
+
+---
+
 ## v2.4.0 (Sub-D4 Plan 2 — Frontend Detail Pages) — 2026-06-25
 
 ### 新增功能
