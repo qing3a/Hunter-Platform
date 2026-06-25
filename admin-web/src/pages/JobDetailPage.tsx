@@ -30,12 +30,12 @@ export default function JobDetailPage() {
 
   if (job === null) return <Layout adminName="Admin"><p>加载中...</p></Layout>;
   if (job.loading) return <Layout adminName="Admin"><Skeleton variant="row" count={5} /></Layout>;
-  if (job.error) {
+  if ('error' in job) {
     return (
       <Layout adminName="Admin">
         <div data-testid="job-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {job.error}</p>
-          <Link to="/jobs" className="btn">← 返回职位列表</Link>
+          <Link to="/admin/jobs" className="btn">← 返回职位列表</Link>
         </div>
       </Layout>
     );
@@ -45,14 +45,14 @@ export default function JobDetailPage() {
   return (
     <Layout adminName="Admin">
       <div data-testid="job-detail">
-      <Link to="/jobs">← 返回职位列表</Link>
+      <Link to="/admin/jobs">← 返回职位列表</Link>
       <h1 style={{ marginTop: 16 }}>{j.title}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={j.status} />
         <span>雇主: {j.employer_name}</span>
         <span>创建: {relativeTime(j.created_at)}</span>
       </div>
-      <Link to={`/jobs/${j.id}/timeline`} className="btn btn-primary" data-testid="job-timeline-link">查看时间轴</Link>
+      <Link to={`/admin/jobs/${j.id}/timeline`} className="btn btn-primary" data-testid="job-timeline-link">查看时间轴</Link>
       </div>
     </Layout>
   );

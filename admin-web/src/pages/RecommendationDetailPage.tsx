@@ -30,12 +30,12 @@ export default function RecommendationDetailPage() {
 
   if (rec === null) return <Layout adminName="Admin"><p>加载中...</p></Layout>;
   if (rec.loading) return <Layout adminName="Admin"><Skeleton variant="row" count={5} /></Layout>;
-  if (rec.error) {
+  if ('error' in rec) {
     return (
       <Layout adminName="Admin">
         <div data-testid="recommendation-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {rec.error}</p>
-          <Link to="/recommendations" className="btn">← 返回推荐列表</Link>
+          <Link to="/admin/recommendations" className="btn">← 返回推荐列表</Link>
         </div>
       </Layout>
     );
@@ -45,7 +45,7 @@ export default function RecommendationDetailPage() {
   return (
     <Layout adminName="Admin">
       <div data-testid="recommendation-detail">
-      <Link to="/recommendations">← 返回推荐列表</Link>
+      <Link to="/admin/recommendations">← 返回推荐列表</Link>
       <h1 style={{ marginTop: 16 }}>推荐 {r.id}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={r.status} />
@@ -54,7 +54,7 @@ export default function RecommendationDetailPage() {
         <span>候选: <code>{r.anonymized_candidate_id}</code></span>
         <span>创建: {relativeTime(r.created_at)}</span>
       </div>
-      <Link to={`/recommendations/${r.id}/timeline`} className="btn btn-primary" data-testid="recommendation-timeline-link">查看时间轴</Link>
+      <Link to={`/admin/recommendations/${r.id}/timeline`} className="btn btn-primary" data-testid="recommendation-timeline-link">查看时间轴</Link>
       </div>
     </Layout>
   );

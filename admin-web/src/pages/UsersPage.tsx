@@ -67,14 +67,14 @@ export default function UsersPage() {
             </button>
           )}
           <Link
-            to={`/users/${r.id}`}
+            to={`/admin/users/${r.id}`}
             className="btn btn-sm"
             data-testid={`detail-link-${r.id}`}
           >
             详情
           </Link>{' '}
           <Link
-            to={`/users/${r.id}/timeline`}
+            to={`/admin/users/${r.id}/timeline`}
             className="btn btn-sm"
             data-testid={`timeline-link-${r.id}`}
           >

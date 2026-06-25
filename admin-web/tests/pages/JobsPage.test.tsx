@@ -52,7 +52,7 @@ describe('JobsPage (Sub-C)', () => {
   it('4. clicking 详情 navigates to detail page (Sub-D4 update)', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('detail-link-job_1')).toBeTruthy());
-    expect(screen.getByTestId('detail-link-job_1').getAttribute('href')).toBe('/jobs/job_1');
+    expect(screen.getByTestId('detail-link-job_1').getAttribute('href')).toBe('/admin/jobs/job_1');
   });
 
   it('5. CSV button renders', async () => {

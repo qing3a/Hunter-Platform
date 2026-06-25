@@ -37,8 +37,8 @@ export default function CandidatesPage() {
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     { key: 'timeline', header: '时间轴', render: r => (
       <span>
-        <Link to={`/candidates/${r.anonymized_id}`} className="btn btn-sm" data-testid={`detail-link-${r.anonymized_id}`}>详情</Link>{' '}
-        <Link to={`/candidates/${r.anonymized_id}/timeline`} className="btn btn-sm" data-testid={`timeline-link-${r.anonymized_id}`}>时间轴</Link>
+        <Link to={`/admin/candidates/${r.anonymized_id}`} className="btn btn-sm" data-testid={`detail-link-${r.anonymized_id}`}>详情</Link>{' '}
+        <Link to={`/admin/candidates/${r.anonymized_id}/timeline`} className="btn btn-sm" data-testid={`timeline-link-${r.anonymized_id}`}>时间轴</Link>
       </span>
     ) },
   ];

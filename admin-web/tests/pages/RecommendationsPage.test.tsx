@@ -48,7 +48,7 @@ describe('RecommendationsPage (Sub-C)', () => {
   it('4. 详情 navigates to detail page (Sub-D4 update)', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('detail-link-rec_1')).toBeTruthy());
-    expect(screen.getByTestId('detail-link-rec_1').getAttribute('href')).toBe('/recommendations/rec_1');
+    expect(screen.getByTestId('detail-link-rec_1').getAttribute('href')).toBe('/admin/recommendations/rec_1');
   });
 
   it('5. CSV button visible', async () => {
