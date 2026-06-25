@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -45,6 +46,15 @@ export default function JobsPage() {
     { key: 'employer', header: '雇主', render: r => r.employer_name },
     { key: 'title', header: '职位', render: r => r.title },
     { key: 'status', header: '状态', render: r => <StatusBadge status={r.status} /> },
+    { key: 'timeline', header: '时间轴', render: r => (
+      <Link
+        to={`/jobs/${r.id}/timeline`}
+        className="btn btn-sm"
+        data-testid={`timeline-link-${r.id}`}
+      >
+        时间轴
+      </Link>
+    ) },
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     { key: 'actions', header: '操作', render: r => (
       <button onClick={() => setDetail({ open: true, data: r, title: `Job ${r.id}` })} className="btn btn-sm">
