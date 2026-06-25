@@ -12,50 +12,105 @@ type TimelineFilterBarProps = {
   onClear: () => void;
 };
 
+const CONTROL_HEIGHT = 32;
+const CONTROL_STYLE = {
+  height: CONTROL_HEIGHT,
+  padding: '0 8px',
+  border: '1px solid #ccc',
+  borderRadius: 4,
+  fontSize: 13,
+  boxSizing: 'border-box' as const,
+};
+
+const LABEL_STYLE = {
+  display: 'block',
+  fontSize: 12,
+  color: '#666',
+  marginBottom: 4,
+};
+
 export default function TimelineFilterBar(props: TimelineFilterBarProps) {
   const { source, onSourceChange, from, onFromChange, until, onUntilChange, actor, onActorChange, onClear } = props;
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-      <select
-        value={source}
-        onChange={e => onSourceChange(e.target.value as Source)}
-        data-testid="timeline-source-filter"
-        style={{ padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
-      >
-        <option value="all">来源:全部</option>
-        <option value="admin">来源:admin</option>
-        <option value="user">来源:user</option>
-        <option value="unlock">来源:unlock</option>
-      </select>
-      <label>
-        从{' '}
+    <div
+      style={{
+        background: '#fafafa',
+        border: '1px solid #e0e0e0',
+        borderRadius: 4,
+        padding: 16,
+        marginBottom: 16,
+        display: 'flex',
+        gap: 16,
+        alignItems: 'flex-end',
+        flexWrap: 'wrap',
+      }}
+    >
+      <div>
+        <label style={LABEL_STYLE} htmlFor="timeline-source-filter">来源</label>
+        <select
+          id="timeline-source-filter"
+          value={source}
+          onChange={e => onSourceChange(e.target.value as Source)}
+          data-testid="timeline-source-filter"
+          style={{ ...CONTROL_STYLE, width: 130 }}
+        >
+          <option value="all">全部</option>
+          <option value="admin">admin</option>
+          <option value="user">user</option>
+          <option value="unlock">unlock</option>
+        </select>
+      </div>
+
+      <div>
+        <label style={LABEL_STYLE} htmlFor="timeline-from">从</label>
         <input
+          id="timeline-from"
           type="date"
           value={from.slice(0, 10)}
           onChange={e => onFromChange(e.target.value ? e.target.value + 'T00:00:00Z' : '')}
           data-testid="timeline-from"
-          style={{ padding: 4 }}
+          style={{ ...CONTROL_STYLE, width: 140 }}
         />
-      </label>
-      <label>
-        至{' '}
+      </div>
+
+      <div>
+        <label style={LABEL_STYLE} htmlFor="timeline-until">至</label>
         <input
+          id="timeline-until"
           type="date"
           value={until.slice(0, 10)}
           onChange={e => onUntilChange(e.target.value ? e.target.value + 'T23:59:59Z' : '')}
           data-testid="timeline-until"
-          style={{ padding: 4 }}
+          style={{ ...CONTROL_STYLE, width: 140 }}
         />
-      </label>
-      <input
-        type="text"
-        placeholder="操作人搜索..."
-        value={actor}
-        onChange={e => onActorChange(e.target.value)}
-        data-testid="timeline-actor"
-        style={{ padding: 8, border: '1px solid #ccc', borderRadius: 4, width: 200 }}
-      />
-      <button onClick={onClear} className="btn" data-testid="timeline-clear">
+      </div>
+
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <label style={LABEL_STYLE} htmlFor="timeline-actor">操作人</label>
+        <input
+          id="timeline-actor"
+          type="text"
+          placeholder="搜索操作人 ID..."
+          value={actor}
+          onChange={e => onActorChange(e.target.value)}
+          data-testid="timeline-actor"
+          style={{ ...CONTROL_STYLE, width: '100%' }}
+        />
+      </div>
+
+      <button
+        onClick={onClear}
+        data-testid="timeline-clear"
+        style={{
+          height: CONTROL_HEIGHT,
+          padding: '0 16px',
+          background: '#fff',
+          border: '1px solid #ccc',
+          borderRadius: 4,
+          cursor: 'pointer',
+          fontSize: 13,
+        }}
+      >
         清除
       </button>
     </div>
