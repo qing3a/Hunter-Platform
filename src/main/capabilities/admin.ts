@@ -9,6 +9,7 @@ import {
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
+  ListTimelineResponseSchema,
 } from '../schemas/admin.js';
 
 export const adminCapabilities = defineCapabilitySet({
@@ -211,6 +212,15 @@ export const adminCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: [],
       effects: ['db.recommendations.listAll'],
+    },
+    {
+      name: 'admin.get_timeline',
+      description: '获取 user/candidate/job/recommendation 的合并审计时间轴(UNION 3 表)。',
+      method: 'GET', path: '/v1/admin/timeline/:type/:id',
+      response_schema: ListTimelineResponseSchema,
+      quota_cost: 0,
+      preconditions: [],
+      effects: ['db.audit.unionAll'],
     },
   ],
 });

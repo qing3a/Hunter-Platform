@@ -1467,6 +1467,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | GET | `/v1/admin/login-events` | `admin.login_events` | 0 | — | db.admin_login_events.list |
 | GET | `/v1/admin/jobs` | `admin.list_jobs` | 0 | — | db.jobs.listAll |
 | GET | `/v1/admin/recommendations` | `admin.list_recommendations` | 0 | — | db.recommendations.listAll |
+| GET | `/v1/admin/timeline/:type/:id` | `admin.get_timeline` | 0 | — | db.audit.unionAll |
 
 > - `admin.ping`: Admin 健康检查 ping。
 > - `admin.dashboard_stats`: 平台总览统计(用户/候选人/job/placement 数)。
@@ -1490,6 +1491,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.admin_log`: 查看 admin 操作日志(谁在什么时间做了什么管理动作)。
 > - `admin.list_jobs`: 列出所有 jobs(含 employer_name),支持 status 筛选 + 关键词搜索。
 > - `admin.list_recommendations`: 列出所有 recommendations(含 job_title + headhunter_name),支持 status 筛选 + 关键词 + 时间范围。
+> - `admin.get_timeline`: 获取 user/candidate/job/recommendation 的合并审计时间轴(UNION 3 表)。
 
 <!-- CAPABILITIES_END -->
 

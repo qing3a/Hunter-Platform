@@ -157,6 +157,8 @@ function pathParamsFor(capName: string): Record<string, string> {
     case 'admin.soft_warn_user':
     case 'admin.adjust_user_quota':
       return { id: client.ids.get('candidate') ?? '' };
+    case 'admin.get_timeline':
+      return { type: 'user', id: client.ids.get('candidate') ?? '' };
     default:
       return {};
   }
