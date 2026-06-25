@@ -59,7 +59,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <MetricCard label="职位总数" value={stats.total_jobs} />
         <MetricCard label="今日已用配额" value={stats.daily_quota_used} />
-        <Link to="/webhooks/dead-letter" style={{ textDecoration: 'none', flex: 1, minWidth: 180 }}>
+        <Link to="/admin/webhooks/dead-letter" style={{ textDecoration: 'none', flex: 1, minWidth: 180 }}>
           <MetricCard label="Webhook 死信" value={stats.webhook_dead_letters} />
         </Link>
       </div>
