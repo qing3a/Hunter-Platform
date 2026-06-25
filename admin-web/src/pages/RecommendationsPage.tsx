@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -59,9 +60,18 @@ export default function RecommendationsPage() {
     { key: 'status', header: '状态', render: r => <StatusBadge status={r.status} /> },
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     { key: 'actions', header: '操作', render: r => (
-      <button onClick={() => setDetail({ open: true, data: r, title: `Recommendation ${r.id}` })} className="btn btn-sm">
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => setDetail({ open: true, data: r, title: `Recommendation ${r.id}` })} className="btn btn-sm">
         详情
       </button>
+        <Link
+          to={`/recommendations/${r.id}/timeline`}
+          className="btn btn-sm"
+          data-testid={`timeline-link-${r.id}`}
+        >
+          时间轴
+        </Link>
+      </div>
     ) },
   ];
 
