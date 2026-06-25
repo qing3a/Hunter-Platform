@@ -12,6 +12,12 @@ export type UserRow = {
   created_at: string;
 };
 
+export async function getUser(id: string): Promise<UserRow> {
+  const env = await apiFetchRaw<UserRow>('users/' + id);
+  if (!env.ok || !env.data) throw new Error(env.error?.message ?? 'Failed to fetch user');
+  return env.data;
+}
+
 export async function listUsers(opts: {
   page?: number;
   pageSize?: number;

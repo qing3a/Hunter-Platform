@@ -21,6 +21,12 @@ type Paginated<T> = {
   pagination: { total: number; page: number; pageSize: number; has_more: boolean };
 };
 
+export async function getRecommendation(id: string): Promise<RecommendationRow> {
+  const env = await apiFetchRaw<RecommendationRow>('recommendations/' + id);
+  if (!env.ok || !env.data) throw new Error(env.error?.message ?? 'Failed to fetch recommendation');
+  return env.data;
+}
+
 export async function listRecommendations(opts: {
   page?: number;
   pageSize?: number;

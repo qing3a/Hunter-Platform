@@ -13,6 +13,12 @@ export type CandidateRow = {
   created_at: string;
 };
 
+export async function getCandidate(id: string): Promise<CandidateRow> {
+  const env = await apiFetchRaw<CandidateRow>('candidates/' + id);
+  if (!env.ok || !env.data) throw new Error(env.error?.message ?? 'Failed to fetch candidate');
+  return env.data;
+}
+
 export async function listCandidates(opts: {
   page?: number;
   pageSize?: number;

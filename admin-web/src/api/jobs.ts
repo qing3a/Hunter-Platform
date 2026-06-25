@@ -17,6 +17,12 @@ type Paginated<T> = {
   pagination: { total: number; page: number; pageSize: number; has_more: boolean };
 };
 
+export async function getJob(id: string): Promise<JobRow> {
+  const env = await apiFetchRaw<JobRow>('jobs/' + id);
+  if (!env.ok || !env.data) throw new Error(env.error?.message ?? 'Failed to fetch job');
+  return env.data;
+}
+
 export async function listJobs(opts: {
   page?: number;
   pageSize?: number;
