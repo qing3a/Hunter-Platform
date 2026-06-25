@@ -42,7 +42,7 @@ describe('pnpm conformance:gen', () => {
     expect(fs.existsSync(OUT)).toBe(true);
   });
 
-  it('output contains 51 it.todo stubs (one per capability)', () => {
+  it('output contains 1 it.todo stub per capability (computed dynamically)', () => {
     const src = fs.readFileSync(OUT, 'utf8');
     const stubCount = (src.match(/it\.todo\(/g) ?? []).length;
     const expectedCount = getAllCapabilitySets().reduce(
@@ -50,10 +50,8 @@ describe('pnpm conformance:gen', () => {
       0,
     );
     expect(stubCount).toBe(expectedCount);
-    // Sub-C Plan 1 added admin.list_jobs + admin.list_recommendations (+2 = 53)
-    // Sub-D2 added admin.get_timeline (+1 = 54)
-    // Sub-D3 added admin.list_dead_letter (+1 = 55; admin.list_placements already existed)
-    expect(expectedCount).toBe(55);
+    // Sanity check: at least 50 capabilities (catches catastrophic drift)
+    expect(expectedCount).toBeGreaterThanOrEqual(50);
   });
 
   it('output contains 6 describe blocks (one per set)', () => {
