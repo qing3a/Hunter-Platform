@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
@@ -12,8 +13,10 @@ export default function CandidatesPage() {
   const [rows, setRows] = useState<CandidateRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [keyword, setKeyword] = useUrlParam<string>('keyword', '');
+  const [statusFilter, setStatusFilter] = useUrlParam<string>('unlock_status', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
 
   const load = (p: number, keyword?: string, unlock_status?: string) => {
     setLoading(true);
@@ -26,7 +29,7 @@ export default function CandidatesPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page, undefined, statusFilter); }, [page, statusFilter]);
+  useEffect(() => { load(page, keyword || undefined, statusFilter || undefined); }, [page, keyword, statusFilter]);
 
   const columns: Column<CandidateRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.anonymized_id}</code> },
@@ -57,7 +60,7 @@ export default function CandidatesPage() {
       <SearchBar
         placeholder="搜索姓名/邮箱..."
         filters={filters}
-        onSearch={(kw, f) => { setPage(1); setStatusFilter(f.unlock_status || ''); load(1, kw, f.unlock_status); }}
+        onSearch={(kw, f) => { setKeyword(kw); setPage(1); setStatusFilter(f.unlock_status || ''); load(1, kw, f.unlock_status); }}
       />
       <Table<CandidateRow>
         columns={columns}

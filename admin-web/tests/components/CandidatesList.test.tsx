@@ -10,6 +10,12 @@ vi.mock('../../src/api/candidates', () => ({
 import { listCandidates } from '../../src/api/candidates';
 import CandidatesPage from '../../src/pages/CandidatesPage';
 
+const renderPageWithUrl = (initialUrl: string) => render(
+  <MemoryRouter initialEntries={[initialUrl]}>
+    <CandidatesPage />
+  </MemoryRouter>
+);
+
 const mockRows = [
   {
     anonymized_id: 'c_a1',
@@ -91,4 +97,26 @@ describe('CandidatesPage', () => {
       );
     });
   });
-});
+
+  it('8. mount reads filter from URL (useUrlParam)', async () => {
+    (listCandidates as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 3, pageSize: 20, has_more: false } });
+    renderPageWithUrl('/candidates?unlock_status=unlocked&keyword=ali&page=3');
+    await waitFor(() => expect(listCandidates).toHaveBeenCalledWith(expect.objectContaining({
+      page: 3,
+      keyword: 'ali',
+      unlock_status: 'unlocked',
+    })));
+  });
+
+  it('9. changing filter input updates list via useUrlParam', async () => {
+    (listCandidates as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, has_more: false } });
+    render(<MemoryRouter><CandidatesPage /></MemoryRouter>);
+    await waitFor(() => expect(listCandidates).toHaveBeenCalledTimes(1));
+    const select = document.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'unlocked' } });
+    fireEvent.click(screen.getByText('搜索'));
+    await waitFor(() => expect(listCandidates).toHaveBeenCalledWith(
+      expect.objectContaining({ unlock_status: 'unlocked' })
+    ));
+  });
+});;
