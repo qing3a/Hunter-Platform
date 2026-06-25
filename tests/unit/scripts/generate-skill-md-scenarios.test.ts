@@ -52,8 +52,8 @@ describe('pnpm conformance:gen', () => {
     expect(stubCount).toBe(expectedCount);
     // Sub-C Plan 1 added admin.list_jobs + admin.list_recommendations (+2 = 53)
     // Sub-D2 added admin.get_timeline (+1 = 54)
-    // Sub-D3 added admin.list_dead_letter + admin.list_placements (+2 = 56)
-    expect(expectedCount).toBe(56);
+    // Sub-D3 added admin.list_dead_letter (+1 = 55; admin.list_placements already existed)
+    expect(expectedCount).toBe(55);
   });
 
   it('output contains 6 describe blocks (one per set)', () => {

@@ -45,7 +45,8 @@ describe('M3 E2E: Admin dashboard + actions', () => {
   });
 
   it('admin flow: list dead letter, retry, status → pending', () => {
-    const dl = webhooksIpc.listDeadLetter() as any[];
+    // Sub-D3: handler now returns { rows, total } (envelope shape)
+    const { rows: dl } = webhooksIpc.listDeadLetter() as { rows: any[]; total: number };
     expect(dl.length).toBe(1);
     const target = dl[0];
     const result = webhooksIpc.retry(target.id);

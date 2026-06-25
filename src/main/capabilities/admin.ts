@@ -153,9 +153,9 @@ export const adminCapabilities = defineCapabilitySet({
     },
     {
       name: 'admin.list_placements',
-      description: '列出所有 placement 记录(管理员视图)。',
+      description: '列出 placements（含 status/日期 filter）',
       method: 'GET', path: '/v1/admin/placements',
-      response_schema: AdminPlacementsListResponseSchema,
+      response_schema: ListPlacementsResponseSchema,
       quota_cost: 0,
       preconditions: [],
       effects: ['db.placements.listAll'],
@@ -231,15 +231,6 @@ export const adminCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: [],
       effects: ['db.webhooks.deadLetter.listAll'],
-    },
-    {
-      name: 'admin.list_placements',
-      description: '列出 placements（含 status/日期 filter）',
-      method: 'GET', path: '/v1/admin/placements',
-      response_schema: ListPlacementsResponseSchema,
-      quota_cost: 0,
-      preconditions: [],
-      effects: ['db.placements.listAll'],
     },
   ],
 });
