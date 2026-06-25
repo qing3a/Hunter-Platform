@@ -88,7 +88,7 @@ function buildUnionBranches(filter: TimelineFilter): { branches: BranchResult[];
   if (filter.source) {
     return {
       branches: allBranches.branches.filter(b => b.source === filter.source),
-      params: allBranches.params.filter((_, i) => allBranches.branches[i].source === filter.source),
+      params: allBranches.params.filter((_, i) => allBranches.branches[i]!.source === filter.source),
     };
   }
   return allBranches;
