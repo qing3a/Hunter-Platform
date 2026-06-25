@@ -9,7 +9,10 @@ type ConfirmModalProps = {
   cancelText?: string;
   variant?: 'danger' | 'primary';
   error?: string | null;
-  onConfirm: () => Promise<void>;
+  requireReason?: boolean;
+  reasonMinLength?: number;
+  reasonPlaceholder?: string;
+  onConfirm: (reason?: string) => Promise<void>;
   onClose: () => void;
 };
 
@@ -18,17 +21,26 @@ export default function ConfirmModal({
   confirmText = '确认', cancelText = '取消',
   variant = 'primary',
   error = null,
+  requireReason = false,
+  reasonMinLength = 3,
+  reasonPlaceholder = '请输入原因（至少 3 字符）',
   onConfirm, onClose,
 }: ConfirmModalProps) {
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
   const displayError = error ?? localError;
 
   const handleConfirm = async () => {
+    if (requireReason && reason.trim().length < reasonMinLength) {
+      setLocalError(`原因至少 ${reasonMinLength} 字符`);
+      return;
+    }
     setLoading(true);
     setLocalError(null);
     try {
-      await onConfirm();
+      await onConfirm(requireReason ? reason.trim() : undefined);
+      setReason('');
       onClose();
     } catch (e: any) {
       setLocalError(e?.message ?? '操作失败');
@@ -57,6 +69,19 @@ export default function ConfirmModal({
       }
     >
       <p style={{ margin: 0 }}>{message}</p>
+      {requireReason && (
+        <div style={{ marginTop: 12 }}>
+          <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>原因 *</label>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            placeholder={reasonPlaceholder}
+            rows={2}
+            data-testid="confirm-modal-reason"
+            style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
+        </div>
+      )}
       {displayError && (
         <div
           data-testid="confirm-modal-error"
