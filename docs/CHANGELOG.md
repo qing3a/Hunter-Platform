@@ -20,6 +20,22 @@
 
 ---
 
+## v2.3.0 (Sub-D3 Plan 2 — Frontend Webhooks + Placements) — 2026-06-25
+
+### 新增功能
+- **2 个新 page**：
+  - `/webhooks/dead-letter` — WebhookDeadLetterPage（filter: event_type/min_attempts/from/until + 重试）
+  - `/placements` — PlacementsPage（filter: status/from/until + mark-paid/cancel via ConfirmModal）
+- **ConfirmModal 组件**：shared confirm dialog，支持 variant=primary|danger + loading + 内联错误显示
+- **API wrappers**：`listDeadLetter` + `retryDeadLetter` + `listPlacements` + `markPaid` + `cancelPlacement`
+- **Layout 导航**：+2 nav items (Webhook 死信 / Placements)
+- **Dashboard 卡片 link**：Webhook 死信 metric 加 `<Link>` 跳到 /webhooks/dead-letter
+
+### 测试
+- 前端 +19 个新测试（API wrapper 9 + ConfirmModal 5 + WebhookDeadLetterPage 4 + PlacementsPage 5 = 23 total, 部分测试因 fix 调整）
+
+---
+
 ## v2.3.0 (Sub-D3 Plan 1 — Backend Webhooks + Placements) — 2026-06-25
 
 ### 新增功能
