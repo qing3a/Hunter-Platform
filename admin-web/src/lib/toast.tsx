@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -34,8 +34,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }, [dismiss]);
 
+  // Memoise the context value so consumer components don't re-render on every
+  // Provider render. Without this, every push/dismiss creates a new object and
+  // forces all consumers (incl. pages) to re-render, which can cause useEffect
+  // dependency loops → "stuck loading" symptom.
+  const value = useMemo<ToastContextValue>(
+    () => ({ toasts, push, dismiss }),
+    [toasts, push, dismiss],
+  );
+
   return (
-    <ToastContext.Provider value={{ toasts, push, dismiss }}>
+    <ToastContext.Provider value={value}>
       {children}
     </ToastContext.Provider>
   );
