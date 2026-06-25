@@ -18,6 +18,7 @@ import {
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
   ListAdminLogResponseSchema,
   ListTimelineResponseSchema,
+  ListDeadLetterResponseSchema, ListPlacementsResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';
@@ -237,8 +238,30 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   // Webhooks
   router.get('/webhooks/dead-letter', (req, res, next) => {
     try {
-      const limit = req.query.limit ? Number(req.query.limit) : undefined;
-      respond(res, DeadLetterListResponseSchema, { ok: true, data: webhooks.listDeadLetter(limit) }, { strict: true });
+      const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      const min_attempt_count = req.query.min_attempt_count
+        ? Number(req.query.min_attempt_count)
+        : undefined;
+      if (min_attempt_count !== undefined && (!Number.isFinite(min_attempt_count) || min_attempt_count < 0)) {
+        throw Errors.invalidParams('min_attempt_count must be a non-negative integer');
+      }
+      const { rows, total } = webhooks.listDeadLetter({
+        event_type: typeof req.query.event_type === 'string' ? req.query.event_type : undefined,
+        min_attempt_count,
+        from: typeof req.query.from === 'string' ? req.query.from : undefined,
+        until: typeof req.query.until === 'string' ? req.query.until : undefined,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      } as any);
+      respond(res, ListDeadLetterResponseSchema, {
+        ok: true, data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/webhooks/:id/retry', (req, res, next) => {
@@ -338,12 +361,28 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   // Placements
   router.get('/placements', (req, res, next) => {
     try {
-      const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-      const validStatus = (status === 'pending_payment' || status === 'paid' || status === 'cancelled')
-        ? status : undefined;
-      const filter: { status?: 'pending_payment' | 'paid' | 'cancelled' } = {};
-      if (validStatus) filter.status = validStatus;
-      respond(res, AdminPlacementsListResponseSchema, { ok: true, data: placements.list(filter) }, { strict: true });
+      const validStatuses = ['pending_payment', 'paid', 'cancelled'] as const;
+      const statusParam = typeof req.query.status === 'string' ? req.query.status : '';
+      if (statusParam && !(validStatuses as readonly string[]).includes(statusParam)) {
+        throw Errors.invalidParams('status must be pending_payment|paid|cancelled');
+      }
+      const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+      const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 20;
+      if (!Number.isFinite(page) || page < 1) throw Errors.invalidParams('page must be a positive integer');
+      if (!Number.isFinite(pageSize) || pageSize < 1 || pageSize > 100) {
+        throw Errors.invalidParams('pageSize must be 1-100');
+      }
+      const { rows, total } = placements.list({
+        status: statusParam ? (statusParam as any) : undefined,
+        from: typeof req.query.from === 'string' ? req.query.from : undefined,
+        until: typeof req.query.until === 'string' ? req.query.until : undefined,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      } as any);
+      respond(res, ListPlacementsResponseSchema, {
+        ok: true, data: rows,
+        pagination: { total, page, pageSize, has_more: page * pageSize < total },
+      }, { strict: true });
     } catch (e) { next(e); }
   });
   router.post('/placements/:id/mark-paid', (req, res, next) => {
