@@ -303,7 +303,7 @@ const ListRecommendationsResponseSchema = z.object({
 });
 
 export {
-  JobRowSchema, RecommendationRowSchema,
+  JobRowSchema, RecommendationRowSchema, AdminCandidateSchema,
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
 };
 

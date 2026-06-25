@@ -2,6 +2,9 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
+import { z } from 'zod';
+import { UserPublicSchema } from '../schemas/common.js';
+import { AdminCandidateSchema, JobRowSchema, RecommendationRowSchema } from '../schemas/admin.js';
 import {
   PingResponseSchema, DashboardStatsResponseSchema, ListUsersResponseSchema,
   SuspendUserResponseSchema, UnsuspendUserResponseSchema, AdjustQuotaResponseSchema,
@@ -234,6 +237,27 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       }, { strict: true });
     } catch (e) { next(e); }
   });
+
+  // Sub-D4: get-by-id routes (must be registered BEFORE /:id/timeline to avoid catch-all)
+  const getById = (handler: (id: string) => any, schema: any) => (req: any, res: any, next: any) => {
+    try {
+      const id = req.params.id;
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) throw Errors.invalidParams('id has invalid format');
+      const row = handler(id);
+      if (!row) throw Errors.notFound('Not found');
+      respond(res, schema, { ok: true, data: row }, { strict: true });
+    } catch (e) { next(e); }
+  };
+
+  const GetUserResponseSchema = z.object({ ok: z.literal(true), data: UserPublicSchema });
+  const GetJobResponseSchema = z.object({ ok: z.literal(true), data: JobRowSchema });
+  const GetCandidateResponseSchema = z.object({ ok: z.literal(true), data: AdminCandidateSchema });
+  const GetRecommendationResponseSchema = z.object({ ok: z.literal(true), data: RecommendationRowSchema });
+
+  router.get('/users/:id', getById(users.get, GetUserResponseSchema));
+  router.get('/jobs/:id', getById(jobs.get, GetJobResponseSchema));
+  router.get('/candidates/:id', getById(candidates.get, GetCandidateResponseSchema));
+  router.get('/recommendations/:id', getById(recommendations.get, GetRecommendationResponseSchema));
 
   // Webhooks
   router.get('/webhooks/dead-letter', (req, res, next) => {
