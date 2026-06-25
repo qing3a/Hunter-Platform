@@ -117,4 +117,23 @@ describe('GET /v1/admin/webhooks/dead-letter (Sub-D3 Plan 1)', () => {
     const r = await request(app).post('/v1/admin/webhooks/99999/retry').set('Authorization', adminAuth);
     expect(r.status).toBe(404);
   });
+
+  it('7. retry writes admin_action_log row (Sub-D4)', async () => {
+    const id = (db.prepare("SELECT id FROM webhook_delivery_queue WHERE status = 'dead_letter' LIMIT 1").get() as any).id;
+    const beforeCount = (db.prepare("SELECT COUNT(*) AS c FROM admin_action_log WHERE action = 'retry_webhook'").get() as { c: number }).c;
+
+    const r = await request(app).post(`/v1/admin/webhooks/${id}/retry`).set('Authorization', adminAuth);
+    expect(r.status).toBe(200);
+
+    const afterCount = (db.prepare("SELECT COUNT(*) AS c FROM admin_action_log WHERE action = 'retry_webhook'").get() as { c: number }).c;
+    expect(afterCount).toBe(beforeCount + 1);
+
+    const log = db.prepare(`SELECT * FROM admin_action_log WHERE target_id = ? AND action = 'retry_webhook' ORDER BY id DESC LIMIT 1`).get(String(id)) as any;
+    expect(log).toBeTruthy();
+    expect(log.admin_user_id).toBeTruthy();
+    const details = JSON.parse(log.details_json);
+    expect(details).toHaveProperty('event_type');
+    expect(details).toHaveProperty('target_user_id');
+    expect(details).toHaveProperty('previous_attempt_count');
+  });
 });
