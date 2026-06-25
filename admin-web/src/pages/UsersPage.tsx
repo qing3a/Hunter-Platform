@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useUrlParam } from '../hooks/useUrlParam';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
@@ -14,9 +15,11 @@ export default function UsersPage() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [userTypeFilter, setUserTypeFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [keyword, setKeyword] = useUrlParam<string>('keyword', '');
+  const [userTypeFilter, setUserTypeFilter] = useUrlParam<string>('user_type', '');
+  const [statusFilter, setStatusFilter] = useUrlParam<string>('status', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
   const toast = useToast();
   const [quotaModal, setQuotaModal] = useState<{ open: boolean; user: UserRow | null }>({
     open: false, user: null,
@@ -34,7 +37,7 @@ export default function UsersPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page, undefined, userTypeFilter, statusFilter); }, [page, userTypeFilter, statusFilter]);
+  useEffect(() => { load(page, keyword || undefined, userTypeFilter || undefined, statusFilter || undefined); }, [page, keyword, userTypeFilter, statusFilter]);
 
   const handleAdjustQuota = async (params: { new_quota: number; reason: string }) => {
     if (!quotaModal.user) return;
@@ -43,7 +46,7 @@ export default function UsersPage() {
       type: 'success',
       message: `已调整 ${quotaModal.user.name} 配额至 ${result.new_quota}`,
     });
-    load(page, undefined, userTypeFilter, statusFilter);
+    load(page, keyword || undefined, userTypeFilter || undefined, statusFilter || undefined);
   };
 
   const columns: Column<UserRow>[] = [
@@ -105,6 +108,7 @@ export default function UsersPage() {
         placeholder="搜索姓名..."
         filters={filters}
         onSearch={(kw, f) => {
+          setKeyword(kw);
           setPage(1);
           setUserTypeFilter(f.user_type || '');
           setStatusFilter(f.status || '');
