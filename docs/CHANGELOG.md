@@ -20,6 +20,26 @@
 
 ---
 
+## v2.2.0 (Sub-D2 Plan 2 — Frontend Timeline) — 2026-06-25
+
+### 新增功能
+- **4 个 per-entity timeline 页面**：
+  - `/users/:id/timeline` — UserTimelinePage
+  - `/candidates/:id/timeline` — CandidateTimelinePage
+  - `/jobs/:id/timeline` — JobTimelinePage
+  - `/recommendations/:id/timeline` — RecommendationTimelinePage
+- **2 个共享组件**：
+  - `<TimelineFilterBar>` — source + from/until + actor + clear 筛选条
+  - `<TimelineList>` — 扁平列表，source badge（admin=蓝/user=绿/unlock=橙）+ AuditJsonDrawer 详情查看
+- **API wrapper**：`getTimeline(type, id, opts)` + 类型定义
+- **列表页入口**：UsersPage / CandidatesPage / JobsPage / RecommendationsPage 行末加「时间轴」Link 跳到对应 timeline 页
+- **filter 不持久化到 URL**（Sub-D3 follow-up）
+
+### 测试
+- 前端 +28 个新测试（API wrapper 5 + FilterBar 3 + List 4 + 4 page × 4 = 16 + 列表 Link 集成）
+
+---
+
 ## v2.1.1 (Sub-C Plan 2 — Mutation) — 2026-06-25
 
 ### 新增功能
