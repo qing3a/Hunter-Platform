@@ -206,7 +206,24 @@ export const ListAdminLogResponseSchema = z.object({
   pagination: PaginationSchema,
 });
 
-export { PaginationSchema, ListUsersEnvelopeSchema };
+export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema };
+
+// Sub-D2: per-entity timeline schema. Standardized columns from 3 audit tables
+// (admin_action_log + action_history + unlock_audit_log) via UNION ALL.
+const TimelineItemSchema = z.object({
+  id: z.number().int(),
+  source: z.enum(['admin', 'user', 'unlock']),
+  action: z.string(),
+  actor: z.string().nullable(),
+  details: z.string().nullable(),
+  created_at: ISODateTime,
+});
+
+const ListTimelineResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.array(TimelineItemSchema),
+  pagination: PaginationSchema,
+});
 
 // Sub-C Plan 1: Jobs + Recommendations list schemas
 const JobRowSchema = z.object({
