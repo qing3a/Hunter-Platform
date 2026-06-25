@@ -20,6 +20,20 @@
 
 ---
 
+## v2.4.0 (Sub-D4 Plan 1 — Backend Detail + Retry Audit) — 2026-06-25
+
+### 新增功能
+- **4 个 GET :id endpoint**：`/v1/admin/users/:id` + `/jobs/:id` + `/candidates/:id` + `/recommendations/:id`（返回单条 entity，404 if not found）
+- **Webhook retry 写 audit log**（Sub-D3 known limitation fix）：`webhooks.retry()` 现在写 `admin_action_log`（action='retry_webhook'，含 event_type/target_user_id/previous_attempt_count）
+
+### Breaking changes
+- `webhooks.retry()` handler signature 加 `adminUserId` 参数（仅 admin-web 调用，Plan 2 同步修复）
+
+### 测试
+- 后端 +9 个集成测试
+
+---
+
 ## v2.3.0 (Sub-D3 Plan 2 — Frontend Webhooks + Placements) — 2026-06-25
 
 ### 新增功能
