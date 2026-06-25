@@ -20,6 +20,18 @@
 
 ---
 
+## v2.5.0 (Sub-D5 — User Suspend/Unsuspend Quick Action) — 2026-06-25
+
+### 新增功能
+- **UserDetailPage 智能按钮**:active 状态显示「暂停账号」（红色 danger），suspended 显示「恢复账号」（蓝色 primary），deleted 无按钮
+- **ConfirmModal 扩展 `requireReason` prop**:suspend 时弹带 textarea 的弹窗，reason ≥3 字符才能提交
+- **suspend/unsuspend audit**:写 `admin_action_log`（Sub-C 已实现，无需新代码）
+
+### 测试
+- 前端 +9 个组件/页面/API 测试
+
+---
+
 ## v2.4.1 (Small Fixes — Cap Test Dynamic + useUrlParam) — 2026-06-25
 
 ### 改进
