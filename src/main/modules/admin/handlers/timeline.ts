@@ -43,14 +43,16 @@ export function createAdminTimelineHandler(db: DB) {
         b.sql.replace(/__ACTOR_COL__/g, () => ACTOR_COLS[b.source as TimelineSource])
           .replace('__TIME_ACTOR__', timeActorFilter.clause)
       );
-      const allParams = branchParams.flat().concat(timeActorFilter.params);
+      // Each branch has its own [id, ...timeActorFilter.params] so params align
+      // with the repeated WHERE clause in each UNION ALL branch.
+      const allParams = branchParams.flatMap(p => [...p, ...timeActorFilter.params]);
 
       const limit = filter.limit ?? 20;
       const offset = filter.offset ?? 0;
-      const sql = `${filteredBranches.join(' UNION ALL ')} ORDER BY created_at DESC LIMIT ? OFFSET ?`;
+      const sql = `SELECT * FROM (${filteredBranches.join(' UNION ALL ')}) ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       const rows = db.prepare(sql).all(...allParams, limit, offset) as any[];
-      const totalSql = `SELECT COUNT(*) AS c FROM (${filteredBranches.join(' UNION ALL ')}) AS combined`;
-      const total = (db.prepare(totalSql).get() as { c: number }).c;
+      const totalSql = `SELECT COUNT(*) AS c FROM (${filteredBranches.join(' UNION ALL ')})`;
+      const total = (db.prepare(totalSql).get(...allParams) as { c: number }).c;
       return {
         rows: rows.map(r => ({
           id: r.id,
@@ -81,6 +83,18 @@ type BranchResult = {
 };
 
 function buildUnionBranches(filter: TimelineFilter): { branches: BranchResult[]; params: any[][] } {
+  const allBranches = buildAllBranches(filter);
+  // Filter branches by source param (each branch's source is a static literal)
+  if (filter.source) {
+    return {
+      branches: allBranches.branches.filter(b => b.source === filter.source),
+      params: allBranches.params.filter((_, i) => allBranches.branches[i].source === filter.source),
+    };
+  }
+  return allBranches;
+}
+
+function buildAllBranches(filter: TimelineFilter): { branches: BranchResult[]; params: any[][] } {
   switch (filter.type) {
     case 'user':
       return userBranches(filter.id);
