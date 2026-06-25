@@ -127,5 +127,29 @@ export function createAdminUsersHandler(db: DB) {
       });
       return { user_id, previous_quota: previousQuota, new_quota, reason };
     },
+    get(id: string): {
+      id: string; user_type: 'candidate' | 'headhunter' | 'employer'; name: string;
+      quota_per_day: number; quota_used: number; quota_reset_at: string;
+      reputation: number; status: 'active' | 'suspended' | 'deleted';
+      created_at: string;
+    } | null {
+      const row = db.prepare(
+        `SELECT id, user_type, name, quota_per_day, quota_used, quota_reset_at,
+                reputation, status, created_at
+         FROM users WHERE id = ?`
+      ).get(id) as any;
+      if (!row) return null;
+      return {
+        id: row.id,
+        user_type: row.user_type,
+        name: row.name,
+        quota_per_day: row.quota_per_day,
+        quota_used: row.quota_used,
+        quota_reset_at: row.quota_reset_at,
+        reputation: row.reputation,
+        status: row.status,
+        created_at: row.created_at,
+      };
+    },
   };
 }

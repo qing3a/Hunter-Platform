@@ -62,5 +62,35 @@ export function createAdminCandidatesHandler(db: DB) {
         .run(new Date().toISOString(), anonymized_id);
       return { anonymized_id, removed: true };
     },
+    get(anonymized_id: string): {
+      anonymized_id: string; candidate_user_id: string; masked_name: string; masked_email: string;
+      headhunter_id: string;
+      industry: string | null; title_level: string | null;
+      is_public_pool: 0 | 1; unlock_status: string; created_at: string;
+    } | null {
+      const r = db.prepare(`
+        SELECT ca.id AS anonymized_id, cp.candidate_user_id,
+               u.name AS raw_name, u.contact AS raw_email,
+               ca.source_headhunter_id AS headhunter_id,
+               ca.industry, ca.title_level, ca.is_public_pool, ca.unlock_status, ca.created_at
+        FROM candidates_anonymized ca
+        JOIN candidates_private cp ON cp.id = ca.source_private_id
+        JOIN users u ON u.id = cp.candidate_user_id
+        WHERE ca.id = ?
+      `).get(anonymized_id) as any;
+      if (!r) return null;
+      return {
+        anonymized_id: r.anonymized_id,
+        candidate_user_id: r.candidate_user_id,
+        masked_name: maskName(r.raw_name),
+        masked_email: maskEmail(r.raw_email),
+        headhunter_id: r.headhunter_id,
+        industry: r.industry,
+        title_level: r.title_level,
+        is_public_pool: r.is_public_pool,
+        unlock_status: r.unlock_status,
+        created_at: r.created_at,
+      };
+    },
   };
 }

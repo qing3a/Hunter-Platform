@@ -47,5 +47,15 @@ export function createAdminJobsHandler(db: DB) {
 
       return { rows, total };
     },
+    get(id: string): JobRow | null {
+      const row = db.prepare(
+        `SELECT j.id, j.employer_id, u.name AS employer_name,
+                j.title, j.status, j.created_at, j.updated_at
+         FROM jobs j
+         INNER JOIN users u ON u.id = j.employer_id
+         WHERE j.id = ?`
+      ).get(id) as JobRow | undefined;
+      return row ?? null;
+    },
   };
 }

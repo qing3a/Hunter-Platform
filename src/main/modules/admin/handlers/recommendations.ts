@@ -73,5 +73,18 @@ export function createAdminRecommendationsHandler(db: DB) {
 
       return { rows, total };
     },
+    get(id: string): RecommendationRow | null {
+      const row = db.prepare(`
+        SELECT r.id, r.job_id, j.title AS job_title,
+               r.anonymized_candidate_id, r.headhunter_id,
+               u.name AS headhunter_name, r.status,
+               r.created_at, r.updated_at
+        FROM recommendations r
+        LEFT JOIN jobs j ON j.id = r.job_id
+        LEFT JOIN users u ON u.id = r.headhunter_id
+        WHERE r.id = ?
+      `).get(id) as RecommendationRow | undefined;
+      return row ?? null;
+    },
   };
 }
