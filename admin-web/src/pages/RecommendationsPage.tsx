@@ -61,7 +61,7 @@ export default function RecommendationsPage() {
     { key: 'created', header: '创建时间', render: r => relativeTime(r.created_at) },
     { key: 'actions', header: '操作', render: r => (
       <div style={{ display: 'flex', gap: 8 }}>
-        <Link to={`/admin/recommendations/${r.id}`} className="btn btn-sm" data-testid={`detail-link-${r.id}`}>
+        <Link to={`/recommendations/${r.id}`} className="btn btn-sm" data-testid={`detail-link-${r.id}`}>
           详情
         </Link>
         <button onClick={() => setDetail({ open: true, data: r, title: `Recommendation ${r.id}` })} className="btn btn-sm">

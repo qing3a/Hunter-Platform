@@ -35,7 +35,7 @@ export default function RecommendationDetailPage() {
       <Layout adminName="Admin">
         <div data-testid="recommendation-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {rec.error}</p>
-          <Link to="/admin/recommendations" className="btn">← 返回推荐列表</Link>
+          <Link to="/recommendations" className="btn">← 返回推荐列表</Link>
         </div>
       </Layout>
     );
@@ -45,7 +45,7 @@ export default function RecommendationDetailPage() {
   return (
     <Layout adminName="Admin">
       <div data-testid="recommendation-detail">
-      <Link to="/admin/recommendations">← 返回推荐列表</Link>
+      <Link to="/recommendations">← 返回推荐列表</Link>
       <h1 style={{ marginTop: 16 }}>推荐 {r.id}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={r.status} />

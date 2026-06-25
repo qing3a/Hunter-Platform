@@ -21,10 +21,10 @@ export default function Layout({ children, adminName }: { children: React.ReactN
         <div className="sidebar__brand">猎头管理后台</div>
         <nav className="sidebar__nav">
           <NavLink to="/" end style={linkStyle}>仪表盘</NavLink>
-          <NavLink to="/admin/users" style={linkStyle}>用户</NavLink>
-          <NavLink to="/admin/candidates" style={linkStyle}>候选人</NavLink>
-          <NavLink to="/admin/jobs" style={linkStyle}>职位</NavLink>
-          <NavLink to="/admin/recommendations" style={linkStyle}>推荐</NavLink>
+          <NavLink to="/users" style={linkStyle}>用户</NavLink>
+          <NavLink to="/candidates" style={linkStyle}>候选人</NavLink>
+          <NavLink to="/jobs" style={linkStyle}>职位</NavLink>
+          <NavLink to="/recommendations" style={linkStyle}>推荐</NavLink>
           <NavLink to="/webhooks/dead-letter" style={linkStyle}>Webhook 死信</NavLink>
           <NavLink to="/placements" style={linkStyle}>Placements</NavLink>
           <NavLink to="/audit" style={linkStyle}>审计</NavLink>

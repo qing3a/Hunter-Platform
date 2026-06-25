@@ -35,7 +35,7 @@ export default function CandidateDetailPage() {
       <Layout adminName="Admin">
         <div data-testid="candidate-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {candidate.error}</p>
-          <Link to="/admin/candidates" className="btn">← 返回候选人列表</Link>
+          <Link to="/candidates" className="btn">← 返回候选人列表</Link>
         </div>
       </Layout>
     );
@@ -44,7 +44,7 @@ export default function CandidateDetailPage() {
   const c = candidate.data;
   return (
     <Layout adminName="Admin">
-      <Link to="/admin/candidates">← 返回候选人列表</Link>
+      <Link to="/candidates">← 返回候选人列表</Link>
       <h1 style={{ marginTop: 16 }}>{c.masked_name}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={c.unlock_status} />

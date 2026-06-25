@@ -35,7 +35,7 @@ export default function JobDetailPage() {
       <Layout adminName="Admin">
         <div data-testid="job-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {job.error}</p>
-          <Link to="/admin/jobs" className="btn">← 返回职位列表</Link>
+          <Link to="/jobs" className="btn">← 返回职位列表</Link>
         </div>
       </Layout>
     );
@@ -45,7 +45,7 @@ export default function JobDetailPage() {
   return (
     <Layout adminName="Admin">
       <div data-testid="job-detail">
-      <Link to="/admin/jobs">← 返回职位列表</Link>
+      <Link to="/jobs">← 返回职位列表</Link>
       <h1 style={{ marginTop: 16 }}>{j.title}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={j.status} />

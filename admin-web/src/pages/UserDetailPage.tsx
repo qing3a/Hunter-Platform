@@ -35,7 +35,7 @@ export default function UserDetailPage() {
       <Layout adminName="Admin">
         <div data-testid="user-error-state">
           <p style={{ color: '#a8071a' }}>无法加载: {user.error}</p>
-          <Link to="/admin/users" className="btn">← 返回用户列表</Link>
+          <Link to="/users" className="btn">← 返回用户列表</Link>
         </div>
       </Layout>
     );
@@ -44,7 +44,7 @@ export default function UserDetailPage() {
   const u = user.data;
   return (
     <Layout adminName="Admin">
-      <Link to="/admin/users">← 返回用户列表</Link>
+      <Link to="/users">← 返回用户列表</Link>
       <h1 style={{ marginTop: 16 }}>{u.name}</h1>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
         <StatusBadge status={u.status} />

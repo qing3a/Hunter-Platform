@@ -49,7 +49,7 @@ describe('M3 E2E: Admin dashboard + actions', () => {
     const { rows: dl } = webhooksIpc.listDeadLetter() as { rows: any[]; total: number };
     expect(dl.length).toBe(1);
     const target = dl[0];
-    const result = webhooksIpc.retry(target.id);
+    const result = webhooksIpc.retry('admin', target.id);
     expect(result.status).toBe('pending');
   });
 });
