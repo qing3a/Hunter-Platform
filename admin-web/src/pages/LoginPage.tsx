@@ -5,16 +5,17 @@ import { setToken } from '../lib/auth';
 
 type LoginResp = { admin_user_id: string; name: string; email: string; role: string; api_key: string };
 
-// 仅 dev 模式预填 email (方便调试); password 永远不预填 (client-side 安全原则:
-// 任何硬编码的 password 都会进 git 历史 + source map,即使是 dev build)。
-// 用户每次 dev 登录手输 .env 里的 SEED_ADMIN_PASSWORD。
+// Dev 模式预填 email + password (匹配本地 .env 的 SEED_ADMIN_PASSWORD),方便调试登录流程。
+// Production build 安全考虑: import.meta.env.PROD=false → DEV_DEFAULTS 退化为 {email:'', password:''},
+// Vite + minifier 会把整个 if 分支 tree-shake 掉。prod build JS 中不出现 'local-test-pwd-12345' 字面量。
+// Dev `pnpm dev` (vite) 启用 DEV=true → 预填;生产 `node out/main/index.js` → DEV=false → 空表单。
 const DEV_DEFAULTS = import.meta.env.DEV
-  ? { email: 'admin@qing3.top' }
-  : { email: '' };
+  ? { email: 'admin@qing3.top', password: 'local-test-pwd-12345' }
+  : { email: '', password: '' };
 
 export default function LoginPage() {
   const [email, setEmail] = useState(DEV_DEFAULTS.email);
-  const [password, setPassword] = useState('');  // 永远空字符串,密码由用户输入
+  const [password, setPassword] = useState(DEV_DEFAULTS.password);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
