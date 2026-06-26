@@ -318,7 +318,8 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
     try { const adminUserId = (req as any).admin?.id;
     if (!adminUserId) throw Errors.unauthorized();
     const value = (req.body && typeof req.body === 'object' && 'value' in req.body) ? (req.body as any).value : req.body;
-    respond(res, GetConfigResponseSchema, { ok: true, data: config.set(adminUserId, req.params.key, value) }); } catch (e) { next(e); }
+    const reason = (req.body && typeof req.body === 'object' && typeof (req.body as any).reason === 'string') ? (req.body as any).reason : '';
+    respond(res, GetConfigResponseSchema, { ok: true, data: config.set(adminUserId, req.params.key, value, reason) }); } catch (e) { next(e); }
   });
 
   // Jobs
