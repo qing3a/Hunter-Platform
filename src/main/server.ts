@@ -273,10 +273,31 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
 /**
  * Convenience for tests (supertest) — opens its own DB.
  */
-export function createApp(): Express {
+// 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容
+function migrateConfigFromFilesToDB(db: any) {
+  const configDir = path.join(process.cwd(), 'config');
+  if (!fs.existsSync(configDir)) return;
+  const files = ['desensitization.json', 'commission.json'];
+  for (const f of files) {
+    const full = path.join(configDir, f);
+    if (!fs.existsSync(full)) continue;
+    try {
+      const content = fs.readFileSync(full, 'utf8');
+      const key = path.basename(f, '.json');
+      const now = new Date().toISOString();
+      db.prepare(
+        'INSERT OR IGNORE INTO config (key, value_json, updated_at, updated_by_admin_user_id) VALUES (?, ?, ?, NULL)'
+      ).run(key, content, now);
+    } catch (e) {
+      console.warn('[startup] config migration failed for ' + f + ':', e);
+    }
+  }
+}
+
   const env = loadEnv();
   const db = openDb(env.DATABASE_PATH);
   runMigrations(db);
+  migrateConfigFromFilesToDB(db);
   return createAppFromDb(db, env);
 }
 
@@ -312,6 +333,7 @@ export async function startApiServer(opts: { port?: number } = {}): Promise<http
   const env = loadEnv();
   const db = openDb(env.DATABASE_PATH);
   runMigrations(db);
+  migrateConfigFromFilesToDB(db);
 
   // Sub-A of Task #3: seed first admin if admin_users empty and SEED_ADMIN_PASSWORD is set.
   // (Done before app starts so login is immediately available once the port is bound.)
