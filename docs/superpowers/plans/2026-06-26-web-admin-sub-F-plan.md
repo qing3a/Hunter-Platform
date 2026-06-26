@@ -636,15 +636,19 @@ export function createRateLimitMiddleware(db: DB, cache: ConfigCache): RequestHa
     }
     // Denied
     const denied = results.find(r => r.remaining <= 0)!;
+    const windowName = WINDOWS.find(w => w.seconds === denied.violatedWindowSeconds)?.key ?? 'hour';
     res.status(429).json({
       ok: false,
       error: {
         code: 'RATE_LIMITED',
-        message: `Rate limit exceeded; retry after ${denied.resetAfterSeconds}s`,
-        details: { window: denied.windowSeconds, limit: limits[Object.keys(limits).find(k => WINDOWS.find(w => w.key === k)?.seconds === denied.windowSeconds) as keyof typeof limits] },
+        message: 'Burst rate limit exceeded',
+        details: {
+          violated_window: windowName,
+          retry_after_seconds: denied.retryAfterSeconds,
+        },
       },
     });
-    res.setHeader('Retry-After', String(denied.resetAfterSeconds));
+    return;
   };
 }
 ```
