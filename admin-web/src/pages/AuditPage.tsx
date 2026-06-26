@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { listAdminLog, listActionHistory, listLoginEvents, type AdminLogRow, type ActionHistoryRow, type LoginEventRow } from '../api/audit';
@@ -42,8 +43,9 @@ export default function AuditPage() {
 }
 
 function AdminActionsTab() {
-  const [page, setPage] = useState(1);
-  const [actor, setActor] = useState('');
+  const [actor, setActor] = useUrlParam<string>('actor', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
   const [data, setData] = useState<AdminLogRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -51,10 +53,10 @@ function AdminActionsTab() {
     open: false, title: '', json: null,
   });
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (a: string | undefined = actor) => {
     setLoading(true);
     try {
-      const res = await listAdminLog({ page, pageSize: 20, actor: actor || undefined });
+      const res = await listAdminLog({ page, pageSize: 20, actor: a || undefined });
       setData(res.data);
       setTotal(res.pagination.total);
     } finally { setLoading(false); }
@@ -68,7 +70,7 @@ function AdminActionsTab() {
         type="text"
         placeholder="按操作人邮箱/ID 搜索..."
         value={actor}
-        onChange={e => { setActor(e.target.value); setPage(1); }}
+        onChange={e => { const v = e.target.value; setActor(v); setPage(1); fetch(v); }}
         style={{ marginBottom: 12, padding: 6, width: 300 }}
       />
       {loading ? <p>加载中...</p> : (
