@@ -20,24 +20,32 @@
 
 ---
 
-## v2.7.0 (Sub-E Plan 1 — Backend Webhook Subscriptions) — 2026-06-26
+## v2.7.0 (Sub-E — Config DB-backed + Settings UI) — 2026-06-26
+
+> **Sub-E 方向重写**：原计划 3 tabs（Config / Rate-Limit / Webhooks）。可行性检查后收敛为**只做 Config DB-backed**，Rate-Limit caps 与 Webhook Subscriptions 整体移除（场景未达上线门槛）。
 
 ### 新增功能
-- **1 个 migration** (`v024_webhook_subscriptions`)：webhook_subscriptions 表
-- **4 个 webhook subscription endpoint**：
-  - `GET /v1/admin/webhook-subscriptions` (list)
-  - `POST /v1/admin/webhook-subscriptions` (create, writes admin audit)
-  - `PUT /v1/admin/webhook-subscriptions/:id` (update, writes admin audit)
-  - `DELETE /v1/admin/webhook-subscriptions/:id` (delete, writes admin audit)
-- **4 个新 capability**：`<cap>.list/create/update/delete_webhook_subscription`
-- **Config / Rate-Limit UI 后端**：0 改动（Rate-Limit 用现有 Config 表的 `rate_limit.*` key 存）
+- **1 个 migration** (`v024_config`)：`config` 表（key / value_json / updated_at / updated_by_admin_user_id），同时 `DROP TABLE webhook_subscriptions`（未启用）
+- **Config 端点**（DB-backed + audit）：
+  - `GET /v1/admin/config` — list（key/value/updated_at/updated_by_admin_user_id）
+  - `PUT /v1/admin/config/:key` — upsert，写 `admin_action_log`（action=`update_config`）
+- **启动时配置迁移**：服务首次启动时把 `config/*.json` 读入 `config` 表，之后以 DB 为准
+- **SettingsPage**（`/settings`）— 单 Config tab：
+  - 表格列出全部 config key + JSON-stringified value + 更新时间 + 更新人
+  - 「编辑」/「+ New Key」打开 `ConfigEditModal`：强制 `lowercase.dotted.path` 格式 + JSON 校验 + reason ≥ 3 字符
+  - 「设置」入口加到侧边栏 nav
+
+### 移除（规划变更）
+- **Webhook Subscriptions 整套**：handler + 4 routes + 4 capabilities + 1 migration + 1 table + test
+- **Rate-Limit caps**：原计划在 Settings 暴露可调；移到 follow-up（实际限流值仍由 worker 静态配置）
 
 ### Breaking changes
-- 无
+- 无（v024 migration 是首次安装生效；生产实例无 webhook_subscriptions 表数据可丢）
 
 ### 测试
-- 后端 +10 个集成测试
-- PATCH method 改用 PUT（更兼容 ConformanceClient）
+- 后端：config handler 集成测试（list / upsert / audit / key 格式校验）
+- 前端：SettingsPage 5 case + ConfigEditModal 10 case = +15
+- **admin-web 全量**：43 文件 / 212 tests 全通过，typecheck 干净
 
 ---
 
