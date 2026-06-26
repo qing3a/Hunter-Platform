@@ -5,11 +5,13 @@ import { setToken } from '../lib/auth';
 
 type LoginResp = { admin_user_id: string; name: string; email: string; role: string; api_key: string };
 
-// Dev 模式预填 email + password (匹配本地 .env 的 SEED_ADMIN_PASSWORD),方便调试登录流程。
-// Production build 安全考虑: import.meta.env.PROD=false → DEV_DEFAULTS 退化为 {email:'', password:''},
-// Vite + minifier 会把整个 if 分支 tree-shake 掉。prod build JS 中不出现 'local-test-pwd-12345' 字面量。
-// Dev `pnpm dev` (vite) 启用 DEV=true → 预填;生产 `node out/main/index.js` → DEV=false → 空表单。
-const DEV_DEFAULTS = import.meta.env.DEV
+// Dev/localhost 预填 email + password (匹配本地 .env 的 SEED_ADMIN_PASSWORD),方便调试登录流程。
+// Production 域名 (非 localhost/127.0.0.1) 不预填 (安全: client-side 不暴露 password)。
+// 用 hostname 不用 import.meta.env.DEV 因为 dev 3000 serve 的也是 build 过的文件
+// (import.meta.env.DEV 在 build 时替换为 false),所以 build 时间常量不能用。
+const IS_LOCAL = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const DEV_DEFAULTS = IS_LOCAL
   ? { email: 'admin@qing3.top', password: 'local-test-pwd-12345' }
   : { email: '', password: '' };
 
