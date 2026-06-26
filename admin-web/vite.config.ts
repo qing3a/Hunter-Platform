@@ -4,6 +4,10 @@ import path from 'node:path';
 
 export default defineConfig({
   plugins: [react()],
+  // Sub-G fix: server.ts mounts admin SPA at '/admin/*' via express.static.
+  // base: '/admin/' tells Vite to emit asset paths with this prefix so
+  // <script src="/admin/assets/..."> resolves correctly in the served HTML.
+  base: '/admin/',
   build: {
     outDir: path.resolve(__dirname, '../out/admin'),
     emptyOutDir: true,
