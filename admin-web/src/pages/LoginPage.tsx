@@ -5,14 +5,16 @@ import { setToken } from '../lib/auth';
 
 type LoginResp = { admin_user_id: string; name: string; email: string; role: string; api_key: string };
 
-// 仅 dev 模式填充默认账号密码(方便调试);production build 自动空表单。
+// 仅 dev 模式预填 email (方便调试); password 永远不预填 (client-side 安全原则:
+// 任何硬编码的 password 都会进 git 历史 + source map,即使是 dev build)。
+// 用户每次 dev 登录手输 .env 里的 SEED_ADMIN_PASSWORD。
 const DEV_DEFAULTS = import.meta.env.DEV
-  ? { email: 'admin@qing3.top', password: 'local-test-pwd-12345' }
-  : { email: '', password: '' };
+  ? { email: 'admin@qing3.top' }
+  : { email: '' };
 
 export default function LoginPage() {
   const [email, setEmail] = useState(DEV_DEFAULTS.email);
-  const [password, setPassword] = useState(DEV_DEFAULTS.password);
+  const [password, setPassword] = useState('');  // 永远空字符串,密码由用户输入
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
