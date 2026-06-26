@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
-    pool: 'forks',  // SQLite needs single process
+    include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
+    pool: 'forks',
     poolOptions: {
       forks: { singleFork: true },
     },
