@@ -57,11 +57,11 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
 
   const commissionHandler = createCommissionHandler(db, encryptionKey, notifTrigger);
 
-  router.post('/placements', (req, res, next) => {
+  router.post('/placements', async (req, res, next) => {
     try {
       const parsed = CreatePlacementSchema.safeParse(req.body);
       if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
-      const placement = commissionHandler.createPlacement((req as typeof req & { user?: User }).user!, parsed.data);
+      const placement = await commissionHandler.createPlacement((req as typeof req & { user?: User }).user!, parsed.data);
       respond(res, CreatePlacementResponseSchema, { ok: true, data: placement });
     } catch (e) { next(e); }
   });

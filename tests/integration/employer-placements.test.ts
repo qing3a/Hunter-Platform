@@ -48,8 +48,8 @@ describe('POST /v1/employer/placements', () => {
       .set('Authorization', `Bearer ${employerKey}`)
       .send({ anonymized_candidate_id: anonymizedId, job_id: jobId, annual_salary: 1_000_000 });
     expect(r.status).toBe(200);
-    expect(r.body.data.platform_fee).toBe(200_000);
-    expect(r.body.data.primary_share).toBe(200_000);
+    expect(r.body.data.platform_fee).toBe(100_000);
+    expect(r.body.data.primary_share).toBe(100_000);
     expect(r.body.data.status).toBe('pending_payment');
   });
 

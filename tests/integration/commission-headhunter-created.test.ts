@@ -60,9 +60,9 @@ describe('commission 70/30 split - headhunter created job', () => {
     expect(p.primary_headhunter_id).toBe(hhB.id);  // 70% 给 B (推荐者)
     expect(p.referrer_headhunter_id).toBe(hhA.id);  // 30% 给 A (建岗者, 替代了 referral chain)
     // annual_salary=100万, platform_fee=20万, primary=14万, referrer=6万
-    expect(p.platform_fee).toBe(200000);
-    expect(p.primary_share).toBe(140000);
-    expect(p.referrer_share).toBe(60000);
+    expect(p.platform_fee).toBe(100000);
+    expect(p.primary_share).toBe(70000);
+    expect(p.referrer_share).toBe(30000);
   });
 
   it('同人 (A 建, A 推荐): 100% A (避免自付)', async () => {
@@ -98,8 +98,8 @@ describe('commission 70/30 split - headhunter created job', () => {
     const p = placementRes.body.data;
     expect(p.primary_headhunter_id).toBe(hhA.id);
     expect(p.referrer_headhunter_id).toBeNull();  // 同人: 无 referrer
-    expect(p.platform_fee).toBe(200000);
-    expect(p.primary_share).toBe(200000);  // 100%
+    expect(p.platform_fee).toBe(100000);
+    expect(p.primary_share).toBe(100000);  // 100%
     expect(p.referrer_share).toBe(0);
   });
 
@@ -134,8 +134,8 @@ describe('commission 70/30 split - headhunter created job', () => {
     const p = placementRes.body.data;
     expect(p.primary_headhunter_id).toBe(hhB.id);
     expect(p.referrer_headhunter_id).toBeNull();  // 雇主直发 + 无 referral chain
-    expect(p.platform_fee).toBe(200000);
-    expect(p.primary_share).toBe(200000);
+    expect(p.platform_fee).toBe(100000);
+    expect(p.primary_share).toBe(100000);
     expect(p.referrer_share).toBe(0);
   });
 });

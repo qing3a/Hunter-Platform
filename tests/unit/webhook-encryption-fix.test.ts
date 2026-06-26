@@ -88,11 +88,11 @@ describe('webhook payload encryption fix (Bug 1)', () => {
     expect(rec!.payload_enc.startsWith('v1:')).toBe(true);
   });
 
-  it('commission createPlacement enqueues placement_created with v1: prefix', () => {
+  it('commission createPlacement enqueues placement_created with v1: prefix', async () => {
     // createPlacement requires recommendation status = 'unlocked'
     db.prepare("UPDATE recommendations SET status = 'unlocked' WHERE id = 'r1'").run();
     const handler = createCommissionHandler(db, TEST_KEY);
-    handler.createPlacement(
+    await handler.createPlacement(
       { id: 'u_e1', user_type: 'employer' } as any,
       { anonymized_candidate_id: 'ca1', job_id: 'j1', annual_salary: 200000 },
     );

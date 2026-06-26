@@ -89,8 +89,8 @@ describe('M4 E2E: placement + GDPR + admin billing', () => {
         annual_salary: 1_200_000,
       });
     expect(r.status).toBe(200);
-    expect(r.body.data.platform_fee).toBe(240_000);
-    expect(r.body.data.primary_share).toBe(240_000);
+    expect(r.body.data.platform_fee).toBe(120_000);
+    expect(r.body.data.primary_share).toBe(120_000);
     expect(r.body.data.status).toBe('pending_payment');
     placementId = r.body.data.id;
   });

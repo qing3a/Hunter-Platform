@@ -280,14 +280,26 @@ export function createApp(): Express {
   return createAppFromDb(db, env);
 }
 
-// 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容（Sub-F: 扩为 3 文件）
-function migrateConfigFromFilesToDB(db: any) {
+// 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容（Sub-F: 扩为 3 文件; Sub-G: commission.json 缺失时 seed 默认值）
+export function migrateConfigFromFilesToDB(db: any) {
   const configDir = path.join(process.cwd(), 'config');
   if (!fs.existsSync(configDir)) return;
   const files = ['desensitization.json', 'commission.json', 'industry_map.json'];
   for (const f of files) {
     const full = path.join(configDir, f);
-    if (!fs.existsSync(full)) continue;
+    if (!fs.existsSync(full)) {
+      // Sub-G: if commission.json is missing, seed default value (commission.json often
+      // doesn't exist in dev). Other missing files just skip + warn.
+      if (f === 'commission.json') {
+        const now = new Date().toISOString();
+        db.prepare(
+          'INSERT OR IGNORE INTO config (key, value_json, updated_at, updated_by_admin_user_id) VALUES (?, ?, ?, NULL)'
+        ).run('commission.platform_rate', JSON.stringify(0.1), now);
+      } else {
+        console.warn('[startup] config seed file not found: ' + f + ', skipping');
+      }
+      continue;
+    }
     try {
       const content = fs.readFileSync(full, 'utf8');
       const key = path.basename(f, '.json');

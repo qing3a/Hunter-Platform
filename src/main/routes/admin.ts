@@ -39,6 +39,12 @@ import { createAdminJobsHandler } from '../modules/admin/handlers/jobs.js';
 import { createAdminRecommendationsHandler } from '../modules/admin/handlers/recommendations.js';
 import { createAdminTimelineHandler } from '../modules/admin/handlers/timeline.js';
 
+// Sub-G: Zod schema for commission.platform_rate (must be 0-1 number)
+const CommissionRateBodySchema = z.object({
+  value: z.number().min(0).max(1),
+  reason: z.string().min(3).max(500),
+});
+
 export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
   const users = createAdminUsersHandler(db);
@@ -317,7 +323,17 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   router.put('/config/:key', (req, res, next) => {
     try { const adminUserId = (req as any).admin?.id;
     if (!adminUserId) throw Errors.unauthorized();
-    const value = (req.body && typeof req.body === 'object' && 'value' in req.body) ? (req.body as any).value : req.body;
+    // Sub-G: key-aware Zod validation. commission.platform_rate must be 0-1.
+    let value: unknown;
+    if (req.params.key === 'commission.platform_rate') {
+      const parsed = CommissionRateBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        throw Errors.invalidParams('commission.platform_rate.value must be a number between 0 and 1: ' + parsed.error.issues.map(i => i.message).join('; '));
+      }
+      value = parsed.data.value;
+    } else {
+      value = (req.body && typeof req.body === 'object' && 'value' in req.body) ? (req.body as any).value : req.body;
+    }
     const reason = (req.body && typeof req.body === 'object' && typeof (req.body as any).reason === 'string') ? (req.body as any).reason : '';
     respond(res, GetConfigResponseSchema, { ok: true, data: config.set(adminUserId, req.params.key, value, reason) }); } catch (e) { next(e); }
   });

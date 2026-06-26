@@ -8,6 +8,7 @@ import { createWebhookQueueRepo } from '../../db/repositories/webhook-delivery-q
 import { calculateCommission } from './calculator.js';
 import { Errors } from '../../errors.js';
 import { encrypt } from '../crypto/aes-gcm.js';
+import { createConfigCache } from '../config-cache.js';
 import type { User } from '../../../shared/types.js';
 import { getTraceparentFromContext, withSpanSync } from '../../telemetry.js';
 import type { NotificationTrigger } from '../notification/trigger.js';
@@ -25,6 +26,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
   const jobs = createJobsRepo(db);
   const adminLog = createAdminActionLogRepo(db);
   const webhooks = createWebhookQueueRepo(db);
+  const configCache = createConfigCache(db);  // Sub-G: read commission.platform_rate (TTL=0, always fresh)
 
   function findCandidateUserId(anonymizedId: string): string {
     // candidates_anonymized has source_private_id (FK to candidates_private.candidate_user_id)
@@ -38,12 +40,20 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
   }
 
   return {
-    createPlacement(employer: User, input: CreatePlacementInput): Placement {
+    async createPlacement(employer: User, input: CreatePlacementInput): Promise<Placement> {
+      // Sub-G: read platform rate from config (TTL=0, always fresh). Fallback 0.1.
+      const platformRateRaw = await configCache.getOrDefault<number>(
+        'commission.platform_rate',
+        () => 0.1,
+      );
+      // Defensive: if admin wrote a bad value, fall back to 0.1
+      const platformRate = Number.isFinite(platformRateRaw) ? platformRateRaw : 0.1;
       return withSpanSync('employer.create_placement', {
         'employer.id': employer.id,
         'job.id': input.job_id,
         'anonymized_candidate.id': input.anonymized_candidate_id,
         'placement.annual_salary': input.annual_salary,
+        'commission.platform_rate': platformRate,
       }, (span) => {
       if (employer.user_type !== 'employer') throw Errors.forbidden('Only employers can create placements');
 
@@ -72,6 +82,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
       const commission = calculateCommission({
         annual_salary: input.annual_salary,
         referrer_headhunter_id: referrerForCommission,
+        rates: { platform_fee_rate: platformRate },
       });
 
       const now = new Date().toISOString();
