@@ -4,6 +4,7 @@ import path from 'node:path';
 import { openDb } from '../../../src/main/db/connection';
 import { runMigrations } from '../../../src/main/db/migrations';
 import { createRateLimitMiddleware } from '../../../src/main/modules/rate-limit/middleware';
+import { createConfigCache } from '../../../src/main/modules/config-cache';
 import type { User } from '../../../src/shared/types';
 
 function fakeRes() {
@@ -54,19 +55,19 @@ describe('rate-limit middleware', () => {
     else process.env.RATE_LIMIT_ENABLED = originalEnv;
   });
 
-  it('allows request under limit and calls next() with headers set', () => {
-    const mw = createRateLimitMiddleware(db);
+  it('allows request under limit and calls next() with headers set', async () => {
+    const mw = createRateLimitMiddleware(db, createConfigCache(db));
     const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
-    mw(req, res, () => { nextCalled = true; });
+    await mw(req, res, () => { nextCalled = true; });
     expect(nextCalled).toBe(true);
     expect(res.headers['RateLimit-Limit']).toBe('10, 50, 300');
     expect(res.headers['RateLimit-Remaining']).toBeDefined();
     expect(res.headers['RateLimit-Reset']).toBeDefined();
   });
 
-  it('returns 429 with Retry-After and proper body when any window denied', () => {
+  it('returns 429 with Retry-After and proper body when any window denied', async () => {
     // Pre-fill: 11 requests in the last hour (exceeds 1h limit=300? no, 11<300)
     // Need to push past 1h limit of 300 → directly insert into rate_limit_buckets
     const currentStart = (() => {
@@ -83,11 +84,11 @@ describe('rate-limit middleware', () => {
       `).run('user_test', currentStart);
     }
 
-    const mw = createRateLimitMiddleware(db);
+    const mw = createRateLimitMiddleware(db, createConfigCache(db));
     const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
-    mw(req, res, () => { nextCalled = true; });
+    await mw(req, res, () => { nextCalled = true; });
     expect(nextCalled).toBe(false);
     expect(res.statusCode).toBe(429);
     expect(res.headers['Retry-After']).toBeDefined();
@@ -95,7 +96,7 @@ describe('rate-limit middleware', () => {
     expect(res.body.error.details.violated_window).toBe('hour');
   });
 
-  it('adds soft warning headers when any window remaining < 20%', () => {
+  it('adds soft warning headers when any window remaining < 20%', async () => {
     // Fill the 1h window to 250/300 (83% used) so remaining is 50/300 = 16.7% < 20%
     const currentStart = (() => {
       const ms = Date.now();
@@ -111,37 +112,37 @@ describe('rate-limit middleware', () => {
       `).run('user_test', currentStart);
     }
 
-    const mw = createRateLimitMiddleware(db);
+    const mw = createRateLimitMiddleware(db, createConfigCache(db));
     const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
-    mw(req, res, () => {});
+    await mw(req, res, () => {});
     expect(res.headers['RateLimit-Policy']).toBe('warn');
     expect(res.headers['X-RateLimit-Warning']).toContain('hour');
   });
 
-  it('returns 401-style error when req.user is missing', () => {
-    const mw = createRateLimitMiddleware(db);
+  it('returns 401-style error when req.user is missing', async () => {
+    const mw = createRateLimitMiddleware(db, createConfigCache(db));
     const req = { headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
-    mw(req, res, () => { nextCalled = true; });
+    await mw(req, res, () => { nextCalled = true; });
     expect(nextCalled).toBe(false);
     expect(res.statusCode).toBe(500);
     expect(res.body.error.code).toBe('INTERNAL_ERROR');
   });
 
-  it('FAILS OPEN when DB throws (passes request through, logs error)', () => {
+  it('FAILS OPEN when DB throws (passes request through, logs error)', async () => {
     // Inject a broken DB whose prepare() throws
     const brokenDb = {
       prepare: () => { throw new Error('db is broken'); },
     } as any;
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const mw = createRateLimitMiddleware(brokenDb);
+    const mw = createRateLimitMiddleware(brokenDb, createConfigCache(brokenDb));
     const req = { user: candidate, headers: {} } as any;
     const res = fakeRes();
     let nextCalled = false;
-    mw(req, res, () => { nextCalled = true; });
+    await mw(req, res, () => { nextCalled = true; });
 
     expect(nextCalled).toBe(true);   // fail-open: do not block
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('rate-limit DB error'), expect.any(Error));
@@ -156,13 +157,13 @@ describe('rate-limit middleware', () => {
       else process.env.RATE_LIMIT_ENABLED = originalEnv;
     });
 
-    it('emits RateLimit-Limit=-1 + RateLimit-Policy=unlimited when RATE_LIMIT_ENABLED=false', () => {
+    it('emits RateLimit-Limit=-1 + RateLimit-Policy=unlimited when RATE_LIMIT_ENABLED=false', async () => {
       process.env.RATE_LIMIT_ENABLED = 'false';
-      const mw = createRateLimitMiddleware(db);
+      const mw = createRateLimitMiddleware(db, createConfigCache(db));
       const req = { user: candidate, headers: {} } as any;
       const res = fakeRes();
       let nextCalled = false;
-      mw(req, res, () => { nextCalled = true; });
+      await mw(req, res, () => { nextCalled = true; });
       expect(nextCalled).toBe(true);
       expect(res.headers['RateLimit-Limit']).toBe('-1');
       expect(res.headers['RateLimit-Remaining']).toBe('-1');
@@ -170,12 +171,12 @@ describe('rate-limit middleware', () => {
       expect(res.headers['RateLimit-Policy']).toBe('unlimited');
     });
 
-    it('emits unlimited headers when X-RateLimit-Skip=1', () => {
-      const mw = createRateLimitMiddleware(db);
+    it('emits unlimited headers when X-RateLimit-Skip=1', async () => {
+      const mw = createRateLimitMiddleware(db, createConfigCache(db));
       const req = { user: candidate, headers: { 'x-ratelimit-skip': '1' } } as any;
       const res = fakeRes();
       let nextCalled = false;
-      mw(req, res, () => { nextCalled = true; });
+      await mw(req, res, () => { nextCalled = true; });
       expect(nextCalled).toBe(true);
       expect(res.headers['RateLimit-Limit']).toBe('-1');
       expect(res.headers['RateLimit-Remaining']).toBe('-1');
@@ -183,13 +184,13 @@ describe('rate-limit middleware', () => {
       expect(res.headers['RateLimit-Policy']).toBe('unlimited');
     });
 
-    it('still emits real (non-unlimited) headers when RATE_LIMIT_ENABLED=true', () => {
+    it('still emits real (non-unlimited) headers when RATE_LIMIT_ENABLED=true', async () => {
       process.env.RATE_LIMIT_ENABLED = 'true';
-      const mw = createRateLimitMiddleware(db);
+      const mw = createRateLimitMiddleware(db, createConfigCache(db));
       const req = { user: candidate, headers: {} } as any;
       const res = fakeRes();
       let nextCalled = false;
-      mw(req, res, () => { nextCalled = true; });
+      await mw(req, res, () => { nextCalled = true; });
       expect(nextCalled).toBe(true);
       expect(res.headers['RateLimit-Limit']).toBe('10, 50, 300');
       expect(res.headers['RateLimit-Policy']).toBeUndefined();

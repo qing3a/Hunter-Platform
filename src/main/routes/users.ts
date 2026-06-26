@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
+import { createConfigCache } from '../modules/config-cache.js';
 import { createUsersRepo } from '../db/repositories/users.js';
 import { createActionHistoryRepo } from '../db/repositories/action-history.js';
 import { Errors } from '../errors.js';
@@ -15,7 +16,7 @@ export function createUsersRouter(db: DB): Router {
   const actionHistory = createActionHistoryRepo(db);
 
   router.use(authMiddleware(db));
-  router.use(createRateLimitMiddleware(db));
+  router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   // GET /v1/users/:id/status — 查询用户状态（配额/待办/信誉）
   router.get('/:id/status', (req, res, next) => {

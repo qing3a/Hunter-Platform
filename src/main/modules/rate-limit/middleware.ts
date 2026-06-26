@@ -5,6 +5,7 @@ import { RATE_LIMIT_BURSTS, RATE_LIMIT_ALGO_VERSION, RATE_LIMIT_SOFT_WARN_RATIO 
 import { slidingWindowCheck } from './sliding-window.js';
 import { applyRateLimitHeaders } from './headers.js';
 import { shouldWarn, buildWarningMessage } from './soft-warning.js';
+import { createConfigCache, type ConfigCache } from '../config-cache.js';
 
 const WINDOWS: { seconds: 1 | 60 | 3600; key: 'second' | 'minute' | 'hour' }[] = [
   { seconds: 1,    key: 'second' },
@@ -16,10 +17,14 @@ const WINDOWS: { seconds: 1 | 60 | 3600; key: 'second' | 'minute' | 'hour' }[] =
  * Express middleware that enforces per-user rate limits using the sliding-window-counter
  * algorithm and emits IETF `RateLimit-*` headers on every response.
  *
+ * Sub-F: per-tier limits are read from config table via a lazy 10s in-memory cache
+ * (key: rate_limit.tier.<user_type>.limit_per_<window>). Falls back to
+ * RATE_LIMIT_BURSTS hardcoded values on miss or DB error.
+ *
  * MUST be mounted AFTER `authMiddleware` so `req.user` is populated.
  */
-export function createRateLimitMiddleware(db: DB): RequestHandler {
-  return function rateLimitMiddleware(req: Request, res: Response, next: NextFunction): void {
+export function createRateLimitMiddleware(db: DB, cache: ConfigCache): RequestHandler {
+  return async function rateLimitMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Kill switch (env: RATE_LIMIT_ENABLED=false) — disables all per-user sliding-window
     // rate limiting. For local dev / automated testing only. The header `X-RateLimit-Skip: 1`
     // also opts a single request out (handy for debugging without restarting).
@@ -49,14 +54,28 @@ export function createRateLimitMiddleware(db: DB): RequestHandler {
       return;
     }
 
-    const limits = RATE_LIMIT_BURSTS[user.user_type];
+    // Sub-F: read per-tier limits from config table (10s cache), fall back to hardcoded
+    const tier = user.user_type;
+    const limits = {
+      second: await cache.getOrDefault<number>(
+        `rate_limit.tier.${tier}.limit_per_second`,
+        () => RATE_LIMIT_BURSTS[tier].second,
+      ),
+      minute: await cache.getOrDefault<number>(
+        `rate_limit.tier.${tier}.limit_per_minute`,
+        () => RATE_LIMIT_BURSTS[tier].minute,
+      ),
+      hour: await cache.getOrDefault<number>(
+        `rate_limit.tier.${tier}.limit_per_hour`,
+        () => RATE_LIMIT_BURSTS[tier].hour,
+      ),
+    };
 
-    // FAIL-OPEN: if DB throws, log and pass through. Rate-limiter is auxiliary, not
-    // business-critical — better to let 1 spammer through than block all users.
+    // FAIL-OPEN: if DB throws inside the window check, log and pass through.
     let results: ReturnType<typeof slidingWindowCheck>[];
     try {
       results = WINDOWS.map(w =>
-        slidingWindowCheck(db, user.id, w.seconds, limits[w.key]),
+        slidingWindowCheck(db, user.id, w.seconds, limits[w.key] as number),
       );
     } catch (err) {
       console.error('rate-limit DB error; failing open:', err);
@@ -64,14 +83,14 @@ export function createRateLimitMiddleware(db: DB): RequestHandler {
       return;
     }
 
-    const limitValues = WINDOWS.map(w => limits[w.key]);
+    const limitValues = WINDOWS.map(w => limits[w.key] as number);
     applyRateLimitHeaders(res, results, limitValues);
 
     // Soft warning: any window remaining < 20%?
     const warnStates = WINDOWS.map((w, i) => ({
       windowSeconds: w.seconds,
       remaining: results[i]!.remaining,
-      limit: limits[w.key],
+      limit: limits[w.key] as number,
     }));
     const triggered = warnStates.some(s => shouldWarn(s.remaining, s.limit, RATE_LIMIT_SOFT_WARN_RATIO));
     if (triggered) {

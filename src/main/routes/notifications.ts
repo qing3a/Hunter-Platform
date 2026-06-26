@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
+import { createConfigCache } from '../modules/config-cache.js';
 import { createNotificationHandler } from '../modules/notification/handler.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
@@ -25,7 +26,7 @@ export function createNotificationsRouter(db: DB): Router {
   const handler = createNotificationHandler(db);
 
   router.use(authMiddleware(db));
-  router.use(createRateLimitMiddleware(db));
+  router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   // GET /v1/notifications (mount prefix is /v1/notifications)
   router.get('/', (req: Request, res: Response, next: NextFunction) => {

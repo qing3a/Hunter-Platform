@@ -3,6 +3,7 @@ import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
+import { createConfigCache } from '../modules/config-cache.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
 import { createNotificationTrigger } from '../modules/notification/trigger.js';
 import { createCommissionHandler } from '../modules/commission/handler.js';
@@ -52,7 +53,7 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const notifTrigger = createNotificationTrigger(db);
   const handler = createEmployerHandler(db, notifTrigger);
   router.use(authMiddleware(db));
-  router.use(createRateLimitMiddleware(db));
+  router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   const commissionHandler = createCommissionHandler(db, encryptionKey, notifTrigger);
 

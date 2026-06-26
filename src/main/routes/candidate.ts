@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
+import { createConfigCache } from '../modules/config-cache.js';
 import { createCandidateHandler } from '../modules/candidate/handler.js';
 import { createCandidateExport } from '../modules/candidate/export.js';
 import { createGdprHandler } from '../modules/candidate/gdpr-handler.js';
@@ -22,7 +23,7 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const gdpr = createGdprHandler(db);
   const audit = createUnlockAuditLogRepo(db);
   router.use(authMiddleware(db));
-  router.use(createRateLimitMiddleware(db));
+  router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   router.get('/opportunities', (req, res, next) => {
     try {
