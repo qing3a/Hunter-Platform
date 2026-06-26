@@ -11,6 +11,12 @@ import { listRecommendations } from '../../src/api/recommendations';
 
 const renderPage = () => render(<MemoryRouter><RecommendationsPage /></MemoryRouter>);
 
+const renderPageWithUrl = (initialUrl: string) => render(
+  <MemoryRouter initialEntries={[initialUrl]}>
+    <RecommendationsPage />
+  </MemoryRouter>
+);
+
 describe('RecommendationsPage (Sub-C)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,4 +67,26 @@ describe('RecommendationsPage (Sub-C)', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('未找到推荐')).toBeTruthy());
   });
-});
+
+  it('7. mount reads filter from URL (useUrlParam)', async () => {
+    (listRecommendations as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 3, pageSize: 20, has_more: false } });
+    renderPageWithUrl('/recommendations?status=pending&keyword=eng&from=2026-06-01T00:00:00Z&page=3');
+    await waitFor(() => expect(listRecommendations).toHaveBeenCalledWith(expect.objectContaining({
+      page: 3,
+      keyword: 'eng',
+      status: 'pending',
+    })));
+  });
+
+  it('8. changing filter input updates list via useUrlParam', async () => {
+    (listRecommendations as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, has_more: false } });
+    renderPage();
+    await waitFor(() => expect(listRecommendations).toHaveBeenCalledTimes(1));
+    const select = document.querySelector('select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'pending' } });
+    fireEvent.click(screen.getByText('搜索'));
+    await waitFor(() => expect(listRecommendations).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending' })
+    ));
+  });
+});;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Table, { type Column } from '../components/Table';
@@ -28,16 +29,17 @@ export default function RecommendationsPage() {
   const [rows, setRows] = useState<RecommendationRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<RecommendationStatus | ''>('');
-  const [from, setFrom] = useState('');
-  const [until, setUntil] = useState('');
+  const [keyword, setKeyword] = useUrlParam<string>('keyword', '');
+  const [statusFilter, setStatusFilter] = useUrlParam<RecommendationStatus | ''>('status', '');
+  const [from, setFrom] = useUrlParam<string>('from', '');
+  const [until, setUntil] = useUrlParam<string>('until', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
   const [detail, setDetail] = useState<{ open: boolean; data: unknown; title: string }>({
     open: false, data: null, title: '',
   });
 
-  const load = (p: number, kw: string, status: RecommendationStatus | '', f: string, u: string) => {
+  const load = (p: number, kw: string | undefined, status: RecommendationStatus | '' | undefined, f: string | undefined, u: string | undefined) => {
     setLoading(true);
     listRecommendations({
       page: p, pageSize: 20,
@@ -50,7 +52,7 @@ export default function RecommendationsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(page, keyword, statusFilter, from, until); }, [page, keyword, statusFilter, from, until]);
+  useEffect(() => { load(page, keyword || undefined, (statusFilter || undefined) as RecommendationStatus, from || undefined, until || undefined); }, [page, keyword, statusFilter, from, until]);
 
   const columns: Column<RecommendationRow>[] = [
     { key: 'id', header: 'ID', render: r => <code>{r.id}</code> },
@@ -87,9 +89,10 @@ export default function RecommendationsPage() {
             placeholder="搜索职位/猎头..."
             filters={statusFilters}
             onSearch={(kw, filters) => {
-              setPage(1);
               setKeyword(kw);
+              setPage(1);
               setStatusFilter((filters.status as RecommendationStatus) || '');
+              load(1, kw, (filters.status as RecommendationStatus) || '', '', '');
             }}
           />
           <CsvButton

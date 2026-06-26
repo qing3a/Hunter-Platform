@@ -34,7 +34,7 @@ export default function JobsPage() {
     open: false, data: null, title: '',
   });
 
-  const load = (p: number, kw: string, status: JobStatus | '') => {
+  const load = (p: number, kw: string | undefined, status: JobStatus | '' | undefined) => {
     setLoading(true);
     listJobs({ page: p, pageSize: 20, keyword: kw || undefined, status: status || undefined })
       .then(r => { setRows(r.data); setPagination(r.pagination); })
