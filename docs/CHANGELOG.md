@@ -47,6 +47,48 @@
 - 前端：SettingsPage 5 case + ConfigEditModal 10 case = +15
 - **admin-web 全量**：43 文件 / 212 tests 全通过，typecheck 干净
 
+### Post-Merge Bugfixes（2026-06-26 收尾审查发现 + 修复）
+
+Sub-E 初次合并后整体回归暴露出 4 类问题（其中 1 个致命，让 75 套件跑不了），已全部修复。
+
+#### 🔴 致命：server.ts 编译错误（让 75 套件 transform 失败）
+- Sub-E `e06dc6a` 在 `server.ts` 加 `migrateConfigFromFilesToDB` 函数时，**误删了** `export function createApp(): Express {` 声明行，留下孤儿函数体 + 多余 `}` → 顶层 `return` → TS1128
+- 修复：恢复 `createApp` 函数声明 + 函数体（`migrateConfigFromFilesToDB` 实际调用在 `startApiServer` line 333-336）
+- 影响：之前 `pnpm test` 跑出 75 failed / 353 skipped；修复后 **162 passed / 0 failed / 0 skipped**
+
+#### 🟠 Capability 去重（4 → 2）
+- 原 `admin.get_config` / `admin.put_config`（单数） + `admin.list_config` / `admin.update_config`（复数）→ 4 个 capability 对应 2 个 endpoint
+- `admin.get_config` 的 `response_schema` 之前是 `GetConfigResponseSchema`（单条），与列表 endpoint 不匹配
+- 修复：删 2 个 orphan（`list_config` / `update_config`），`get_config` schema 改回 `ListConfigResponseSchema`
+- skill.md 同步更新（自动生成脚本有 `__dirname` ESM bug 跑不了，手动改）
+
+#### 🟠 死代码清理
+- `src/main/db/repositories/webhook-subscriptions.ts` 整个文件（Sub-E 删了 handler 但漏删 repo）
+- `src/main/schemas/admin.ts:216-235` 4 个 `WebhookSubscription*` schema 零引用
+- `src/main/routes/admin.ts:25` 2 个 webhook subscription import 零使用
+
+#### 🟠 reason 必填（plan key design #6 之前漏实现）
+- `config.set(adminUserId, key, value, reason)` 新增 `reason` 参数
+- 校验：3-500 字符（与 `adjust_user_quota` 一致）
+- `admin_action_log.details_json` 从 `{ value }` 改为 `{ value, reason }`
+- 路由层在 `routes/admin.ts` PUT handler 提取 `req.body.reason` 传入
+
+#### 测试
+- 新增 `tests/integration/admin-config-endpoints.test.ts`（**10 case**）：
+  - GET 空 DB 返 `[]`、PUT 持久化 + 写 audit、upsert 行为
+  - reason 缺失/过短 → 400
+  - key 格式校验（uppercase / 数字开头）→ 400
+  - 无 admin auth → 401
+- 更新 5 个过时测试到新行为：
+  - `admin-endpoints.test.ts`（GET/PUT 期望从旧 file-based map 改为 DB array）
+  - `admin-schemas.test.ts`（schema 名 `ConfigGetResponseSchema` → `List/GetConfigResponseSchema`）
+  - `schema-shape-admin-precondition.test.ts`（同上 + PUT 加 reason）
+  - `schema-shape.test.ts`（`admin.get_config` / `admin.update_config` 加进 COMPLEX_CAPS 跳过主 loop）
+
+#### 最终回归
+- **后端**：162 文件 / 966 case passed / 46 todo / 0 failed / 0 skipped，typecheck 干净
+- **admin-web**：43 文件 / 212 case passed，typecheck 干净
+
 ---
 
 ## v2.6.0 (Sub-D6 — Filter URL Persistence) — 2026-06-26
