@@ -20,6 +20,27 @@
 
 ---
 
+## v2.7.0 (Sub-E Plan 1 — Backend Webhook Subscriptions) — 2026-06-26
+
+### 新增功能
+- **1 个 migration** (`v024_webhook_subscriptions`)：webhook_subscriptions 表
+- **4 个 webhook subscription endpoint**：
+  - `GET /v1/admin/webhook-subscriptions` (list)
+  - `POST /v1/admin/webhook-subscriptions` (create, writes admin audit)
+  - `PUT /v1/admin/webhook-subscriptions/:id` (update, writes admin audit)
+  - `DELETE /v1/admin/webhook-subscriptions/:id` (delete, writes admin audit)
+- **4 个新 capability**：`<cap>.list/create/update/delete_webhook_subscription`
+- **Config / Rate-Limit UI 后端**：0 改动（Rate-Limit 用现有 Config 表的 `rate_limit.*` key 存）
+
+### Breaking changes
+- 无
+
+### 测试
+- 后端 +10 个集成测试
+- PATCH method 改用 PUT（更兼容 ConformanceClient）
+
+---
+
 ## v2.6.0 (Sub-D6 — Filter URL Persistence) — 2026-06-26
 
 ### 改进
