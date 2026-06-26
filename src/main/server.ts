@@ -273,6 +273,13 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
 /**
  * Convenience for tests (supertest) — opens its own DB.
  */
+export function createApp(): Express {
+  const env = loadEnv();
+  const db = openDb(env.DATABASE_PATH);
+  runMigrations(db);
+  return createAppFromDb(db, env);
+}
+
 // 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容
 function migrateConfigFromFilesToDB(db: any) {
   const configDir = path.join(process.cwd(), 'config');
@@ -292,13 +299,6 @@ function migrateConfigFromFilesToDB(db: any) {
       console.warn('[startup] config migration failed for ' + f + ':', e);
     }
   }
-}
-
-  const env = loadEnv();
-  const db = openDb(env.DATABASE_PATH);
-  runMigrations(db);
-  migrateConfigFromFilesToDB(db);
-  return createAppFromDb(db, env);
 }
 
 /**
