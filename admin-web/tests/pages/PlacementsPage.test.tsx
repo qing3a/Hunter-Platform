@@ -22,6 +22,16 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
+const renderPageWithUrl = (initialUrl: string) => render(
+  <MemoryRouter initialEntries={[initialUrl]}>
+    <ToastProvider>
+      <Routes>
+        <Route path="/placements" element={<PlacementsPage />} />
+      </Routes>
+    </ToastProvider>
+  </MemoryRouter>
+);
+
 const mockPending = {
   id: 'p_1', job_id: 'job_1', employer_id: 'u_emp',
   anonymized_candidate_id: 'c_1', primary_headhunter_id: null, referrer_headhunter_id: null,
@@ -77,4 +87,23 @@ describe('PlacementsPage (Sub-D3)', () => {
     fireEvent.click(screen.getByTestId('confirm-modal-confirm'));
     await waitFor(() => expect(cancelPlacement).toHaveBeenCalledWith('p_1'));
   });
-});
+
+  it('7. mount reads filter from URL (useUrlParam)', async () => {
+    (listPlacements as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 3, pageSize: 20, has_more: false } });
+    renderPageWithUrl('/placements?status=paid&from=2026-06-01T00:00:00Z&until=2026-06-30T23:59:59Z&page=3');
+    await waitFor(() => expect(listPlacements).toHaveBeenCalledWith(expect.objectContaining({
+      page: 3,
+      status: 'paid',
+    })));
+  });
+
+  it('8. changing status filter updates list via useUrlParam', async () => {
+    (listPlacements as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, has_more: false } });
+    renderPage();
+    await waitFor(() => expect(listPlacements).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByTestId('filter-status'), { target: { value: 'paid' } });
+    await waitFor(() => expect(listPlacements).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'paid' })
+    ));
+  });
+});;

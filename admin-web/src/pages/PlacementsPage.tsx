@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import Layout from '../components/Layout';
 import Pagination from '../components/Pagination';
 import Skeleton from '../components/Skeleton';
@@ -24,18 +25,19 @@ export default function PlacementsPage() {
   const [rows, setRows] = useState<PlacementRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<PlacementStatus | ''>('');
-  const [from, setFrom] = useState('');
-  const [until, setUntil] = useState('');
-  const [page, setPage] = useState(1);
+  const [status, setStatus] = useUrlParam<PlacementStatus | ''>('status', '');
+  const [from, setFrom] = useUrlParam<string>('from', '');
+  const [until, setUntil] = useUrlParam<string>('until', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
   const [confirm, setConfirm] = useState<ConfirmState>({ open: false });
 
-  const load = useCallback((p: number) => {
+  const load = useCallback((p: number, s: PlacementStatus | '' | undefined = status, f: string | undefined = from, u: string | undefined = until) => {
     setLoading(true);
     listPlacements({
       page: p, pageSize: 20,
-      status: status || undefined,
-      from: from || undefined, until: until || undefined,
+      status: s || undefined,
+      from: f || undefined, until: u || undefined,
     })
       .then(r => { setRows(r.data); setPagination(r.pagination); })
       .catch(err => toast.push({ type: 'error', message: err.message }))
@@ -63,7 +65,7 @@ export default function PlacementsPage() {
       <div style={{ background: '#fafafa', border: '1px solid #e0e0e0', borderRadius: 4, padding: 16, marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>Status</label>
-          <select value={status} onChange={e => { setStatus(e.target.value as any); setPage(1); }} data-testid="filter-status" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }}>
+          <select value={status} onChange={e => { const v = e.target.value as any; setStatus(v); setPage(1); load(1, v || undefined, from || undefined, until || undefined); }} data-testid="filter-status" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }}>
             {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
