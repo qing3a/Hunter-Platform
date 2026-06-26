@@ -3,11 +3,13 @@ import { optionalAuthMiddleware } from '../modules/auth/middleware.js';
 import type { DB } from '../db/connection.js';
 import { loadIndustryMap, TITLE_LEVEL_PATTERNS, SALARY_BANDS } from '../modules/desensitize/mapping.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
+import { createAdminConfigHandler } from '../modules/admin/handlers/config.js';
 import { QUOTA_COSTS } from '../../shared/constants.js';
 import { respond } from '../responses.js';
 import {
   IndustriesResponseSchema, TitleLevelsResponseSchema, SalaryBandsResponseSchema,
 } from '../schemas/config.js';
+import { ListRateLimitsResponseSchema } from '../schemas/admin.js';
 
 export function createConfigRouter(db: DB): Router {
   const router = Router();
@@ -61,6 +63,20 @@ export function createConfigRouter(db: DB): Router {
       }
     }
     respond(res, SalaryBandsResponseSchema, { ok: true, data: SALARY_BANDS });
+  });
+
+  // GET /v1/config/rate-limits — public rate-limit thresholds (Sub-G)
+  router.get('/rate-limits', async (req: Request, res: Response) => {
+    const authedUser = (req as any).user;
+    if (authedUser) {
+      const r = quota.tryConsume(authedUser.id, QUOTA_COSTS.config_lookup ?? 1);
+      if (!r.ok && r.reason === 'INSUFFICIENT_QUOTA') {
+        return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
+      }
+    }
+    const adminConfig = createAdminConfigHandler(db);
+    const data = await adminConfig.getRateLimits();
+    respond(res, ListRateLimitsResponseSchema, { ok: true, data });
   });
 
   return router;

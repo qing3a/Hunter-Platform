@@ -70,15 +70,13 @@ describe('rate-limit reads from config (Sub-F)', () => {
     expect(JSON.parse(row.value_json)).toBe(5);
   });
 
-  it('3. cache TTL: headhunter minute limit stays at 100 (fallback) within 10s', async () => {
-    // After test 1, the cache is warm with `rate_limit.tier.headhunter.limit_per_minute=100`
-    // (fallback value cached on first request). Test 2 admin PUT writes DB but does NOT
-    // invalidate cache. So within TTL=10s, the cache still returns 100.
+  it('3. after config write, public endpoint reflects new minute limit (TTL=0)', async () => {
+    // Sub-G: TTL default is now 0, so admin write takes effect immediately (not 10s).
     const { apiKey } = await registerHeadhunter('RL3');
     const res = await request(app).get('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${apiKey}`);
-    // All 3 are cached fallbacks (from test 1) — minute stays at 100 within 10s window
-    expect(res.headers['ratelimit-limit']).toBe('20, 100, 750');
+    // minute limit was set to 5 in test 2, TTL=0 means new value takes effect immediately
+    expect(res.headers['ratelimit-limit']).toBe('20, 5, 750');
   });
 
   it('4. config row with non-numeric value: middleware still applies (string cast, no 500)', async () => {

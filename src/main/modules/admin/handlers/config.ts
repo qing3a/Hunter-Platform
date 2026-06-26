@@ -1,12 +1,19 @@
 import type { DB } from '../../../db/connection.js';
 import { createAdminActionLogRepo } from '../../../db/repositories/admin-action-log.js';
 import { Errors } from '../../../errors.js';
+import { RATE_LIMIT_BURSTS } from '../../../../shared/constants.js';
+import { createConfigCache } from '../../config-cache.js';
 
 export type ConfigEntry = {
   key: string;
   value: unknown;
   updated_at: string;
   updated_by_admin_user_id: string | null;
+};
+
+export type RateLimitsResponse = {
+  tiers: Record<string, Record<string, number>>;
+  windows: string[];
 };
 
 const KEY_RE = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$/;
@@ -55,6 +62,30 @@ export function createAdminConfigHandler(db: DB) {
         details_json: JSON.stringify({ value, reason: trimmedReason }),
       });
       return { key, value, updated_at: now, updated_by_admin_user_id: adminUserId };
+    },
+
+    // Sub-G: read all per-tier rate-limit thresholds from config (TTL=0, always fresh)
+    async getRateLimits(): Promise<RateLimitsResponse> {
+      const cache = createConfigCache(db);
+      const tiers = ['candidate', 'headhunter', 'employer'] as const;
+      const result: Record<string, Record<string, number>> = {};
+      for (const tier of tiers) {
+        result[tier] = {
+          second: await cache.getOrDefault<number>(
+            `rate_limit.tier.${tier}.limit_per_second`,
+            () => RATE_LIMIT_BURSTS[tier].second,
+          ),
+          minute: await cache.getOrDefault<number>(
+            `rate_limit.tier.${tier}.limit_per_minute`,
+            () => RATE_LIMIT_BURSTS[tier].minute,
+          ),
+          hour: await cache.getOrDefault<number>(
+            `rate_limit.tier.${tier}.limit_per_hour`,
+            () => RATE_LIMIT_BURSTS[tier].hour,
+          ),
+        };
+      }
+      return { tiers: result, windows: ['second', 'minute', 'hour'] };
     },
   };
 }

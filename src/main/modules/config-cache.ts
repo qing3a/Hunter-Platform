@@ -22,7 +22,7 @@ type CacheEntry = { value: unknown; loadedAt: number };
  *
  * Thread safety: single Node process, no locking needed.
  */
-export function createConfigCache(db: DB, ttlMs: number = 10_000): ConfigCache {
+export function createConfigCache(db: DB, ttlMs: number = 0): ConfigCache {
   const cache = new Map<string, CacheEntry>();
 
   function readFromDb(key: string): unknown {

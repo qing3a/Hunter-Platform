@@ -210,7 +210,17 @@ export const ListAdminLogResponseSchema = z.object({
   pagination: PaginationSchema,
 });
 
-export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema, ListConfigResponseSchema, GetConfigResponseSchema };
+// Sub-G: public rate-limit endpoint response
+const ListRateLimitsResponseSchema = EnvelopeSchema(z.object({
+  tiers: z.object({
+    candidate:  z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
+    headhunter: z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
+    employer:   z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
+  }),
+  windows: z.array(z.enum(['second', 'minute', 'hour'])),
+}));
+
+export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema, ListRateLimitsResponseSchema, ListConfigResponseSchema, GetConfigResponseSchema };
 
 const DeadLetterRowSchema = z.object({
   id: z.number().int(),
