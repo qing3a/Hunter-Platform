@@ -1455,13 +1455,11 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | POST | `/v1/admin/webhooks/:id/retry` | `admin.retry_webhook` | 0 | — | db.webhook_deliveries.update(status=pending) |
 | GET | `/v1/admin/rate-limit/buckets` | `admin.rate_limit_buckets` | 0 | — | db.rate_limit.listBuckets |
 | POST | `/v1/admin/rate-limit/users/:id/clear` | `admin.clear_user_rate_limit` | 0 | — | db.rate_limit.clearUser |
-| GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.getAll |
+| GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.listAll |
 | PUT | `/v1/admin/config/:key` | `admin.put_config` | 0 | — | db.config.set; admin_action_log: config_change |
 | GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
 
 | POST | `/v1/admin/placements/:id/mark-paid` | `admin.mark_placement_paid` | 0 | — | db.placements.updateStatus(paid) |
-| GET  | `/v1/admin/config` | `admin.list_config` | 0 | — | db.config.listAll |
-| PUT  | `/v1/admin/config/:key` | `admin.update_config` | 0 | — | db.config.update |
 | POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
 | GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
 | GET | `/v1/admin/admin-log` | `admin.admin_log` | 0 | — | db.admin_action_log.list |
