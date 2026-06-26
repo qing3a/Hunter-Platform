@@ -5,6 +5,38 @@
 
 ---
 
+## v2.9.0 (Sub-G — Public Rate-Limit + Commission Config + Cache TTL 0s) — 2026-06-26
+
+Sub-F 让 worker 读 Config，但还有 3 个运营控制缺口：agent 预读 rate-limit、commission rate 调优、admin 改后立即生效。v2.9.0 解决。
+
+### 新增功能
+- **公开 rate-limit endpoint**：`GET /v1/config/rate-limits`（optional auth，仿 `/v1/config/industries` pattern）— 返 `{ tiers: { candidate, headhunter, employer }, windows: ['second','minute','hour'] }`。agent 可预读避开撞击。
+- **commission 接入 Config**：1 key `commission.platform_rate`（double 0-1）。handler 读 configCache，fallback `0.1`。
+- **migrate seed 默认 commission**：启动时若 `config/commission.json` 缺失，INSERT OR IGNORE `commission.platform_rate = 0.1`（保持向后兼容）。
+- **TTL 缩到 0s**：`config-cache` 默认 TTL 改 0，每次 `get` 重读 DB — admin 改后**立即**生效（不再等 10s）。
+- **Route 层 Zod 校验**：admin PUT `commission.platform_rate` 用 `z.number().min(0).max(1)` 校验 body（其他 key 保持 `unknown`）。
+
+### 配置示例
+```
+GET /v1/config/rate-limits  →  { tiers: { candidate: {second:10, minute:50, hour:300}, ... } }
+
+PUT /v1/admin/config/commission.platform_rate
+  body: { value: 0.15, reason: "Q3 promotion" }
+```
+
+### 测试
+- 后端 +6 case（rate-limit-public 3 + commission-config 3）
+- 现有 commission / rate-limit 测试期望按新 default 0.1 调整（5 个测试文件 11 处断言从 0.2 → 0.1）
+- admin-web：无改动
+- **总计：987 + 6 = 993 tests**
+
+### 已知限制
+- TTL=0 性能：每次 rate-limit endpoint 9 DB read（3 tier × 3 window）。SQLite in-memory < 1ms，端到端 < 10ms。
+- commission 单 rate：hunter/referrer 比例拆分推 Sub-H。
+- 多进程部署：每个进程各自缓存，TTL=0 仍 work，无一致性问题。
+
+---
+
 ## v2.8.0 (Sub-F — Worker Reads Config + Public Rate-Limit DB-Backed) — 2026-06-26
 
 Sub-E 留的"运营可调"是**欺骗性 UI**——admin 改 Config 后 runtime 仍读硬编码常量。v2.8.0 把 2 个业务运行时（rate-limit middleware + industry_map loader）真正接到 Config 表。
