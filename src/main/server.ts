@@ -231,6 +231,26 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
 
+  // Admin Web UI (React SPA built to out/admin/). Serve static assets + SPA
+  // fallback to index.html for client-side routing. admin-web's apiFetch uses
+  // baseURL `/v1`, which is proxied to this server by vite (dev) or served
+  // directly (prod, same origin). Auth is handled by the admin UI's setToken()
+  // (after POST /v1/admin/auth/login); static asset requests are anonymous.
+  const adminUiDir = path.join(process.cwd(), 'out', 'admin');
+  if (fs.existsSync(adminUiDir)) {
+    app.use('/admin', express.static(adminUiDir));
+    // SPA fallback: any /admin/* path that isn't a static file → index.html
+    app.get(/^\/admin(\/.*)?$/, (req, res, next) => {
+      // Only fall back if the file doesn't exist as static asset
+      const fsPath = path.join(adminUiDir, req.path.replace(/^\/admin\/?/, ''));
+      if (req.path === '/admin' || req.path === '/admin/' || !fs.existsSync(fsPath)) {
+        res.sendFile(path.join(adminUiDir, 'index.html'));
+      } else {
+        next();
+      }
+    });
+  }
+
   // Capabilities discovery endpoint (Phase 4). Public /v1/capabilities + auth /v1/capabilities/me.
   app.use(createCapabilitiesRouter(db));
 
