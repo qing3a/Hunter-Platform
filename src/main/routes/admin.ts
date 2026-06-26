@@ -31,7 +31,6 @@ import { createAdminWebhooksHandler } from '../modules/admin/handlers/webhooks.j
 import { createAdminRateLimitHandler } from '../modules/admin/handlers/rate-limit.js';
 import { createAdminConfigHandler } from '../modules/admin/handlers/config.js';
 import { createAdminPlacementsHandler } from '../modules/admin/handlers/placements.js';
-import { createAdminWebhookSubscriptionsHandler } from '../modules/admin/handlers/webhook-subscriptions.js';
 import { createAdminAdminLogHandler } from '../modules/admin/handlers/admin-log.js';
 import { createAdminActionHistoryHandler } from '../modules/admin/handlers/action-history.js';
 import { makeAdminDashboardHandler } from '../modules/admin/handlers/dashboard.js';
@@ -50,7 +49,6 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const rateLimit = createAdminRateLimitHandler(db);
   const config = createAdminConfigHandler(db);
   const placements = createAdminPlacementsHandler(db, encryptionKey);
-  const webhookSubs = createAdminWebhookSubscriptionsHandler(db);
   const adminLog = createAdminAdminLogHandler(db);
   const actionHistory = createAdminActionHistoryHandler(db);
   const dashboard = makeAdminDashboardHandler(db);
@@ -391,42 +389,6 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
     } catch (e) { next(e); }
   });
 
-  // Webhook subscriptions (Sub-E)
-  router.get('/webhook-subscriptions', (_req, res, next) => {
-    try { respond(res, ListWebhookSubscriptionsResponseSchema, { ok: true, data: webhookSubs.list() }, { strict: true }); }
-    catch (e) { next(e); }
-  });
-  router.post('/webhook-subscriptions', (req, res, next) => {
-    try {
-      const adminUserId = (req as any).admin?.id;
-      if (!adminUserId) throw Errors.unauthorized();
-      const { target_url, event_types, hmac_secret } = req.body ?? {};
-      respond(res, GetWebhookSubscriptionResponseSchema, {
-        ok: true, data: webhookSubs.create(adminUserId, { target_url, event_types, hmac_secret: hmac_secret ?? null }),
-      }, { strict: true });
-    } catch (e) { next(e); }
-  });
-  router.put('/webhook-subscriptions/:id', (req, res, next) => {
-    try {
-      const adminUserId = (req as any).admin?.id;
-      if (!adminUserId) throw Errors.unauthorized();
-      const id = Number(req.params.id);
-      if (!Number.isFinite(id)) throw Errors.invalidParams('id must be a number');
-      respond(res, GetWebhookSubscriptionResponseSchema, {
-        ok: true, data: webhookSubs.update(adminUserId, id, req.body ?? {}),
-      }, { strict: true });
-    } catch (e) { next(e); }
-  });
-  router.delete('/webhook-subscriptions/:id', (req, res, next) => {
-    try {
-      const adminUserId = (req as any).admin?.id;
-      if (!adminUserId) throw Errors.unauthorized();
-      const id = Number(req.params.id);
-      if (!Number.isFinite(id)) throw Errors.invalidParams('id must be a number');
-      webhookSubs.delete(adminUserId, id);
-      // removed: old config get route
-    } catch (e) { next(e); }
-  });
 
   // Placements
   router.get('/placements', (req, res, next) => {

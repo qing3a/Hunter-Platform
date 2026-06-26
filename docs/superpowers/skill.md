@@ -683,8 +683,6 @@ Headers:
 | GET    | `/v1/admin/action-history` | 业务操作审计（`?user_id&capability_name&status&since&until&limit&offset`，读 action_history 全量）|
 | GET    | `/v1/admin/webhooks/dead-letter` | 死信 webhook |
 | POST   | `/v1/admin/webhooks/:id/retry` | 重试 webhook |
-| GET    | `/v1/admin/rate-limit/buckets` | 限流桶列表 |
-| POST   | `/v1/admin/rate-limit/users/:id/clear` | 清除用户限流 |
 | GET    | `/v1/admin/config` | 读取配置 |
 | PUT    | `/v1/admin/config/:key` | 更新配置 |
 | GET    | `/v1/admin/placements` | placement 列表 |
@@ -1461,11 +1459,9 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | PUT | `/v1/admin/config/:key` | `admin.put_config` | 0 | — | db.config.set; admin_action_log: config_change |
 | GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
 
-| GET | `/v1/admin/webhook-subscriptions` | `admin.list_webhook_subscriptions` | 0 | — | db.webhooks.subscriptions.listAll |
-| POST | `/v1/admin/webhook-subscriptions` | `admin.create_webhook_subscription` | 0 | — | db.webhooks.subscriptions.create |
-| PATCH | `/v1/admin/webhook-subscriptions/:id` | `admin.update_webhook_subscription` | 0 | — | db.webhooks.subscriptions.update |
-| DELETE | `/v1/admin/webhook-subscriptions/:id` | `admin.delete_webhook_subscription` | 0 | — | db.webhooks.subscriptions.delete |
 | POST | `/v1/admin/placements/:id/mark-paid` | `admin.mark_placement_paid` | 0 | — | db.placements.updateStatus(paid) |
+| GET  | `/v1/admin/config` | `admin.list_config` | 0 | — | db.config.listAll |
+| PUT  | `/v1/admin/config/:key` | `admin.update_config` | 0 | — | db.config.update |
 | POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
 | GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
 | GET | `/v1/admin/admin-log` | `admin.admin_log` | 0 | — | db.admin_action_log.list |
@@ -1487,15 +1483,9 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.audit_log`: 查看平台 audit_log(谁在什么时间调用了什么 endpoint)。
 > - `admin.webhook_dead_letter`: 列出 webhook dead-letter 队列(投递失败待重试的事件)。
 > - `admin.retry_webhook`: 手动重试 dead-letter 中的某个 webhook 投递。
-> - `admin.rate_limit_buckets`: 查看当前所有 rate-limit bucket 状态(per-user + per-second/minute/hour)。
-> - `admin.clear_user_rate_limit`: 清空某个用户的 rate-limit bucket(解除误限)。
 > - `admin.get_config`: 读取平台动态配置。
 > - `admin.put_config`: 写入/覆盖平台动态配置项。
 > - `admin.list_placements`: 列出所有 placement 记录(管理员视图)。
-> - `admin.list_webhook_subscriptions`: 列出 webhook 订阅。
-> - `admin.create_webhook_subscription`: 创建 webhook 订阅(admin audit 写入)。
-> - `admin.update_webhook_subscription`: 更新 webhook 订阅。
-> - `admin.delete_webhook_subscription`: 删除 webhook 订阅。
 > - `admin.mark_placement_paid`: 把 placement 标记为已支付(财务确认)。
 > - `admin.cancel_placement`: 取消一个 placement(候选人未入职等异常情况)。
 > - `admin.placements_summary`: placement 总览统计(count / pending / paid / cancelled / total revenue)。
