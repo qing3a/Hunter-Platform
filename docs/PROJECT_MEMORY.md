@@ -31,10 +31,22 @@
 | capability_name 标准化 | v013 迁移：30 个能力名 | v1.4 |
 | bcrypt cost-10 admin password | 生产 `.env` 用 `$2a$10$` 哈希 | v1.0 |
 | current_company 必填 | 新上传候选人 industry 永不为 NULL | 2026-06-23 |
+| Sub-E Config DB-backed | `config` 表（key / value_json / audit）；admin 通过 `PUT /v1/admin/config/:key` + reason 必填 | 2026-06-26 |
+| Sub-F Worker reads Config | rate-limit middleware + industry_map loader 真正读 `config` 表（in-memory cache + 10s TTL + fail-soft）| 2026-06-26 |
 
 ---
 
-## 1b. 生产部署速查（实测 2026-06-23）
+## 1b. 生产部署速查（实测 2026-06-23，2026-06-26 二次验证）
+
+### 2026-06-26 二次验证（Sub-F v2.8.0 部署）
+
+部署 Sub-F 走相同流程，所有验证通过：
+- 本地 build → scp out/* → systemd restart → smoke test 200
+- 生产 `config` 表写入 `industry_map` key（3079 bytes，Sub-F 启动 migrate 从 `config/industry_map.json` seed 进 DB）
+- `/v1/config/industries` 返 12 categories（互联网22、金融23、半导体12…）— 证明 industry_map loader **从 DB 读**，不是从文件
+- `GET /v1/candidate/opportunities` 返 `RateLimit-Limit: 10, 50, 300` — 异步 rate-limit middleware 工作正常，config-cache miss → fallback 到 `RATE_LIMIT_BURSTS` 常量
+
+### 2026-06-23 实测首次
 
 | 项 | 实际值 |
 |----|--------|
@@ -91,13 +103,20 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 
 ---
 
-## 3. 当前活跃任务（最近 sprint）
+## 3. 当前活跃任务（2026-06-26 sprint 全部完成 + 生产部署）
 
 | 优先级 | 任务 | 状态 |
 |--------|------|------|
-| 🔴 高 | **action_history 中间件落地**（新建 `/v1/admin/action-history`） | ✅ 代码已合 `main`（merge commit `413b6e3`，2026-06-23）；⏳ **待生产部署** |
-| 🔴 高 | **要求 current_company 必填**（消除 industry NULL） | ✅ 代码已合 `feature/require-current-company`（6 commits），⏳ 待合并 + 生产部署；MCP server 待发 v0.1.3 |
-| 低 | **Web 管理后台**（替代 Electron，多管理员） | ✅ Sub-A (`ad62db3`) + ✅ Sub-B (`0fc7fb3`) + ✅ **Sub-D1** Audit UI + admin login events (T12 进行中 → merge main)。Sub-C/D2/D3/E 待开始 |
+| ✅ 高 | action_history 中间件落地 | 已合 main + 已生产部署（Sub-E 部署含此） |
+| ✅ 高 | current_company 必填 | 已合 main（`72704b4`）+ 已生产部署 + MCP v0.1.3 已发布 |
+| ✅ Sub-F | Worker reads Config | 已合 main + 已生产部署（v2.8.0 在 101.201.110.129 跑）|
+| ✅ Sub-A→F | Web 管理后台 | Sub-A (login) + Sub-B (lists) + Sub-C (mutation) + Sub-D1-D6 (audit/timeline/webhooks/placements/suspend/filter) + Sub-E (config DB-backed) + Sub-F (worker reads config) 全部完成 |
+
+### 后续候选
+
+- **Sub-G**（公开 GET rate-limit / commission 接入 / cache invalidation API）
+- **In-site notifications**（已 spec 但没全实现 — `2026-06-24-in-site-notifications-design.md` 看到部分 commit 如 `feature/in-site-notifications` 已 merge）
+- **Maintenance**：6 个月一次的 dependency update / security audit
 
 > 详细 plan 见 `docs/superpowers/plans/`，design 见 `docs/superpowers/specs/`。
 
@@ -119,6 +138,10 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
   - `ActionHistoryItemSchema`（user 端，14 字段，不含 `response_summary_json` 和 `trace_id`）
   - `AdminActionHistoryItemSchema`（admin 端，12 字段，**多** `response_summary_json` 和 `trace_id`）
   - 不要混用。
+- **Sub-F `lookupIndustry` 是同步函数**（`src/main/modules/desensitize/mapping.ts`）：industry_map cache 一次性启动读（`loadIndustryMap(db)`），**不 10s TTL 刷新**。要让 TTL 刷新必须把所有 caller 改 async（超出 Sub-F 范围）。
+- **Sub-F `__resetIndustryCacheForTests()`**（`mapping.ts`）：test-only helper，模块级 `_cache` 跨测试会污染。在每个相关 `beforeEach` 调用。
+- **Sub-F `config-cache` TTL 10s**：`createConfigCache(db, ttlMs = 10_000)` lazy expiration。admin 改 Config 后**最多 10s** 生效（不主动 invalidate）。TTL 可注入用于测试加速。
+- **Sub-F rate-limit middleware 是 async**（`src/main/modules/rate-limit/middleware.ts`）：签名 `createRateLimitMiddleware(db, cache)`，**第二个参数是 cache**。5 个 routes 改了 caller。改旧测试时 `it` 要 `async` + `await mw(...)`。
 
 ### 工具层面
 
@@ -154,7 +177,7 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | 项 | 值 |
 |----|----|
 | 包名 | `@qing3a/hunter-platform-mcp`（私有 registry `npm.pkg.github.com/qing3a`） |
-| 最新版本 | v0.1.2 已发布；v0.1.3 在 `feature/require-current-company`（标记 `headhunter_upload_candidate` requires `current_company`） |
+| 最新版本 | **v0.1.3 已发布**（2026-06-23T12:52:26Z 发布；`headhunter_upload_candidate` requires `current_company`）|
 | 凭证存储 | 本机 `<user-home>/.hunter-platform-mcp/credentials.json` |
 | 凭证格式 | `{ apiKey, apiBaseUrl, userId }`；deploy 模式 = 1 user + 1 base URL |
 | 部署方式 | GitHub Packages PAT 写入生产服务器 `~/.npmrc` 后 `npm install @qing3a/hunter-platform-mcp` |
@@ -173,12 +196,17 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | admin seed | `src/main/seed/admin.ts`（读 SEED_ADMIN_PASSWORD env） |
 | Admin Web UI 列表页 | `admin-web/src/pages/{Users,Candidates,Dashboard}Page.tsx` |
 | Admin Web UI Audit (Sub-D1) | `admin-web/src/pages/AuditPage.tsx`（3 tab: Admin/User/Login） |
+| Admin Web UI Settings (Sub-E) | `admin-web/src/pages/SettingsPage.tsx`（Config tab） + `src/components/ConfigEditModal.tsx` |
+| config-cache 模块 (Sub-F) | `src/main/modules/config-cache.ts`（in-memory cache + 10s TTL + fail-soft） |
+| rate-limit middleware (Sub-F) | `src/main/modules/rate-limit/middleware.ts`（async；`createRateLimitMiddleware(db, cache)`）|
+| industry_map loader (Sub-F) | `src/main/modules/desensitize/mapping.ts`（`loadIndustryMap(db?)` + `lookupIndustry(name, db?)`）|
+| Admin config handler (Sub-E) | `src/main/modules/admin/handlers/config.ts`（`set/list` + reason 必填 + audit）|
 | Admin API typed wrappers | `admin-web/src/api/{users,candidates,dashboard,raw,audit}.ts` |
 | Admin Web UI | `admin-web/`（React + Vite + TS + vitest+RTL）；build 到 `out/admin/` |
 | action_history 中间件 | `src/main/modules/audit/action-history-middleware.ts` |
 | action_history repo | `src/main/db/repositories/action-history.ts` |
 | capability 映射 | `src/main/capabilities/` + `src/main/modules/audit/route-action-map.ts` |
-| 行业映射（待扩展） | `config/desensitization.json` 中 `industry_map`（目前只有 6 家公司） |
+| 行业映射（已扩展） | `config/industry_map.json` 12 categories / 100+ companies；启动时 seed 到 `config` 表的 `industry_map` key，loader 从 DB 读（Sub-F）|
 | Zod schemas | `src/main/schemas/<domain>.ts` |
 | 响应 envelope | `src/main/responses.ts` + `src/main/schemas/common.ts` 的 `EnvelopeSchema` |
 | 数据库迁移 | `src/main/db/migrations/v001-v013*.ts` |
@@ -196,3 +224,14 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 - 错误码：`UNAUTHORIZED`（401）/ `INVALID_PARAMS`（400）/ `NOT_FOUND`（404）/ `RATE_LIMITED`（429）/ `INTERNAL_ERROR`（500）
 - Action 能力名格式：`<user_type>.<verb_noun>` 例：`headhunter.upload_candidate`、`employer.express_interest`、`auth.register`
 - 完整能力列表：`docs/superpowers/skill.md` §X
+
+### Config 运行时配置（Sub-E + Sub-F）
+
+- `GET /v1/admin/config` — list all config keys
+- `PUT /v1/admin/config/:key` body `{ value, reason }` — upsert（reason ≥ 3 字符必填）
+- **Key 命名约定**（4 层 dot path）：
+  - `rate_limit.tier.<candidate|headhunter|employer>.limit_per_<second|minute|hour>` — 9 keys
+  - `industry_map` — 完整 industry map JSON
+- **生效延迟**：admin 改后**最多 10s**（config-cache TTL）生效
+- **Fallback**：DB miss 或抛错 → 返 hardcoded 常量（rate-limit 用 `RATE_LIMIT_BURSTS`，industry_map 用 `readFileSync`）
+- **公开端点** `GET /v1/config/industries`（industry_map 列表）/ `GET /v1/config/title_levels` / `GET /v1/config/salary_bands` — 不需要 auth
