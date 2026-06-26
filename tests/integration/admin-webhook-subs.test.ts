@@ -78,7 +78,7 @@ describe('GET/POST/PATCH/DELETE /v1/admin/webhook-subscriptions (Sub-E Plan 1)',
       .send({ target_url: 'https://old.com', event_types: ['x'] });
     const id = create.body.data.id;
     // Then update
-    const r = await request(app).patch(`/v1/admin/webhook-subscriptions/${id}`)
+    const r = await request(app).put(`/v1/admin/webhook-subscriptions/${id}`)
       .set('Authorization', adminAuth)
       .send({ target_url: 'https://new.com' });
     expect(r.status).toBe(200);
@@ -86,7 +86,7 @@ describe('GET/POST/PATCH/DELETE /v1/admin/webhook-subscriptions (Sub-E Plan 1)',
   });
 
   it('6. PATCH non-existent → 404', async () => {
-    const r = await request(app).patch('/v1/admin/webhook-subscriptions/99999')
+    const r = await request(app).put('/v1/admin/webhook-subscriptions/99999')
       .set('Authorization', adminAuth)
       .send({ target_url: 'https://x.com' });
     expect(r.status).toBe(404);

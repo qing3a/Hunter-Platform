@@ -8,7 +8,7 @@ export interface Capability {
    *  tooling. */
   name: string;
   description: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** Path with `:param` placeholders. Must match the actual router path. */
   path: string;
   /** Phase 1 zod response schema for this endpoint. Optional (some endpoints

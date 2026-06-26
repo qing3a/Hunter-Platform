@@ -1460,6 +1460,11 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.getAll |
 | PUT | `/v1/admin/config/:key` | `admin.put_config` | 0 | — | db.config.set; admin_action_log: config_change |
 | GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
+
+| GET | `/v1/admin/webhook-subscriptions` | `admin.list_webhook_subscriptions` | 0 | — | db.webhooks.subscriptions.listAll |
+| POST | `/v1/admin/webhook-subscriptions` | `admin.create_webhook_subscription` | 0 | — | db.webhooks.subscriptions.create |
+| PATCH | `/v1/admin/webhook-subscriptions/:id` | `admin.update_webhook_subscription` | 0 | — | db.webhooks.subscriptions.update |
+| DELETE | `/v1/admin/webhook-subscriptions/:id` | `admin.delete_webhook_subscription` | 0 | — | db.webhooks.subscriptions.delete |
 | POST | `/v1/admin/placements/:id/mark-paid` | `admin.mark_placement_paid` | 0 | — | db.placements.updateStatus(paid) |
 | POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
 | GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
@@ -1487,6 +1492,10 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.get_config`: 读取平台动态配置。
 > - `admin.put_config`: 写入/覆盖平台动态配置项。
 > - `admin.list_placements`: 列出所有 placement 记录(管理员视图)。
+> - `admin.list_webhook_subscriptions`: 列出 webhook 订阅。
+> - `admin.create_webhook_subscription`: 创建 webhook 订阅(admin audit 写入)。
+> - `admin.update_webhook_subscription`: 更新 webhook 订阅。
+> - `admin.delete_webhook_subscription`: 删除 webhook 订阅。
 > - `admin.mark_placement_paid`: 把 placement 标记为已支付(财务确认)。
 > - `admin.cancel_placement`: 取消一个 placement(候选人未入职等异常情况)。
 > - `admin.placements_summary`: placement 总览统计(count / pending / paid / cancelled / total revenue)。

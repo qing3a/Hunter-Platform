@@ -402,7 +402,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       }, { strict: true });
     } catch (e) { next(e); }
   });
-  router.patch('/webhook-subscriptions/:id', (req, res, next) => {
+  router.put('/webhook-subscriptions/:id', (req, res, next) => {
     try {
       const adminUserId = (req as any).admin?.id;
       if (!adminUserId) throw Errors.unauthorized();

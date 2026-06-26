@@ -159,6 +159,9 @@ function pathParamsFor(capName: string): Record<string, string> {
       return { id: client.ids.get('candidate') ?? '' };
     case 'admin.get_timeline':
       return { type: 'user', id: client.ids.get('candidate') ?? '' };
+    case 'admin.update_webhook_subscription':
+    case 'admin.delete_webhook_subscription':
+      return { id: '99999' };
     default:
       return {};
   }
@@ -206,6 +209,12 @@ const COMPLEX_CAPS = new Set<string>([
   'employer.reject_job',
   'candidate.approve_unlock',
   'candidate.reject_unlock',
+  // Sub-E: webhook subscription create/update/delete need pre-existing records
+  // (PATCH/PUT 99999 → 404, POST empty body → 400) which the strict [200,201,204]
+  // schema-shape loop doesn't tolerate
+  'admin.create_webhook_subscription',
+  'admin.update_webhook_subscription',
+  'admin.delete_webhook_subscription',
   // admin-precondition (per-test fresh DB with pre-inserted rows)
   'admin.remove_from_pool',
   'admin.mark_placement_paid',

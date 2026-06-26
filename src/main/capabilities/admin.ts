@@ -11,6 +11,7 @@ import {
   ListJobsResponseSchema, ListRecommendationsResponseSchema,
   ListTimelineResponseSchema,
   ListDeadLetterResponseSchema, ListPlacementsResponseSchema,
+  ListWebhookSubscriptionsResponseSchema, GetWebhookSubscriptionResponseSchema,
 } from '../schemas/admin.js';
 
 export const adminCapabilities = defineCapabilitySet({
@@ -159,6 +160,38 @@ export const adminCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: [],
       effects: ['db.placements.listAll'],
+    },
+    {
+      name: 'admin.list_webhook_subscriptions',
+      description: '列出 webhook 订阅',
+      method: 'GET', path: '/v1/admin/webhook-subscriptions',
+      response_schema: ListWebhookSubscriptionsResponseSchema,
+      quota_cost: 0, preconditions: [],
+      effects: ['db.webhooks.subscriptions.listAll'],
+    },
+    {
+      name: 'admin.create_webhook_subscription',
+      description: '创建 webhook 订阅（admin audit 写入）',
+      method: 'POST', path: '/v1/admin/webhook-subscriptions',
+      response_schema: GetWebhookSubscriptionResponseSchema,
+      quota_cost: 0, preconditions: [],
+      effects: ['db.webhooks.subscriptions.create'],
+    },
+    {
+      name: 'admin.update_webhook_subscription',
+      description: '更新 webhook 订阅',
+      method: 'PUT', path: '/v1/admin/webhook-subscriptions/:id',
+      response_schema: GetWebhookSubscriptionResponseSchema,
+      quota_cost: 0, preconditions: [],
+      effects: ['db.webhooks.subscriptions.update'],
+    },
+    {
+      name: 'admin.delete_webhook_subscription',
+      description: '删除 webhook 订阅',
+      method: 'DELETE', path: '/v1/admin/webhook-subscriptions/:id',
+      response_schema: ConfigGetResponseSchema,
+      quota_cost: 0, preconditions: [],
+      effects: ['db.webhooks.subscriptions.delete'],
     },
     {
       name: 'admin.mark_placement_paid',
