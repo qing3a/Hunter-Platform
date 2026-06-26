@@ -75,7 +75,7 @@ export default function WebhookDeadLetterPage() {
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>至</label>
           <input type="date" value={until.slice(0, 10)} onChange={e => { const v = e.target.value ? e.target.value + 'T23:59:59Z' : ''; setUntil(v); setPage(1); load(1, eventType, minAttempts ? Number(minAttempts) : undefined, from || undefined, v); }} data-testid="filter-until" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }} />
         </div>
-        <button onClick={() => { setEventType(''); setMinAttempts(''); setFrom(''); setUntil(''); setPage(1); }} data-testid="filter-clear" style={{ height: 32, padding: '0 16px', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }}>清除</button>
+        <button onClick={() => { setEventType(''); setMinAttempts(0); setFrom(''); setUntil(''); setPage(1); }} data-testid="filter-clear" style={{ height: 32, padding: '0 16px', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }}>清除</button>
       </div>
 
       {loading ? <Skeleton variant="row" count={5} /> : rows.length === 0 ? (
