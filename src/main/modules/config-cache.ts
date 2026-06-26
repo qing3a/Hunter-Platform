@@ -1,4 +1,4 @@
-import type { DB } from '../../db/connection.js';
+import type { DB } from '../db/connection.js';
 
 export type ConfigCache = {
   /** Get cached value; reload from DB if expired (TTL). DB error / no key → undefined. */
