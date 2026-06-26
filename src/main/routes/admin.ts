@@ -22,7 +22,6 @@ import {
   ListAdminLogResponseSchema,
   ListTimelineResponseSchema,
   ListDeadLetterResponseSchema, ListPlacementsResponseSchema,
-  ListWebhookSubscriptionsResponseSchema, GetWebhookSubscriptionResponseSchema,
 } from '../schemas/admin.js';
 import { createAdminUsersHandler } from '../modules/admin/handlers/users.js';
 import { createAdminCandidatesHandler } from '../modules/admin/handlers/candidates.js';

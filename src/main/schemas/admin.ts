@@ -212,28 +212,6 @@ export const ListAdminLogResponseSchema = z.object({
 
 export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema, ListConfigResponseSchema, GetConfigResponseSchema };
 
-// Sub-E: Webhook subscriptions
-const WebhookSubscriptionSchema = z.object({
-  id: z.number().int(),
-  target_url: z.string().url(),
-  event_types: z.array(z.string()),
-  hmac_secret: z.string().nullable(),
-  enabled: z.boolean(),
-  created_at: ISODateTime,
-  updated_at: ISODateTime,
-  created_by_admin_user_id: z.string().nullable(),
-});
-
-const ListWebhookSubscriptionsResponseSchema = z.object({
-  ok: z.literal(true),
-  data: z.array(WebhookSubscriptionSchema),
-});
-const GetWebhookSubscriptionResponseSchema = z.object({
-  ok: z.literal(true),
-  data: WebhookSubscriptionSchema,
-});
-export { WebhookSubscriptionSchema, ListWebhookSubscriptionsResponseSchema, GetWebhookSubscriptionResponseSchema };
-
 const DeadLetterRowSchema = z.object({
   id: z.number().int(),
   target_user_id: z.string(),
