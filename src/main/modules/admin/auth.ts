@@ -13,7 +13,9 @@ export function createAdminAuthMiddleware(db: DB): RequestHandler {
   return (req: Request, _res: Response, next: NextFunction): void => {
     // Login is public — it IS the way to obtain a bearer token. Skip auth
     // for POST /auth/login so callers without a key can authenticate.
-    if (req.method === 'POST' && req.path === '/auth/login') {
+    // Sub-A bug fix: req.path in mounted router is the FULL path (e.g. /v1/admin/auth/login),
+    // not relative. Use endsWith to match both relative and full paths.
+    if (req.method === 'POST' && req.path.endsWith('/auth/login')) {
       return next();
     }
     const auth = req.headers.authorization;

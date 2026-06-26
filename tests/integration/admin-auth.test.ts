@@ -110,6 +110,25 @@ describe('admin auth endpoints', () => {
     adminApiKey = r.body.data.api_key;
   });
 
+  it('4b. POST login via mounted router (Sub-A bug regression)', async () => {
+    // Sub-A bug fix: the auth middleware was using `req.path === '/auth/login'`
+    // to skip auth for login, but in dev/prod (app.use('/v1/admin', ...)) the
+    // path is stripped to '/auth/login' in newer express, OR stays full in
+    // older — using endsWith covers both. This test mounts the app under
+    // `/v1/admin` like server.ts does, so it catches the real-world bug.
+    const express = (await import('express')).default;
+    const { createAdminAuthMiddleware } = await import('../../src/main/modules/admin/auth');
+    const { createAdminRouter } = await import('../../src/main/routes/admin');
+    const mounted = express();
+    mounted.use('/v1/admin', express.json(), createAdminAuthMiddleware(db), createAdminRouter(db, Buffer.alloc(32)));
+    const r = await request(mounted).post('/v1/admin/auth/login')
+      .send({ email: adminEmail, password: adminPassword });
+    expect(r.status).toBe(200);
+    expect(r.body.data.api_key).toMatch(/^hp_admin_/);
+    // Login rotates the api_key — refresh shared variable so subsequent tests use the new key.
+    adminApiKey = r.body.data.api_key;
+  });
+
   // ---- me ----
   it('5. GET /me no bearer → 401', async () => {
     const r = await request(app).get('/v1/admin/me');
