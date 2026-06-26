@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useUrlParam } from '../hooks/useUrlParam';
 import Layout from '../components/Layout';
 import Pagination from '../components/Pagination';
 import Skeleton from '../components/Skeleton';
@@ -18,19 +19,21 @@ export default function WebhookDeadLetterPage() {
   const [rows, setRows] = useState<DeadLetterRow[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20, has_more: false });
   const [loading, setLoading] = useState(true);
-  const [eventType, setEventType] = useState('');
-  const [minAttempts, setMinAttempts] = useState('');
-  const [from, setFrom] = useState('');
-  const [until, setUntil] = useState('');
-  const [page, setPage] = useState(1);
+  const [eventType, setEventType] = useUrlParam<string>('event_type', '');
+  const [minAttempts, setMinAttempts] = useUrlParam<number>('min_attempts', 0,
+    (v) => { const n = v && /^\d+$/.test(v) ? Number(v) : null; return (n !== null && Number.isFinite(n) && n >= 0) ? n : null; });
+  const [from, setFrom] = useUrlParam<string>('from', '');
+  const [until, setUntil] = useUrlParam<string>('until', '');
+  const [page, setPage] = useUrlParam<number>('page', 1,
+    (v) => v && /^\d+$/.test(v) ? Math.max(1, parseInt(v, 10)) : null);
 
-  const load = useCallback((p: number) => {
+  const load = useCallback((p: number, evt: string | undefined = eventType, min: number | undefined = minAttempts, f: string | undefined = from, u: string | undefined = until) => {
     setLoading(true);
     listDeadLetter({
       page: p, pageSize: 20,
-      event_type: eventType || undefined,
-      min_attempt_count: minAttempts ? Number(minAttempts) : undefined,
-      from: from || undefined, until: until || undefined,
+      event_type: evt || undefined,
+      min_attempt_count: (min && min > 0) ? min : undefined,
+      from: f || undefined, until: u || undefined,
     })
       .then(r => { setRows(r.data); setPagination(r.pagination); })
       .catch(err => toast.push({ type: 'error', message: err.message }))
@@ -56,21 +59,21 @@ export default function WebhookDeadLetterPage() {
       <div style={{ background: '#fafafa', border: '1px solid #e0e0e0', borderRadius: 4, padding: 16, marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>Event Type</label>
-          <select value={eventType} onChange={e => { setEventType(e.target.value); setPage(1); }} data-testid="filter-event-type" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }}>
+          <select value={eventType} onChange={e => { const v = e.target.value; setEventType(v); setPage(1); load(1, v, minAttempts ? Number(minAttempts) : undefined, from || undefined, until || undefined); }} data-testid="filter-event-type" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }}>
             {EVENT_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>Min Attempts</label>
-          <input type="number" min={0} value={minAttempts} onChange={e => { setMinAttempts(e.target.value); setPage(1); }} placeholder="≥ N" data-testid="filter-min-attempts" style={{ padding: '0 8px', height: 32, width: 100, border: '1px solid #ccc', borderRadius: 4 }} />
+          <input type="number" min={0} value={minAttempts} onChange={e => { const v = e.target.value; setMinAttempts(v ? Number(v) : 0); setPage(1); load(1, eventType, v ? Number(v) : undefined, from || undefined, until || undefined); }} placeholder="≥ N" data-testid="filter-min-attempts" style={{ padding: '0 8px', height: 32, width: 100, border: '1px solid #ccc', borderRadius: 4 }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>从</label>
-          <input type="date" value={from.slice(0, 10)} onChange={e => { setFrom(e.target.value ? e.target.value + 'T00:00:00Z' : ''); setPage(1); }} data-testid="filter-from" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }} />
+          <input type="date" value={from.slice(0, 10)} onChange={e => { const v = e.target.value ? e.target.value + 'T00:00:00Z' : ''; setFrom(v); setPage(1); load(1, eventType, minAttempts ? Number(minAttempts) : undefined, v, until || undefined); }} data-testid="filter-from" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }} />
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 12, color: '#666', marginBottom: 4 }}>至</label>
-          <input type="date" value={until.slice(0, 10)} onChange={e => { setUntil(e.target.value ? e.target.value + 'T23:59:59Z' : ''); setPage(1); }} data-testid="filter-until" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }} />
+          <input type="date" value={until.slice(0, 10)} onChange={e => { const v = e.target.value ? e.target.value + 'T23:59:59Z' : ''; setUntil(v); setPage(1); load(1, eventType, minAttempts ? Number(minAttempts) : undefined, from || undefined, v); }} data-testid="filter-until" style={{ padding: '0 8px', height: 32, border: '1px solid #ccc', borderRadius: 4 }} />
         </div>
         <button onClick={() => { setEventType(''); setMinAttempts(''); setFrom(''); setUntil(''); setPage(1); }} data-testid="filter-clear" style={{ height: 32, padding: '0 16px', background: '#fff', border: '1px solid #ccc', borderRadius: 4 }}>清除</button>
       </div>

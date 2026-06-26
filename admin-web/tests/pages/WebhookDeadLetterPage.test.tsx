@@ -21,6 +21,16 @@ const renderPage = () => render(
   </MemoryRouter>
 );
 
+const renderPageWithUrl = (initialUrl: string) => render(
+  <MemoryRouter initialEntries={[initialUrl]}>
+    <ToastProvider>
+      <Routes>
+        <Route path="/webhooks/dead-letter" element={<WebhookDeadLetterPage />} />
+      </Routes>
+    </ToastProvider>
+  </MemoryRouter>
+);
+
 const mockRow = {
   id: 1, target_user_id: 'u_1', event_type: 'payment.succeeded',
   attempt_count: 5, last_error: 'HTTP 500', next_retry_at: null,
@@ -66,4 +76,24 @@ describe('WebhookDeadLetterPage (Sub-D3)', () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('暂无死信')).toBeTruthy());
   });
-});
+
+  it('5. mount reads filter from URL (useUrlParam)', async () => {
+    (listDeadLetter as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 3, pageSize: 20, has_more: false } });
+    renderPageWithUrl('/webhooks/dead-letter?event_type=payment.succeeded&min_attempts=3&from=2026-06-01T00:00:00Z&page=3');
+    await waitFor(() => expect(listDeadLetter).toHaveBeenCalledWith(expect.objectContaining({
+      page: 3,
+      event_type: 'payment.succeeded',
+      min_attempt_count: 3,
+    })));
+  });
+
+  it('6. changing event_type filter updates list via useUrlParam', async () => {
+    (listDeadLetter as any).mockResolvedValue({ data: [], pagination: { total: 0, page: 1, pageSize: 20, has_more: false } });
+    renderPage();
+    await waitFor(() => expect(listDeadLetter).toHaveBeenCalledTimes(1));
+    fireEvent.change(screen.getByTestId('filter-event-type'), { target: { value: 'payment.succeeded' } });
+    await waitFor(() => expect(listDeadLetter).toHaveBeenCalledWith(
+      expect.objectContaining({ event_type: 'payment.succeeded' })
+    ));
+  });
+});;
