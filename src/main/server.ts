@@ -280,11 +280,11 @@ export function createApp(): Express {
   return createAppFromDb(db, env);
 }
 
-// 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容
+// 启动时一次性迁移（从 JSON 文件读 → 写 DB）— 后向兼容（Sub-F: 扩为 3 文件）
 function migrateConfigFromFilesToDB(db: any) {
   const configDir = path.join(process.cwd(), 'config');
   if (!fs.existsSync(configDir)) return;
-  const files = ['desensitization.json', 'commission.json'];
+  const files = ['desensitization.json', 'commission.json', 'industry_map.json'];
   for (const f of files) {
     const full = path.join(configDir, f);
     if (!fs.existsSync(full)) continue;
