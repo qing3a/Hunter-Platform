@@ -224,6 +224,10 @@ const COMPLEX_CAPS = new Set<string>([
   'admin.clear_user_rate_limit',
   'admin.placements_summary',
   'admin.put_config',
+  // Sub-E: get_config + update_config tested in schema-shape-admin-precondition
+  // (they need a real admin key + path param binding for the :key placeholder)
+  'admin.get_config',
+  'admin.update_config',
   'admin.suspend_user',
   'admin.unsuspend_user',
   'admin.adjust_user_quota',

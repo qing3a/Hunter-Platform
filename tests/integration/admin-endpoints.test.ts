@@ -185,19 +185,23 @@ describe('admin endpoints integration', () => {
     });
   });
 
-  describe('config admin', () => {
-    it('GET /v1/admin/config returns config object', async () => {
+  describe('config admin (Sub-E: DB-backed)', () => {
+    it('GET /v1/admin/config returns config entry array', async () => {
       const res = await request(app).get('/v1/admin/config').set('Authorization', adminAuth);
       expect(res.status).toBe(200);
-      expect(res.body.data).toHaveProperty('desensitization');
+      // Sub-E: data is an array of {key, value, updated_at, updated_by_admin_user_id}
+      // Empty DB → empty array, not an object
+      expect(Array.isArray(res.body.data)).toBe(true);
     });
 
-    it('PUT /v1/admin/config/:key rejects unknown key', async () => {
+    it('PUT /v1/admin/config/:key upserts a new key (with reason)', async () => {
       const res = await request(app)
-        .put('/v1/admin/config/unknown_key')
+        .put('/v1/admin/config/platform.test_key')
         .set('Authorization', adminAuth)
-        .send({});
-      expect(res.status).toBeGreaterThanOrEqual(400);
+        .send({ value: 42, reason: 'integration test' });
+      expect(res.status).toBe(200);
+      expect(res.body.data.key).toBe('platform.test_key');
+      expect(res.body.data.value).toBe(42);
     });
   });
 

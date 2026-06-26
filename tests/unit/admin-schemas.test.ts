@@ -5,7 +5,7 @@ import {
   ListCandidatesResponseSchema, RemoveFromPoolResponseSchema, AuditListResponseSchema,
   DeadLetterListResponseSchema, RetryWebhookResponseSchema,
   RateLimitBucketsResponseSchema, ClearRateLimitResponseSchema,
-  ConfigGetResponseSchema, ConfigPutResponseSchema, AdminPlacementsListResponseSchema,
+  ListConfigResponseSchema, GetConfigResponseSchema, AdminPlacementsListResponseSchema,
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
 } from '../../src/main/schemas/admin';
@@ -96,11 +96,24 @@ describe('ClearRateLimitResponseSchema', () => {
   });
 });
 
-describe('ConfigGetResponseSchema', () => {
-  it('accepts a config map', () => {
-    const r = ConfigGetResponseSchema.safeParse({
+describe('ListConfigResponseSchema (Sub-E Config DB-backed)', () => {
+  it('accepts a config entry array', () => {
+    const r = ListConfigResponseSchema.safeParse({
       ok: true,
-      data: { desensitization: {}, commission: {} },
+      data: [
+        { key: 'platform_fee_pct', value: 5, updated_at: '2026-06-26T00:00:00Z', updated_by_admin_user_id: 'adm_1' },
+        { key: 'commission', value: { rate: 0.1 }, updated_at: '2026-06-26T00:00:00Z', updated_by_admin_user_id: 'adm_1' },
+      ],
+    });
+    expect(r.success).toBe(true);
+  });
+});
+
+describe('GetConfigResponseSchema (Sub-E Config DB-backed)', () => {
+  it('accepts a single config entry', () => {
+    const r = GetConfigResponseSchema.safeParse({
+      ok: true,
+      data: { key: 'platform_fee_pct', value: 5, updated_at: '2026-06-26T00:00:00Z', updated_by_admin_user_id: 'adm_1' },
     });
     expect(r.success).toBe(true);
   });

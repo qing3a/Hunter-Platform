@@ -14,8 +14,8 @@ import {
   RateLimitBucketsResponseSchema,
   ClearRateLimitResponseSchema,
   PlacementsSummaryResponseSchema,
-  ConfigGetResponseSchema,
-  ConfigPutResponseSchema,
+  ListConfigResponseSchema,
+  GetConfigResponseSchema,
   SuspendUserResponseSchema,
   UnsuspendUserResponseSchema,
   AdjustQuotaResponseSchema,
@@ -155,23 +155,22 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
   });
 
   it('admin.get_config: GET /v1/admin/config', async () => {
-    // config is file-based, not DB-based. The handler returns the contents
-    // of config/desensitization.json + config/commission.json. No pre-create needed.
+    // Sub-E: config is DB-backed. Empty DB → empty array (not the old file-based map).
     const r = await client.request({
       method: 'GET', path: '/v1/admin/config',
       auth: adminAuthHeader(),
-      schema: ConfigGetResponseSchema,
+      schema: ListConfigResponseSchema,
     });
     expect(r.status).toBe(200);
   });
 
-  it('admin.put_config: PUT /v1/admin/config/desensitization', async () => {
-    // Only known keys (desensitization, commission) are accepted by the handler.
+  it('admin.put_config: PUT /v1/admin/config/:key (upsert with reason)', async () => {
+    // Sub-E: any lowercase.dotted.path key is accepted. Reason is required (Sub-C convention).
     const r = await client.request({
-      method: 'PUT', path: '/v1/admin/config/desensitization',
+      method: 'PUT', path: '/v1/admin/config/platform.test_key',
       auth: adminAuthHeader(),
-      body: { industries: ['Tech', 'Finance'] },
-      schema: ConfigPutResponseSchema,
+      body: { value: { industries: ['Tech', 'Finance'] }, reason: 'integration test' },
+      schema: GetConfigResponseSchema,
     });
     expect(r.status).toBe(200);
   });
