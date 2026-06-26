@@ -17,6 +17,7 @@ import CandidateDetailPage from './pages/CandidateDetailPage';
 import RecommendationDetailPage from './pages/RecommendationDetailPage';
 import WebhookDeadLetterPage from './pages/WebhookDeadLetterPage';
 import PlacementsPage from './pages/PlacementsPage';
+import SettingsPage from './pages/SettingsPage';
 import PrivateRoute from './components/PrivateRoute';
 import { ToastProvider } from './lib/toast';
 import Toast from './components/Toast';
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
           <Route path="/recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
           <Route path="/webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
+          <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
           <Route path="/placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
           <Route path="/audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />

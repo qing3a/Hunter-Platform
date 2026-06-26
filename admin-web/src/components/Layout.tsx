@@ -26,6 +26,7 @@ export default function Layout({ children, adminName }: { children: React.ReactN
           <NavLink to="/jobs" style={linkStyle}>职位</NavLink>
           <NavLink to="/recommendations" style={linkStyle}>推荐</NavLink>
           <NavLink to="/webhooks/dead-letter" style={linkStyle}>Webhook 死信</NavLink>
+          <NavLink to="/settings" style={linkStyle} data-testid="nav-settings">设置</NavLink>
           <NavLink to="/placements" style={linkStyle}>Placements</NavLink>
           <NavLink to="/audit" style={linkStyle}>审计</NavLink>
           <NavLink to="/profile" style={linkStyle}>我的</NavLink>
