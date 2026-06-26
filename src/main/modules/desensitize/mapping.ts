@@ -1,7 +1,9 @@
 // v1: 从 config/industry_map.json 加载，支持 fallback 模糊匹配
 // v2: 可接 LLM 推导
+// Sub-F: 改为从 config 表读（one-time at startup），fallback 是 file readFileSync
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { DB } from '../../db/connection.js';
 
 interface IndustryConfig {
   version: number;
@@ -12,25 +14,28 @@ interface IndustryConfig {
 }
 
 interface IndustryCache {
-  companies: Map<string, string>;  // company name → category id (first-wins)
+  companies: Map<string, string>;
   cfg: IndustryConfig;
-  categoryOrder: string[];  // for fallback iteration order
+  categoryOrder: string[];
 }
 
 let _cache: IndustryCache | null = null;
 
-export function loadIndustryMap(): IndustryCache {
-  if (_cache) return _cache;
+/** Test-only: clear module-level cache so next loadIndustryMap() re-reads from source. */
+export function __resetIndustryCacheForTests(): void {
+  _cache = null;
+}
+
+function readIndustryMapFromFile(): IndustryConfig {
   const path = join(process.cwd(), 'config', 'industry_map.json');
-  let cfg: IndustryConfig;
   try {
-    cfg = JSON.parse(readFileSync(path, 'utf8'));
-    // basic shape validation
+    const cfg = JSON.parse(readFileSync(path, 'utf8')) as IndustryConfig;
     if (!Array.isArray(cfg.categories)) throw new Error('categories not array');
+    return cfg;
   } catch (e) {
     // 兜底：文件丢失或解析失败时使用最小集合
     console.warn('[industry_map] failed to load config/industry_map.json, using minimal fallback:', (e as Error).message);
-    cfg = {
+    return {
       version: 0,
       updated_at: 'fallback',
       categories: [
@@ -44,6 +49,29 @@ export function loadIndustryMap(): IndustryCache {
       },
       default: '其他',
     };
+  }
+}
+
+export function loadIndustryMap(db?: DB): IndustryCache {
+  if (_cache) return _cache;
+  let cfg: IndustryConfig;
+  if (db) {
+    // Sub-F: read 'industry_map' from config table (admin-edited value wins over file)
+    try {
+      const row = db.prepare('SELECT value_json FROM config WHERE key = ?').get('industry_map') as { value_json: string } | undefined;
+      if (row) {
+        cfg = JSON.parse(row.value_json) as IndustryConfig;
+      } else {
+        cfg = readIndustryMapFromFile();
+      }
+    } catch (e) {
+      // DB error: fall back to file (legacy behavior)
+      console.warn('[industry_map] DB read failed, falling back to file:', (e as Error).message);
+      cfg = readIndustryMapFromFile();
+    }
+  } else {
+    // No db provided (e.g. legacy caller): use file fallback
+    cfg = readIndustryMapFromFile();
   }
   const companies = new Map<string, string>();
   for (const cat of cfg.categories) {
@@ -59,23 +87,23 @@ export function loadIndustryMap(): IndustryCache {
   return _cache;
 }
 
-export function lookupIndustry(companyName: string | undefined | null): string | undefined {
+export function lookupIndustry(companyName: string | undefined | null, db?: DB): string | undefined {
+  // Sub-F: load cache lazily if not yet initialized. Caller may pass db (preferred)
+  // — reads from config table. Without db, falls back to file read (preserves
+  // legacy dev behavior, e.g. unit tests that don't set up a DB).
   if (!companyName) return undefined;
-  const { companies, cfg, categoryOrder } = loadIndustryMap();
-
-  // 1. 枚举命中
+  if (!_cache) {
+    loadIndustryMap(db);
+  }
+  const { companies, cfg, categoryOrder } = _cache!;
   const hit = companies.get(companyName);
   if (hit) return hit;
-
-  // 2. fallback 关键词（按 categories 数组顺序遍历，避免随机匹配）
   for (const catId of categoryOrder) {
     const keywords = cfg.fallback_keywords[catId] ?? [];
     if (keywords.some(k => companyName.includes(k))) {
       return catId;
     }
   }
-
-  // 3. default
   return cfg.default;
 }
 

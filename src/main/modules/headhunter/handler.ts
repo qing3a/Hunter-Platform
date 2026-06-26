@@ -80,7 +80,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
           ...(input.years_experience !== undefined && { years_experience: input.years_experience }),
           ...(input.education_school !== undefined && { education_school: input.education_school }),
           ...(input.skills !== undefined && { skills: input.skills }),
-        });
+        }, db);
 
         // 7. 写库
         const now = new Date().toISOString();

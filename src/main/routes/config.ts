@@ -27,7 +27,7 @@ export function createConfigRouter(db: DB): Router {
         return res.status(429).json({ ok: false, error: { code: 'INSUFFICIENT_QUOTA', message: 'Daily quota exceeded' } });
       }
     }
-    const { cfg } = loadIndustryMap();
+    const { cfg } = loadIndustryMap(db);
     const data = cfg.categories.map((c: { id: string; companies?: string[] }) => ({
       id: c.id,
       companies_count: (c.companies ?? []).length,
