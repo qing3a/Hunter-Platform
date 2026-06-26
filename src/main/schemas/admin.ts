@@ -133,7 +133,7 @@ const DashboardStatsSchema = z.object({
   jobs_filled: z.number().int(),
 });
 
-const ConfigEntrySchema = z.record(z.string(), z.unknown());
+
 
 const PlacementsSummarySchema = z.object({
   total_count: z.number().int(),
@@ -164,10 +164,14 @@ export const RateLimitBucketsResponseSchema = EnvelopeSchema(z.array(RateLimitBu
 export const ClearRateLimitResponseSchema = EnvelopeSchema(
   z.object({ user_id: IdString, cleared: z.literal(true) })
 );
-export const ConfigGetResponseSchema = EnvelopeSchema(z.record(z.string(), z.unknown()));
-export const ConfigPutResponseSchema = EnvelopeSchema(
-  z.object({ key: z.string(), saved: z.literal(true) })
-);
+const ConfigEntrySchema = z.object({
+  key: z.string(),
+  value: z.unknown(),
+  updated_at: ISODateTime,
+  updated_by_admin_user_id: z.string().nullable(),
+});
+const ListConfigResponseSchema = EnvelopeSchema(z.array(ConfigEntrySchema));
+const GetConfigResponseSchema = EnvelopeSchema(ConfigEntrySchema);
 export const AdminPlacementsListResponseSchema = EnvelopeSchema(z.array(AdminPlacementSchema));
 export const MarkPaidResponseSchema = EnvelopeSchema(
   z.object({ id: IdString, status: z.literal('paid') })
@@ -206,7 +210,7 @@ export const ListAdminLogResponseSchema = z.object({
   pagination: PaginationSchema,
 });
 
-export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema };
+export { PaginationSchema, ListUsersEnvelopeSchema, ListTimelineResponseSchema, ListDeadLetterResponseSchema, ListPlacementsResponseSchema, ListConfigResponseSchema, GetConfigResponseSchema };
 
 // Sub-E: Webhook subscriptions
 const WebhookSubscriptionSchema = z.object({

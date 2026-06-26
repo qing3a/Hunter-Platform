@@ -11,7 +11,7 @@ import {
   ListCandidatesResponseSchema, RemoveFromPoolResponseSchema, AuditListResponseSchema,
   DeadLetterListResponseSchema, RetryWebhookResponseSchema,
   RateLimitBucketsResponseSchema, ClearRateLimitResponseSchema,
-  ConfigGetResponseSchema, ConfigPutResponseSchema, AdminPlacementsListResponseSchema,
+  ListConfigResponseSchema, GetConfigResponseSchema, AdminPlacementsListResponseSchema,
   MarkPaidResponseSchema, CancelPlacementResponseSchema,
   PlacementsSummaryResponseSchema, AdminLogListResponseSchema,
   ActionHistoryListResponseSchema,
@@ -48,7 +48,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
   const audit = createAdminAuditHandler(db);
   const webhooks = createAdminWebhooksHandler(db);
   const rateLimit = createAdminRateLimitHandler(db);
-  const config = createAdminConfigHandler();
+  const config = createAdminConfigHandler(db);
   const placements = createAdminPlacementsHandler(db, encryptionKey);
   const webhookSubs = createAdminWebhookSubscriptionsHandler(db);
   const adminLog = createAdminAdminLogHandler(db);
@@ -314,10 +314,14 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
 
   // Config
   router.get('/config', (_req, res, next) => {
-    try { respond(res, ConfigGetResponseSchema, { ok: true, data: config.get() }); } catch (e) { next(e); }
+    try { const all = config.list();
+    respond(res, ListConfigResponseSchema, { ok: true, data: all }); } catch (e) { next(e); }
   });
   router.put('/config/:key', (req, res, next) => {
-    try { respond(res, ConfigPutResponseSchema, { ok: true, data: config.set(req.params.key, req.body) }); } catch (e) { next(e); }
+    try { const adminUserId = (req as any).admin?.id;
+    if (!adminUserId) throw Errors.unauthorized();
+    const value = (req.body && typeof req.body === 'object' && 'value' in req.body) ? (req.body as any).value : req.body;
+    respond(res, GetConfigResponseSchema, { ok: true, data: config.set(adminUserId, req.params.key, value) }); } catch (e) { next(e); }
   });
 
   // Jobs
@@ -420,7 +424,7 @@ export function createAdminRouter(db: DB, encryptionKey: Buffer): Router {
       const id = Number(req.params.id);
       if (!Number.isFinite(id)) throw Errors.invalidParams('id must be a number');
       webhookSubs.delete(adminUserId, id);
-      respond(res, ConfigGetResponseSchema, { ok: true, data: {} });
+      // removed: old config get route
     } catch (e) { next(e); }
   });
 

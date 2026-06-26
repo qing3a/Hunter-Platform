@@ -1,33 +1,52 @@
-// Migrated from src/main/ipc/config.ts on 2026-06-20
-import fs from 'node:fs';
-import path from 'node:path';
+import type { DB } from '../../../db/connection.js';
+import { createAdminActionLogRepo } from '../../../db/repositories/admin-action-log.js';
 
-const CONFIG_FILES: Record<string, string> = {
-  'desensitization': 'config/desensitization.json',
-  'commission': 'config/commission.json',
+export type ConfigEntry = {
+  key: string;
+  value: unknown;
+  updated_at: string;
+  updated_by_admin_user_id: string | null;
 };
 
-export function createAdminConfigHandler(projectRoot: string = process.cwd()) {
+const KEY_RE = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$/;
+
+export function createAdminConfigHandler(db: DB) {
+  const adminLog = createAdminActionLogRepo(db);
   return {
-    get(): Record<string, unknown> {
-      const result: Record<string, unknown> = {};
-      for (const [key, rel] of Object.entries(CONFIG_FILES)) {
-        const full = path.join(projectRoot, rel);
-        try {
-          result[key] = JSON.parse(fs.readFileSync(full, 'utf8'));
-        } catch {
-          result[key] = null;
-        }
-      }
-      return result;
+    list(): ConfigEntry[] {
+      const rows = db.prepare(
+        'SELECT key, value_json, updated_at, updated_by_admin_user_id FROM config ORDER BY key'
+      ).all() as Array<{ key: string; value_json: string; updated_at: string; updated_by_admin_user_id: string | null }>;
+      return rows.map(r => ({
+        key: r.key,
+        value: JSON.parse(r.value_json),
+        updated_at: r.updated_at,
+        updated_by_admin_user_id: r.updated_by_admin_user_id,
+      }));
     },
-    set(key: string, value: unknown): { key: string; saved: boolean } {
-      const rel = CONFIG_FILES[key];
-      if (!rel) throw new Error(`Unknown config key: ${key}`);
-      const full = path.join(projectRoot, rel);
-      fs.mkdirSync(path.dirname(full), { recursive: true });
-      fs.writeFileSync(full, JSON.stringify(value, null, 2));
-      return { key, saved: true };
+
+    set(adminUserId: string, key: string, value: unknown): ConfigEntry {
+      if (!KEY_RE.test(key)) {
+        throw new Error('Invalid config key format: must be lowercase.dotted.path (e.g. platform.fee.pct)');
+      }
+      const valueJson = JSON.stringify(value);
+      const now = new Date().toISOString();
+      db.prepare(`
+        INSERT INTO config (key, value_json, updated_at, updated_by_admin_user_id)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          updated_at = excluded.updated_at,
+          updated_by_admin_user_id = excluded.updated_by_admin_user_id
+      `).run(key, valueJson, now, adminUserId);
+      adminLog.insert({
+        admin_user_id: adminUserId,
+        action: 'update_config',
+        target_type: 'config',
+        target_id: key,
+        details_json: JSON.stringify({ value }),
+      });
+      return { key, value, updated_at: now, updated_by_admin_user_id: adminUserId };
     },
   };
 }
