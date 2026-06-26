@@ -33,10 +33,20 @@
 | current_company 必填 | 新上传候选人 industry 永不为 NULL | 2026-06-23 |
 | Sub-E Config DB-backed | `config` 表（key / value_json / audit）；admin 通过 `PUT /v1/admin/config/:key` + reason 必填 | 2026-06-26 |
 | Sub-F Worker reads Config | rate-limit middleware + industry_map loader 真正读 `config` 表（in-memory cache + 10s TTL + fail-soft）| 2026-06-26 |
+| Sub-G Public rate-limit + TTL 0 | 公开 `GET /v1/config/rate-limits` 端点 + commission 接入 Config + cache TTL 0s（admin 改后立即生效）| 2026-06-26 |
 
 ---
 
-## 1b. 生产部署速查（实测 2026-06-23，2026-06-26 二次验证）
+## 1b. 生产部署速查（实测 2026-06-23，2026-06-26 三次验证）
+
+### 2026-06-26 三次验证（Sub-G v2.9.0 部署）
+
+部署 Sub-G 走相同流程，所有验证通过：
+- 本地 build → scp out/* → systemd restart → smoke test 200
+- `GET /v1/config/rate-limits` 返 3 tier × 3 window（candidate 10/50/300、headhunter 20/100/750、employer 30/200/1200）
+- 生产 `config` 表写入 `commission.platform_rate = 0.1`（Sub-G 启动 migrate seed 写入）
+- `PUT /v1/admin/config/commission.platform_rate` 无 auth 返 401（鉴权正常）
+- `/v1/health` healthy
 
 ### 2026-06-26 二次验证（Sub-F v2.8.0 部署）
 
@@ -110,11 +120,12 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | ✅ 高 | action_history 中间件落地 | 已合 main + 已生产部署（Sub-E 部署含此） |
 | ✅ 高 | current_company 必填 | 已合 main（`72704b4`）+ 已生产部署 + MCP v0.1.3 已发布 |
 | ✅ Sub-F | Worker reads Config | 已合 main + 已生产部署（v2.8.0 在 101.201.110.129 跑）|
-| ✅ Sub-A→F | Web 管理后台 | Sub-A (login) + Sub-B (lists) + Sub-C (mutation) + Sub-D1-D6 (audit/timeline/webhooks/placements/suspend/filter) + Sub-E (config DB-backed) + Sub-F (worker reads config) 全部完成 |
+| ✅ Sub-G | Public rate-limit + Commission + TTL 0 | 已合 main + 已生产部署（v2.9.0 在 101.201.110.129 跑）|
+| ✅ Sub-A→G | Web 管理后台 | Sub-A (login) + Sub-B (lists) + Sub-C (mutation) + Sub-D1-D6 (audit/timeline/webhooks/placements/suspend/filter) + Sub-E (config DB-backed) + Sub-F (worker reads config) + Sub-G (public rate-limit + commission) 全部完成 |
 
 ### 后续候选
 
-- **Sub-G**（公开 GET rate-limit / commission 接入 / cache invalidation API）
+- **Sub-H**（commission hunter/referrer 比例拆分 / 公开 GET /v1/config/commission）
 - **In-site notifications**（已 spec 但没全实现 — `2026-06-24-in-site-notifications-design.md` 看到部分 commit 如 `feature/in-site-notifications` 已 merge）
 - **Maintenance**：6 个月一次的 dependency update / security audit
 
@@ -142,6 +153,10 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 - **Sub-F `__resetIndustryCacheForTests()`**（`mapping.ts`）：test-only helper，模块级 `_cache` 跨测试会污染。在每个相关 `beforeEach` 调用。
 - **Sub-F `config-cache` TTL 10s**：`createConfigCache(db, ttlMs = 10_000)` lazy expiration。admin 改 Config 后**最多 10s** 生效（不主动 invalidate）。TTL 可注入用于测试加速。
 - **Sub-F rate-limit middleware 是 async**（`src/main/modules/rate-limit/middleware.ts`）：签名 `createRateLimitMiddleware(db, cache)`，**第二个参数是 cache**。5 个 routes 改了 caller。改旧测试时 `it` 要 `async` + `await mw(...)`。
+- **Sub-G `createPlacement` 改 async**（`src/main/modules/commission/handler.ts`）：原本 sync（`withSpanSync` 包裹）。改 async 后 `withSpanSync` 仍然接受 sync 回调（`await` 在外）。所有 caller（`routes/employer.ts:64`）加 `await`。改 commission 测试时 `it` 改 `async` + `expect(() => fn()).toThrow()` 改 `await expect(fn()).rejects.toThrow()`。
+- **Sub-G `commission.platform_rate` 默认值 0.1**（migrate seed）：原 calculator DEFAULT_RATES 硬编码 0.2。Sub-G 接入 Config 后真实 rate 来自 cache fallback 0.1。改了 5 个 test 文件 11 处断言（200_000 → 100_000, 140_000 → 70_000 等）。
+- **Sub-G Zod 校验 commission 0-1** 在 route 层（`routes/admin.ts`）：`PUT /v1/admin/config/:key` 路由检查 `req.params.key === 'commission.platform_rate'`，用 `z.number().min(0).max(1)` 校验 body。其他 key 保持 `unknown`（无 type 校验）。
+- **Sub-G `migrateConfigFromFilesToDB` 写 number 而非 object**：`commission.json` 缺失时 INSERT OR IGNORE `JSON.stringify(0.1)`（数字），不是 `JSON.stringify({platform_rate: 0.1})`（object）。handler 读后直接是 number，type 一致。如果发现 mismatch（缓存值是 object `.platform_rate`），handler 需要 `.platform_rate ?? value` 兼容。
 
 ### 工具层面
 
@@ -200,7 +215,9 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | config-cache 模块 (Sub-F) | `src/main/modules/config-cache.ts`（in-memory cache + 10s TTL + fail-soft） |
 | rate-limit middleware (Sub-F) | `src/main/modules/rate-limit/middleware.ts`（async；`createRateLimitMiddleware(db, cache)`）|
 | industry_map loader (Sub-F) | `src/main/modules/desensitize/mapping.ts`（`loadIndustryMap(db?)` + `lookupIndustry(name, db?)`）|
-| Admin config handler (Sub-E) | `src/main/modules/admin/handlers/config.ts`（`set/list` + reason 必填 + audit）|
+| commission handler (Sub-G) | `src/main/modules/commission/handler.ts`（`createPlacement` async；读 `commission.platform_rate` configCache）|
+| Public rate-limit endpoint (Sub-G) | `src/main/routes/config.ts`（`/v1/config/rate-limits`）+ `src/main/schemas/admin.ts`（`ListRateLimitsResponseSchema`）|
+| Admin config handler (Sub-E + Sub-G) | `src/main/modules/admin/handlers/config.ts`（`set/list` + reason 必填 + audit + `getRateLimits()` Sub-G）|
 | Admin API typed wrappers | `admin-web/src/api/{users,candidates,dashboard,raw,audit}.ts` |
 | Admin Web UI | `admin-web/`（React + Vite + TS + vitest+RTL）；build 到 `out/admin/` |
 | action_history 中间件 | `src/main/modules/audit/action-history-middleware.ts` |
@@ -225,13 +242,16 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 - Action 能力名格式：`<user_type>.<verb_noun>` 例：`headhunter.upload_candidate`、`employer.express_interest`、`auth.register`
 - 完整能力列表：`docs/superpowers/skill.md` §X
 
-### Config 运行时配置（Sub-E + Sub-F）
+### Config 运行时配置（Sub-E + Sub-F + Sub-G）
 
 - `GET /v1/admin/config` — list all config keys
 - `PUT /v1/admin/config/:key` body `{ value, reason }` — upsert（reason ≥ 3 字符必填）
+- **`PUT /v1/admin/config/commission.platform_rate`** — Zod 校验 `value: number 0-1`（Sub-G）
+- **`GET /v1/config/rate-limits`** — 公开端点（optional auth）返 3 tier × 3 window 当前阈值（Sub-G）。agent 预读避开撞击。
 - **Key 命名约定**（4 层 dot path）：
   - `rate_limit.tier.<candidate|headhunter|employer>.limit_per_<second|minute|hour>` — 9 keys
   - `industry_map` — 完整 industry map JSON
-- **生效延迟**：admin 改后**最多 10s**（config-cache TTL）生效
-- **Fallback**：DB miss 或抛错 → 返 hardcoded 常量（rate-limit 用 `RATE_LIMIT_BURSTS`，industry_map 用 `readFileSync`）
-- **公开端点** `GET /v1/config/industries`（industry_map 列表）/ `GET /v1/config/title_levels` / `GET /v1/config/salary_bands` — 不需要 auth
+  - `commission.platform_rate` — 数字 0-1（commission rate，Sub-G）
+- **生效延迟**：admin 改后**立即**生效（Sub-G TTL=0，每次 get 重读 DB）
+- **Fallback**：DB miss 或抛错 → 返 hardcoded 常量（rate-limit 用 `RATE_LIMIT_BURSTS`，industry_map 用 `readFileSync`，commission 用 0.1）
+- **公开端点** `/v1/config/*` 列表：`/industries`（industry_map）/ `/title_levels` / `/salary_bands` / **`/rate-limits`**（Sub-G）— 不需要 auth
