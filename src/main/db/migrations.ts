@@ -33,6 +33,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 14, description: 'admin_users table — per-admin api_key auth (Sub-A of Task #3)', file: 'migrations/v014_admin_users.sql' },
   { version: 15, description: 'admin_login_events (Sub-D1 audit login log)', file: 'migrations/v015_admin_login_events.sql' },
   { version: 16, description: 'in-site notifications (system messages) — 30d TTL, polling, dedup by (user_id, category, dedup_key)', file: 'migrations/v016_notifications.sql' },
+  { version: 17, description: 'v024 — webhook_subscriptions table (Sub-E)', file: 'migrations/v024_webhook_subscriptions.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
