@@ -5,6 +5,37 @@
 
 ---
 
+## v2.8.0 (Sub-F — Worker Reads Config + Public Rate-Limit DB-Backed) — 2026-06-26
+
+Sub-E 留的"运营可调"是**欺骗性 UI**——admin 改 Config 后 runtime 仍读硬编码常量。v2.8.0 把 2 个业务运行时（rate-limit middleware + industry_map loader）真正接到 Config 表。
+
+### 新增功能
+- **config-cache 模块**（`src/main/modules/config-cache.ts`）：in-memory cache + 10s 懒过期 TTL + fail-soft fallback（DB 抛错 → 返硬编码常量）
+- **rate-limit middleware 接入 Config**：从 `RATE_LIMIT_BURSTS` 硬编码常量改为读 `rate_limit.tier.<tier>.limit_per_<window>`；admin 改后最多 10s 生效
+- **industry_map 接入 Config**：从 `readFileSync('config/industry_map.json')` 改为读 `industry_map` key（fallback 仍是文件，dev 友好）
+- **启动 seed 扩为 3 文件**：`migrateConfigFromFilesToDB` 现在读 `desensitization.json` + `commission.json` + `industry_map.json`（commission.json 缺失时 skip，不报错）
+
+### 配置示例
+```
+rate_limit.tier.candidate.limit_per_minute  = 50
+rate_limit.tier.headhunter.limit_per_minute = 100
+rate_limit.tier.employer.limit_per_minute   = 200
+industry_map                                = { version, updated_at, categories: [...], ... }
+```
+
+### 测试
+- 后端 +1 unit（config-cache 10 case）+ +3 integration（rate-limit-config 4 case + industry-map-config 3 case + migrate-config-files 4 case）= +21
+- admin-web：无改动
+- **总计：966 + 21 = 987 tests**
+
+### 已知限制
+- `lookupIndustry` 还是同步函数，industry_map cache 是一次性启动读（不 10s TTL 刷新）。要 TTL 刷新需要把 caller 改 async，超出 Sub-F 范围。
+- 多进程部署：每个进程各自缓存，不一致窗口 10s 内。
+- `QUOTA_COSTS` 和 register IP limiter 不在 Sub-F 范围（用户决策）。
+- rate-limit middleware 改 async 后签名变化（`createRateLimitMiddleware(db, cache)`），8 个旧 unit test 同步改 async + 4 个 routes caller 改签名。
+
+---
+
 ## v2.2.0 (Sub-D2 Plan 1 — Backend Timeline) — 2026-06-25
 
 ### 新增功能
