@@ -20,6 +20,26 @@
 
 ---
 
+## v2.6.0 (Sub-D6 — Filter URL Persistence) — 2026-06-26
+
+### 改进
+- **7 个 list page 迁移 filter useState → useUrlParam**:URL 持久化 + 浏览器后退/前进 + 分享带状态的链接
+  - UsersPage (user_type / status / keyword / page)
+  - CandidatesPage (unlock_status / keyword / page)
+  - JobsPage (status / keyword / page)
+  - RecommendationsPage (status / keyword / from / until / page)
+  - PlacementsPage (status / from / until / page) — 保留 confirm useState
+  - WebhookDeadLetterPage (event_type / min_attempts / from / until / page)
+  - AuditPage Admin Actions tab (actor / page)
+- **min_attempts 是 number**:useUrlParam 用 number parser 替代 string
+- **行为不变**:URL 共享 + filter 同步 + reload 保留 state
+
+### 测试
+- 前端 +14 个 useUrlParam 集成 test (每页 2 case: URL 读 + URL 写)
+- 0 backend 改动 (0 行 code)
+
+---
+
 ## v2.5.0 (Sub-D5 — User Suspend/Unsuspend Quick Action) — 2026-06-25
 
 ### 新增功能
