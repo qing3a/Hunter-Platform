@@ -1,21 +1,24 @@
-# Web Admin Sub-E — Config / Rate-Limit / Webhook Settings UI Design
+# Web Admin Sub-E — Config DB-Backed + UI Design
 
-> **For agentic workers:** 这是 design spec，配套 implementation plan 见 `docs/superpowers/plans/2026-06-25-web-admin-sub-E-plan-{1,2}.md`（待 writing-plans skill 输出）。
+> **For agentic workers:** 这是 design spec，配套 implementation plan 见 `docs/superpowers/plans/2026-06-25-web-admin-sub-E-plan.md`（待 writing-plans skill 输出）。
 >
-> 续接 Sub-D6（v2.6.0，merge `d16e2dc`）。本 spec 是 **Sub-project E：3 类 ops 配置 UI**（Config / Rate-Limit / Webhook Subscriptions）。后续 backlog：i18n、in-site notifications、v2 self-upload + pitch 等。
+> 续接 Sub-D6（v2.6.0，merge `d16e2dc`）。本 spec 是 **Sub-project E：Config 改造（DB-backed + 即时生效 + audit）**。
+>
+> ⚠️ **Scope 修正**：初版 spec 曾计划 "Config + Rate-Limit + Webhook 3 类"。**重新审查代码后发现**：
+> - Config 当前是写 JSON 文件，**不是 DB**，写后需 restart 服务
+> - Rate-Limit UI 写 Config 但**限流 worker 不读**，属欺骗性 UI
+> - Webhook 是 `users.agent_endpoint` 模式（user 自己注册），不是 Slack-style 外部订阅
+>
+> 决定：**Sub-E 只做 Config 改造**。其他两个 spec 取消（等真生产需求）。
+
+---
 
 ## ⚠️ 与已有 Sub-project 的关系
 
 | Sub-project | 已交付 | 内容 |
 |---|---|---|
-| Sub-C / D2 / D3 / D4 / D5 / D6 + Small Fixes | ✅ | 完整 admin 功能（read-only + mutations）|
-| **Sub-E（本 spec）** | 设计中 | **3 类配置 UI：Config / Rate-Limit / Webhook Subscriptions** |
-
-**Sub-E 解决的痛点**：
-- Config 改动要 SSH 改 DB
-- Rate-limit 改要 SQL（且没有 write endpoint）
-- Webhook subscriptions 完全没有（hardcoded URL）
-- Ops 团队没有 self-service 配置工具
+| Sub-C / D2 / D3 / D4 / D5 / D6 + Small Fixes | ✅ | 完整 admin 功能 |
+| **Sub-E（本 spec）** | 设计中 | **Config DB 化 + 通用 key + audit + UI** |
 
 ---
 
@@ -23,29 +26,32 @@
 
 ### 1.1 现状（Sub-D6 后）
 
-| 类别 | Backend | Frontend |
-|------|---------|----------|
-| **Config** | `GET /v1/admin/config` + `PUT /v1/admin/config/:key` ✅ | ❌ 无 UI |
-| **Rate-limit** | `GET /rate-limit/buckets` (view) + `POST /rate-limit/users/:id/clear` ✅ | ❌ 无 UI（且无 write endpoint） |
-| **Webhook Subscriptions** | ❌ 无 subscription 表 + 无 endpoint | ❌ 无 UI |
+| 项 | 现状 |
+|----|------|
+| `config` 表 | **不存在** — 写 JSON 文件 `config/desensitization.json` / `config/commission.json` |
+| Handler | `config.get()` / `config.set(key, value)` — hardcoded 2 个 key，set() 抛 "Unknown config key" |
+| 路由 | `GET /v1/admin/config` + `PUT /v1/admin/config/:key` |
+| 写文件 → 立即生效 | ❌ 需 restart 服务（require cache） |
+| Audit | ❌ 无 |
+| 通用 key | ❌ 只能改 2 个 hardcoded key |
+| Frontend | ❌ 无 UI |
 
 ### 1.2 真实需求
 
 | 需求 | 痛点 |
-|---|------|
-| 改 platform_fee_pct、阈值等业务参数 | 要 SSH 改 DB |
-| 调 per-tier / per-user API 速率 | 要 SQL update rate_limit_buckets |
-| 添加/删除 webhook 订阅（订阅哪些 events → 推到哪些 URL）| 完全没有 — 全部 hardcoded |
-| 失败 webhook 列表 + 重试 | Sub-D3 已做（dead-letter + retry） |
-| Webhook 死信写 audit | Sub-D4 已做（retry 写 audit） |
+|---|---|
+| 改 platform_fee_pct 等业务参数 | 需 SSH + restart 服务 |
+| 加新 config key | 需改 handler 代码 + deploy |
+| Audit 谁改了什么 | 查不到 |
+| 写完立即生效 | 需 restart |
 
 ### 1.3 非目标
 
-- ❌ Worker 端改造（webhook 投递逻辑、retry policy 调整）— Sub-E 只做配置 UI
+- ❌ Rate-Limit UI（worker 不读，欺骗性 UI）
+- ❌ Webhook Subscriptions（user.agent_endpoint 模式，不是 Slack 订阅）
 - ❌ i18n / 暗黑模式
-- ❌ Rate-limit bucket 实时监控（Sub-D 已有 dashboard 卡片）
-- ❌ Webhook payload schema 编辑（subscriber 自己定义 handler）
-- ❌ Realtime 配置变更（reload 服务才生效）
+- ❌ Reload 服务后失效
+- ❌ Config value schema validation（key-value 通用，any JSON）
 
 ---
 
@@ -56,28 +62,18 @@
 ```
 hunter-platform/
 ├── src/main/
-│   ├── routes/admin.ts                      # 改：+rate-limit write + webhook subscription routes
-│   ├── schemas/admin.ts                     # 改：+RateLimitBucketSchema + WebhookSubscriptionSchema
+│   ├── routes/admin.ts                      # 改：+auditUserId 透传（PUT /config/:key）
+│   ├── schemas/admin.ts                     # 改：+ListConfigResponseSchema + ConfigEntrySchema
+│   ├── modules/admin/handlers/config.ts     # 改：DB-backed 替代文件、+audit
 │   ├── db/migrations/
-│   │   └── v024_webhook_subscriptions.sql (NEW) # 新增 webhook_subscriptions 表
-│   ├── db/repositories/
-│   │   ├── webhook-subscriptions.ts (NEW)  # CRUD for subscriptions
-│   │   └── rate-limit-buckets.ts (改: 加 setLimit 方法)
-│   ├── modules/admin/handlers/
-│   │   ├── config.ts (改: +list/write)
-│   │   ├── rate-limit.ts (改: +listBuckets + setLimit + clear)
-│   │   └── webhooks-subscriptions.ts (NEW)
-│   └── capabilities/admin.ts                # 改：+3 capability
+│   │   └── v024_config_table.sql (NEW)     # 新增 config 表
+│   └── capabilities/admin.ts                # 改：+admin.list_config + +admin.update_config
 │
 └── admin-web/src/
     ├── pages/
-    │   └── SettingsPage.tsx (NEW)          # 3 tabs (Config / Rate-Limit / Webhooks)
-    ├── components/
-    │   └── Layout.tsx                       # 改：+ Settings 入口
+    │   └── SettingsPage.tsx (NEW)          # 1 个 Config tab
     ├── api/
-    │   ├── config.ts (NEW)                 # listConfig + updateConfig
-    │   ├── rate-limit.ts (NEW)             # listBuckets + setLimit + clear
-    │   └── webhook-subscriptions.ts (NEW)   # list + create + update + delete
+    │   └── config.ts (NEW)                 # listConfig + updateConfig
     └── App.tsx                              # 改：+/admin/settings
 ```
 
@@ -85,35 +81,29 @@ hunter-platform/
 
 | Method | Path | 改动 |
 |--------|------|------|
-| GET | `/v1/admin/config` | **不动** |
-| PUT | `/v1/admin/config/:key` | **不动** |
-| GET | `/v1/admin/rate-limit/buckets` | **不动** |
-| POST | `/v1/admin/rate-limit/users/:id/clear` | **不动** |
-| **POST** | **`/v1/admin/rate-limit/buckets`** | **新增**：set per-tier/per-user limit |
-| **GET** | **`/v1/admin/webhook-subscriptions`** | **新增**：list |
-| **POST** | **`/v1/admin/webhook-subscriptions`** | **新增**：create |
-| **PATCH** | **`/v1/admin/webhook-subscriptions/:id`** | **新增**：update |
-| **DELETE** | **`/v1/admin/webhook-subscriptions/:id`** | **新增**：delete |
+| GET | `/v1/admin/config` | **改**：返回 DB 数据（不是文件） |
+| PUT | `/v1/admin/config/:key` | **改**：透传 adminUserId（写 audit） + 写 DB（不是文件） |
 
 ### 2.3 数据库改动
 
-**+1 migration**（v024_webhook_subscriptions.sql）：
+**+1 migration**（v024_config_table.sql）：
 
 ```sql
-CREATE TABLE webhook_subscriptions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  target_url TEXT NOT NULL,
-  event_types TEXT NOT NULL,        -- JSON array, e.g. '["placement.paid","candidate.unlocked"]'
-  hmac_secret TEXT,                -- nullable, override global WEBHOOK_HMAC_SECRET
-  enabled INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
+-- 替换 JSON 文件 config
+CREATE TABLE config (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,         -- JSON 序列化的 value
   updated_at TEXT NOT NULL,
-  created_by_admin_user_id TEXT
+  updated_by_admin_user_id TEXT     -- nullable for backward compat
 );
-CREATE INDEX idx_webhook_subs_enabled ON webhook_subscriptions(enabled);
+CREATE INDEX idx_config_updated ON config(updated_at);
 ```
 
-**rate_limit_buckets 表不动** — 已有 `user_id` + `window_start` + `count`，可扩展表示 limit（详见 §3.2）。
+**数据迁移**：
+- 启动时从 `config/desensitization.json` + `config/commission.json` 读一次
+- INSERT 到 `config` 表（如不存在）
+- 之后**废弃文件读写**，handler 只用 DB
+- 文件保留作为 fallback（首次启动时一次性导入）
 
 ### 2.4 Tech Stack
 
@@ -125,119 +115,137 @@ CREATE INDEX idx_webhook_subs_enabled ON webhook_subscriptions(enabled);
 
 ## 3. 后端设计
 
-### 3.1 Config（0 改动）
+### 3.1 Migration（v024_config_table.sql）
 
-已存在 `GET /v1/admin/config` + `PUT /v1/admin/config/:key`。**不需要 backend 改动**。前端加 wrapper。
-
-### 3.2 Rate-Limit 新 endpoint
-
-```typescript
-// POST /v1/admin/rate-limit/buckets
-// body: { tier?: string, user_id?: string, limit: number, window_seconds: number }
-// tier='free' | 'paid' | 'headhunter' (预定义) OR user_id 指定单用户
-// 实际机制：rate_limit_buckets 表加 limit_per_window 字段
-
-// Or: 简化方案——直接用 Config 表存 rate-limit config（避免 schema 改动）
-//   'rate_limit.tier.free.limit_per_minute' = 10
-//   'rate_limit.tier.paid.limit_per_minute' = 100
-//   'rate_limit.user.<user_id>.limit_per_minute' = 50
-```
-
-**简化方案（推荐）**：用 Config 表存 rate-limit config（key-value 风格）。**0 schema 改动**。前端 UI 读 /config 看 `rate_limit.*` key，写用 PUT /config/:key。
-
-```ts
-// 例：PUT /config/rate_limit.tier.free.limit_per_minute
-// body: { value: 10, reason: 'ops 调参' }
-```
-
-**但**：现有 rate_limit_buckets 表是基于 user_id + window_start 累加的。worker 实际从 env.WEBHOOK_HMAC_SECRET 等常量读 limit。**Sub-E 不改 limit 行为**，只增加「config 存 rate-limit 参数」——是否使用由 worker 自行决定。MVP 阶段只暴露 config 写入 UI。
-
-**MVP 决策**：Sub-E 只把 rate-limit config 写入 `Config` 表（key 命名 `rate_limit.*`），**不接入实际限流逻辑**。这避免触碰 worker 端。Future Sub 可以接入。
-
-### 3.3 Webhook Subscription 新表 + 新 endpoint
-
-#### migration（v024_webhook_subscriptions.sql）
 ```sql
-CREATE TABLE webhook_subscriptions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  target_url TEXT NOT NULL,
-  event_types TEXT NOT NULL,        -- JSON array
-  hmac_secret TEXT,                -- nullable
-  enabled INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
+CREATE TABLE config (
+  key TEXT PRIMARY KEY,
+  value_json TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  created_by_admin_user_id TEXT
+  updated_by_admin_user_id TEXT
 );
-CREATE INDEX idx_webhook_subs_enabled ON webhook_subscriptions(enabled);
+CREATE INDEX idx_config_updated ON config(updated_at);
+
+-- 首次启动时从文件读（如表为空）+ INSERT OR IGNORE
+-- 此 SQL 仅创建表；数据导入在 startup code 做
 ```
 
-#### handler
+### 3.2 Handler 重构（`src/main/modules/admin/handlers/config.ts`）
+
 ```typescript
-// src/main/modules/admin/handlers/webhook-subscriptions.ts
-export type WebhookSubscription = {
-  id: number;
-  target_url: string;
-  event_types: string[];
-  hmac_secret: string | null;
-  enabled: boolean;
-  created_at: string;
+import type { DB } from '../../../db/connection.js';
+import { createAdminActionLogRepo } from '../../../db/repositories/admin-action-log.js';
+
+export type ConfigEntry = {
+  key: string;
+  value: unknown;  // parsed from value_json
   updated_at: string;
-  created_by_admin_user_id: string | null;
+  updated_by_admin_user_id: string | null;
 };
 
-export function createAdminWebhookSubscriptionsHandler(db: DB) {
+export function createAdminConfigHandler(db: DB) {
+  const adminLog = createAdminActionLogRepo(db);
+
   return {
-    list(): WebhookSubscription[] { /* SELECT * */ },
-    create(adminUserId: string, data: { target_url, event_types, hmac_secret? }): WebhookSubscription { /* INSERT */ },
-    update(id: number, data: Partial<{ target_url, event_types, hmac_secret, enabled }>): WebhookSubscription { /* UPDATE */ },
-    delete(id: number): void { /* DELETE */ },
+    list(): ConfigEntry[] {
+      const rows = db.prepare('SELECT key, value_json, updated_at, updated_by_admin_user_id FROM config ORDER BY key').all() as Array<{
+        key: string; value_json: string; updated_at: string; updated_by_admin_user_id: string | null;
+      }>;
+      return rows.map(r => ({
+        key: r.key,
+        value: JSON.parse(r.value_json),
+        updated_at: r.updated_at,
+        updated_by_admin_user_id: r.updated_by_admin_user_id,
+      }));
+    },
+
+    set(adminUserId: string, key: string, value: unknown): ConfigEntry {
+      // Validate key format
+      if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$/.test(key)) {
+        throw new Error('Invalid config key format: must be lowercase.dotted.path');
+      }
+      const valueJson = JSON.stringify(value);
+      const now = new Date().toISOString();
+      // UPSERT
+      db.prepare(`
+        INSERT INTO config (key, value_json, updated_at, updated_by_admin_user_id)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET
+          value_json = excluded.value_json,
+          updated_at = excluded.updated_at,
+          updated_by_admin_user_id = excluded.updated_by_admin_user_id
+      `).run(key, valueJson, now, adminUserId);
+      // Write audit
+      adminLog.insert({
+        admin_user_id: adminUserId,
+        action: 'update_config',
+        target_type: 'config',
+        target_id: key,
+        details_json: JSON.stringify({ value }),
+      });
+      return { key, value, updated_at: now, updated_by_admin_user_id: adminUserId };
+    },
   };
 }
 ```
 
-#### route
+### 3.3 启动时数据迁移
+
+在 `src/main/server.ts`（或新建 `src/main/startup/config-migration.ts`）：
+
 ```typescript
-router.get('/webhook-subscriptions', (req, res, next) => {
-  try { respond(res, ListWebhookSubscriptionsResponseSchema, { ok: true, data: webhookSubs.list() }, { strict: true }); }
-  catch (e) { next(e); }
+// 启动时一次性迁移
+function migrateConfigFromFilesToDB(db: DB) {
+  const files = [
+    'config/desensitization.json',
+    'config/commission.json',
+  ];
+  for (const f of files) {
+    try {
+      const content = fs.readFileSync(f, 'utf8');
+      const value = JSON.parse(content);
+      const key = path.basename(f, '.json');  // 'desensitization' or 'commission'
+      db.prepare(`
+        INSERT OR IGNORE INTO config (key, value_json, updated_at, updated_by_admin_user_id)
+        VALUES (?, ?, ?, NULL)
+      `).run(key, content, new Date().toISOString());
+    } catch (e) {
+      // 文件不存在或解析失败 → 忽略
+    }
+  }
+}
+```
+
+调用：在 server.ts `createAppFromDb()` 之后立即调一次。
+
+### 3.4 Route 改造
+
+`src/main/routes/admin.ts`：
+
+```typescript
+router.get('/config', (_req, res, next) => {
+  try {
+    respond(res, ListConfigResponseSchema, { ok: true, data: config.list() }, { strict: true });
+  } catch (e) { next(e); }
 });
-router.post('/webhook-subscriptions', (req, res, next) => {
+router.put('/config/:key', (req, res, next) => {
   try {
     const adminUserId = (req as any).admin?.id;
     if (!adminUserId) throw Errors.unauthorized();
-    const { target_url, event_types, hmac_secret } = req.body ?? {};
-    // validate target_url is https/http
-    if (!target_url || !event_types) throw Errors.invalidParams('target_url and event_types required');
-    respond(res, GetWebhookSubscriptionResponseSchema, { ok: true, data: webhookSubs.create(adminUserId, { target_url, event_types, hmac_secret }) }, { strict: true });
+    const key = req.params.key;
+    const value = req.body;
+    respond(res, GetConfigResponseSchema, { ok: true, data: config.set(adminUserId, key, value) }, { strict: true });
   } catch (e) { next(e); }
 });
-router.patch('/webhook-subscriptions/:id', (req, res, next) => { /* update */ });
-router.delete('/webhook-subscriptions/:id', (req, res, next) => { /* delete */ });
 ```
 
-### 3.4 Audit 联动
-
-- Config 写 → 已写 audit（config.ts handler 已有 admin_action_log 写入）
-- Rate-limit config 写（同 Config 路径）→ 同样写 audit
-- Webhook subscription CRUD → **新**：写 admin_action_log（action='create_webhook_subscription' / 'update_webhook_subscription' / 'delete_webhook_subscription'）
-
-### 3.5 错误处理
-
-| 场景 | HTTP | code |
-|------|------|------|
-| target_url 非 http/https | 400 | INVALID_PARAMS |
-| event_types 空数组 | 400 | INVALID_PARAMS |
-| id 不存在 | 404 | NOT_FOUND |
-| Config key 非法字符 | 400 | INVALID_PARAMS |
-| 无 admin token | 401 | UNAUTHORIZED |
-
-### 3.6 共享 schema
+### 3.5 Schema
 
 ```typescript
-// 在 schemas/admin.ts 加
+// src/main/schemas/admin.ts
 const ConfigEntrySchema = z.object({
   key: z.string(),
-  value: z.unknown(),  // JSON 任意值
+  value: z.unknown(),  // 任意 JSON
   updated_at: ISODateTime,
   updated_by_admin_user_id: z.string().nullable(),
 });
@@ -245,159 +253,196 @@ const ListConfigResponseSchema = z.object({
   ok: z.literal(true),
   data: z.array(ConfigEntrySchema),
 });
-
-const WebhookSubscriptionSchema = z.object({
-  id: z.number().int(),
-  target_url: z.string().url(),
-  event_types: z.array(z.string()),
-  hmac_secret: z.string().nullable(),
-  enabled: z.boolean(),
-  created_at: ISODateTime,
-  updated_at: ISODateTime,
-  created_by_admin_user_id: z.string().nullable(),
-});
-const ListWebhookSubscriptionsResponseSchema = z.object({
+const GetConfigResponseSchema = z.object({
   ok: z.literal(true),
-  data: z.array(WebhookSubscriptionSchema),
-});
-const GetWebhookSubscriptionResponseSchema = z.object({
-  ok: z.literal(true),
-  data: WebhookSubscriptionSchema,
+  data: ConfigEntrySchema,
 });
 ```
 
-### 3.7 不做
+### 3.6 Capability
 
-- ❌ Webhook 投递逻辑改造（worker 端不读新订阅表，Sub-E 只加管理 UI）
-- ❌ Rate-limit 实际限流改造（同理）
-- ❌ Webhook 重试 policy 调整
-- ❌ Per-event payload schema 编辑
+```typescript
+// 在 capabilities/admin.ts 加 2 个
+{
+  name: 'admin.list_config',
+  description: '列出所有 config key-value',
+  method: 'GET', path: '/v1/admin/config',
+  response_schema: ListConfigResponseSchema,
+  quota_cost: 0, preconditions: [],
+},
+{
+  name: 'admin.update_config',
+  description: '更新 config key（写 audit）',
+  method: 'PUT', path: '/v1/admin/config/:key',
+  response_schema: GetConfigResponseSchema,
+  quota_cost: 0, preconditions: [],
+},
+```
+
+### 3.7 错误处理
+
+| 场景 | HTTP | code |
+|------|------|------|
+| 无 admin token | 401 | UNAUTHORIZED |
+| key 格式非法（非 lowercase.dotted）| 400 | INVALID_PARAMS |
+| value 不是合法 JSON | 400 | INVALID_PARAMS |
+
+### 3.8 不做
+
+- ❌ Rate-Limit UI（worker 不读）
+- ❌ Webhook Subscriptions（user.agent_endpoint 模式）
+- ❌ Config value schema validation（key-value 通用）
+- ❌ Hot reload worker（不需要——已经是 DB-backed 即时生效）
 
 ---
 
 ## 4. 前端设计
 
-### 4.1 新建 SettingsPage（3 tabs）
+### 4.1 SettingsPage（单 page，1 个 tab — Config）
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Settings                                                  │
-│  [Config]  [Rate-Limit]  [Webhooks]                      │
+│  [Config]                                                   │
 ├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Tab 1: Config                                              │
-│  ┌──────────┬─────────┬──────────────┬──────┐              │
-│  │ Key      │ Value   │ Updated      │ 操作 │              │
-│  ├──────────┼─────────┼──────────────┼──────┤              │
-│  │ plat...   │ 5       │ 3 周前       │ 编辑 │              │
-│  └──────────┴─────────┴──────────────┴──────┘              │
-│                                                              │
-│  Tab 2: Rate-Limit (读 Config 表的 rate_limit.* keys)        │
-│  [刷新]                                                      │
-│                                                              │
-│  Tab 3: Webhooks                                              │
-│  ┌────┬──────────────┬─────────────┬──────┐              │
-│  │ ID │ Target URL   │ Event Types │ 操作 │              │
-│  ├────┼──────────────┼─────────────┼──────┤              │
-│  │ 1  │ https://...  │ [...]       │ 编辑 │              │
-│  └────┴──────────────┴─────────────┴──────┘              │
-│  [+ New Subscription]                                       │
+│  ┌──────────┬──────────┬──────────────────┬──────┐         │
+│  │ Key      │ Value    │ Updated           │ 操作 │         │
+│  ├──────────┼──────────┼──────────────────┼──────┤         │
+│  │ des...   │ {...}    │ 3 天前 adm_1     │ 编辑 │         │
+│  │ com...   │ {...}    │ 1 周前 adm_1     │ 编辑 │         │
+│  └──────────┴──────────┴──────────────────┴──────┘         │
+│  [+ New Key]                                                │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 路由注册
+点击「编辑」或「+ New Key」→ 弹 Modal（含 key 输入 + value JSON 编辑 + reason 必填）。
+
+### 4.2 路由 + nav
 
 ```tsx
 // App.tsx
 <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
 
-// Layout.tsx — nav 加 Settings 入口
+// Layout.tsx — nav 加「Settings」入口
 <NavLink to="/admin/settings">Settings</NavLink>
 ```
 
-### 4.3 API wrappers
+### 4.3 API wrapper
 
 ```ts
 // admin-web/src/api/config.ts
 export type ConfigEntry = { key: string; value: unknown; updated_at: string; updated_by_admin_user_id: string | null };
+
 export async function listConfig(): Promise<ConfigEntry[]> { ... }
-export async function updateConfig(key: string, value: unknown, reason: string): Promise<ConfigEntry> { ... }
 
-// admin-web/src/api/rate-limit.ts
-export type RateLimitBucket = { user_id: string | null; tier: string; limit_per_minute: number; count: number; ... };
-export async function listRateLimits(): Promise<RateLimitBucket[]> { ... }
-// 实际：listConfig() filter 'rate_limit.*' keys
-
-// admin-web/src/api/webhook-subscriptions.ts
-export type WebhookSubscription = { id: number; target_url: string; event_types: string[]; hmac_secret: string | null; enabled: boolean; ... };
-export async function listWebhookSubscriptions(): Promise<WebhookSubscription[]> { ... }
-export async function createWebhookSubscription(data): Promise<WebhookSubscription> { ... }
-export async function updateWebhookSubscription(id, data): Promise<WebhookSubscription> { ... }
-export async function deleteWebhookSubscription(id): Promise<void> { ... }
+export async function updateConfig(key: string, value: unknown, reason: string): Promise<ConfigEntry> {
+  const env = await apiFetchRaw<ConfigEntry>(`config/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ value, reason }),
+  });
+  if (!env.ok || !env.data) {
+    throw new Error(env.error?.message ?? 'Failed to update config');
+  }
+  return env.data;
+}
 ```
 
-### 4.4 ConfirmModal 复用
+**注意**：updateConfig payload 结构是 `{ value, reason }`（不是直接 value）——这样 spec 里要求 reason 必填（用于 audit）。
 
-- 编辑 Config key → 弹 ConfirmModal（primary + reason）
-- 创建/删除/启用/停用 Webhook subscription → 弹 ConfirmModal
-- 删除 subscription 选 danger variant
+### 4.4 编辑 Modal
 
-### 4.5 Toast + 错误处理
+基于现有 `<ConfirmModal>`，加 textarea 输入 JSON value + key 输入 + reason 输入。
+
+简单方案：新建 `<ConfigEditModal>` 组件（不复用 ConfirmModal，因为 input 字段更复杂）。
+
+```tsx
+type ConfigEditModalProps = {
+  open: boolean;
+  entry: ConfigEntry | null;  // null = 新建
+  onClose: () => void;
+  onSave: (key: string, value: unknown, reason: string) => Promise<void>;
+};
+```
+
+JSX：
+- Key 输入（新建可编辑，编辑 disabled）
+- Value textarea（JSON 格式，输入时 validate 合法 JSON）
+- Reason textarea（必填，min 3 chars）
+- Save / Cancel 按钮
+
+### 4.5 错误处理
 
 | 场景 | UI |
 |------|-----|
-| 成功更新 | Toast「已保存」+ 重新 fetch list |
-| 失败 | Modal 内联错误 |
+| value 不是合法 JSON | Modal 内联红字 |
+| reason < 3 chars | Modal 内联红字 |
+| Save 失败 | Modal 显示后端 message |
 | 401 | client.ts 处理 |
-| 网络断开 | Toast「网络错误」 |
+| 成功 | Modal 关闭 + Toast「已保存」+ 列表刷新 |
 
 ### 4.6 不做
 
-- ❌ Realtime 同步（操作后手动刷新）
-- ❌ 编辑 audit detail
-- ❌ Webhook 测试发送（test ping）— Sub-E+ 范围
-- ❌ Rate-limit 实时 bucket 监控（Sub-D 已有 dashboard 卡片）
+- ❌ Realtime 同步
+- ❌ i18n / 暗黑模式
+- ❌ Config value schema validation（key-value 通用）
+- ❌ 删除 key（DELETE endpoint，MVP 不做）
 
 ---
 
 ## 5. 数据流 + Audit 链路
 
-### 5.1 改 Config key
+### 5.1 编辑 key
 
 ```
-[1] SettingsPage Tab 1 列表 + Edit 按钮
-    → 弹 Modal（primary, 必填 reason）
-    → 提交 → updateConfig(key, newValue, reason)
+[1] SettingsPage 列表 + [编辑] 按钮
+    → 弹 ConfigEditModal（key 不可改，value + reason 可改）
+    → 用户编辑 value（textarea 实时 validate JSON）
+    → 输 reason
+    → 点 [保存]
+    → validate JSON + reason length
+    → onSave(key, value, reason)
+    → updateConfig(key, value, reason)
     → PUT /v1/admin/config/:key { value, reason }
-    → backend config.set(adminUserId, key, value, reason)
-    → UPDATE config + INSERT admin_action_log
-    → Toast「已保存」+ 列表刷新
+    → backend config.set(adminUserId, key, value)
+    → UPSERT config table
+    → adminLog.insert({ action: 'update_config', target_type: 'config', target_id: key, details: { value } })
+    → 响应
+    → Modal 关闭
+    → Toast「已保存」
+    → 列表刷新（show 新 value）
 ```
 
-### 5.2 改 Webhook subscription
+### 5.2 新建 key
 
 ```
-[1] Tab 3 列表 + Edit / Delete / + New
-    → New: 弹 Modal（target_url + event_types multi-select + optional hmac_secret）
-    → 提交 → createWebhookSubscription(data)
-    → POST /v1/admin/webhook-subscriptions
-    → INSERT subscription + INSERT admin_action_log
-    → Toast「已创建」+ 列表刷新
+[1] SettingsPage [+ New Key] 按钮
+    → 弹 ConfigEditModal（key 可编辑）
+    → 用户填 key（lowercase.dotted 格式 validate）
+    → 填 value（JSON validate）
+    → 输 reason
+    → 点 [保存]
+    → onSave(key, value, reason)
+    → updateConfig(key, value, reason)
+    → 同上（含 audit）
 ```
 
 ### 5.3 Audit 联动
 
-- Config 写、Rate-limit config 写：复用现有 config handler 的 audit 写入
-- Webhook subscription CRUD：新写 audit（action='create_webhook_subscription' 等）
+- `config.set()` 每次写 `admin_action_log`（action='update_config'）
+- target_id = key（如 'platform_fee_pct'）
+- details_json = JSON.stringify({ value })
+
+可在 AuditPage Admin Actions tab 查所有 config 变更。
 
 ### 5.4 失败链路
 
 | 场景 | 表现 |
 |------|------|
-| target_url 格式错 | Modal 内联错误 |
-| event_types 空 | Modal 内联错误 |
-| 404 | Modal 显示后端 message |
-| 网络断开 | Toast |
+| key 格式错 | Modal 内联红字 |
+| value 不是 JSON | Modal 内联红字 |
+| reason < 3 | Modal 内联红字 |
+| 401 | 跳 login |
+| 后端 400/500 | Modal 显示后端 message |
 
 ---
 
@@ -407,36 +452,39 @@ export async function deleteWebhookSubscription(id): Promise<void> { ... }
 
 | 层 | 范围 | 数量 |
 |----|------|------|
-| 后端 webhook-subscription handler | list / create / update / delete | 6 |
-| 后端 route | 4 endpoint + 400/401 边界 | 6 |
-| 后端 config / rate-limit (无新 endpoint 改) | 仅 0 改动 | 0 |
-| 前端 API wrapper | config + webhook-subscription | 4 |
-| 前端 page | SettingsPage 3 tabs | 5 |
-| **新增总计** | | **~21** |
+| 后端 config handler | list + set + 边界（key 格式/value JSON） | 6 |
+| 后端 route | GET + PUT + 401/400 | 4 |
+| 前端 API wrapper | listConfig + updateConfig + 边界 | 3 |
+| 前端 ConfigEditModal | render + save 流程 + 错误显示 | 3 |
+| 前端 SettingsPage | mount 调 listConfig + 弹 Modal + 编辑流程 | 4 |
+| **新增总计** | | **~20** |
 
-回归目标：196 + 21 ≈ **217 admin-web 测试**。Backend: 956 + 12 ≈ **968**。
+回归目标：196 + 20 = **216 admin-web 测试**。Backend: 956 + 10 ≈ **966**。
 
 ### 6.2 不做
 
 - ❌ E2E
 - ❌ 视觉回归
+- ❌ 启动时数据迁移测试（手动验证即可）
 
 ---
 
 ## 7. 验收标准（DoD）
 
-1. ✅ SettingsPage 3 tabs 全部工作
-2. ✅ Config 列表 + 编辑（含 reason 必填）
-3. ✅ Rate-limit 显示「rate_limit.*」Config keys
-4. ✅ Webhook subscription CRUD 全部工作
-5. ✅ 21 个新测试通过
-6. ✅ 全 typecheck 干净
-7. ✅ 手测 5 步
-8. ✅ CHANGELOG v2.7.0
+1. ✅ 1 migration（v024 config 表）— 启动时从 JSON 文件导入
+2. ✅ handler DB-backed + 即时生效
+3. ✅ write 写 audit（action='update_config'）
+4. ✅ PUT key 加 reason 必填（与 adjust-quota 同样模式）
+5. ✅ SettingsPage 单 tab（Config）
+6. ✅ ConfigEditModal（key + value JSON + reason）
+7. ✅ ~20 新测试通过
+8. ✅ 全 typecheck 干净
+9. ✅ 手测 4 步
+10. ✅ CHANGELOG v2.7.0
 
 ---
 
-## 8. 手测 5 步
+## 8. 手测 4 步
 
 ```bash
 cd D:/dev/hunter-platform && npm run dev
@@ -445,23 +493,21 @@ cd D:/dev/hunter-platform/admin-web && npm run dev
 
 | # | 操作 | 期望 |
 |---|------|------|
-| 1 | 侧栏「Settings」→ Tab Config | 看到 config 列表 |
-| 2 | 编辑某 key → 弹 Modal → 输 reason → 保存 | Toast「已保存」+ 值更新 |
-| 3 | Tab Rate-Limit | 看到 rate_limit.* keys（空 OK） |
-| 4 | Tab Webhooks → + New → 填 target_url + event_types → 创建 | 新订阅出现在列表 |
-| 5 | 审计页 → 应能看到 create_webhook_subscription 记录 | 看到新 record |
+| 1 | 侧栏「Settings」→ 看到现有 config keys（desensitization + commission + 任何之前的） | 列表渲染 |
+| 2 | 编辑某 key → 弹 Modal → 改 value → 输 reason → 保存 | Toast「已保存」+ 列表更新 |
+| 3 | [+ New Key] → 填 `test.value`（lowercase.dotted）+ 合法 JSON value + reason → 保存 | 新 key 出现 |
+| 4 | 审计页 → Admin Actions tab | 看到 2 条 update_config 记录（含 key + new value） |
 
 ---
 
 ## 9. 部署 / 回滚
 
 ### 部署
-- 后端：1 migration（v024）+ 4 endpoint。重启服务。
-- 前端：1 page + 1 nav 入口。`npm run build` + nginx reload。
-- 注意：**新加的 webhook_subscriptions 表只是 metadata 存储，worker 不读，所以重启不需要 reload worker 即可**。
+- 后端：1 migration（v024）自动跑。重启服务。文件 fallback 一次性导入。
+- 前端：`npm run build` + nginx reload。
 
 ### 回滚
-- 后端：revert commit + 删 migration。重置。
+- 后端：revert commit。revert migration（v024 schema 留 DB — DROP TABLE config 如需完整回滚）。恢复文件读写（fallback 路径仍在）。
 - 前端：revert + rebuild。
 
 ---
@@ -470,10 +516,10 @@ cd D:/dev/hunter-platform/admin-web && npm run dev
 
 | 阶段 | 估时 |
 |------|------|
-| 后端（migration + 4 endpoint + handler + tests） | 半天 |
-| 前端（1 page 3 tabs + 3 API wrappers + tests） | 1 天 |
-| 手测 + 修小问题 | 半天 |
-| **总计** | **~2 天** |
+| 后端（migration + handler 重构 + audit + route 改 + tests） | 2-3 小时 |
+| 前端（1 page + ConfigEditModal + api wrapper + tests） | 2-3 小时 |
+| 手测 + 修小问题 | 1 小时 |
+| **总计** | **~5-6 小时** |
 
 ---
 
@@ -481,10 +527,10 @@ cd D:/dev/hunter-platform/admin-web && npm run dev
 
 | Sub | 内容 | 预计 |
 |-----|------|------|
-| Sub-F（Sub-E+） | Worker 接入 rate-limit config + webhook subscriptions 实际投递 | v2.8 |
-| i18n 接入 | admin-web 中文化 | v2.9 |
-| in-site notifications | 顶部通知 | v2.10 |
+| Sub-F | Rate-Limit write endpoint（按需）+ UI | v2.7.1 |
+| Sub-G | Webhook subscriptions（user.agent_endpoint 模式，如需多端点） | v2.8 |
+| i18n / in-site notifications / v2-self-upload | 已有 spec backlog | 后续 |
 
 ---
 
-**Spec 结束。** 配套 implementation plans 见 `docs/superpowers/plans/2026-06-25-web-admin-sub-E-plan-{1,2}.md`（待 writing-plans skill 输出）。
+**Spec 结束。** 配套 implementation plan 见 `docs/superpowers/plans/2026-06-25-web-admin-sub-E-plan.md`（待 writing-plans skill 输出）。
