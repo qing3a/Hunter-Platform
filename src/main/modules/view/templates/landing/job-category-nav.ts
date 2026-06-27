@@ -20,7 +20,7 @@ export function jobCategoryNav(data: LandingData): string {
     return html`
 <section class="card job-category-nav" id="job-categories">
   <h2><span class="accent-bar"></span>📂 职位分类</h2>
-  <p class="meta">暂无分类数据</p>
+  <div class="empty-state"><p class="empty-state-text">暂无分类数据</p><p class="empty-state-cta">想优先展示你的行业？<a href="#for-headhunters">上传候选人</a>激活分类</p></div>
 </section>
     `;
   }

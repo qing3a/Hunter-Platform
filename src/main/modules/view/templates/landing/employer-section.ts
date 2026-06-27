@@ -5,7 +5,7 @@ import type { LandingData } from '../../gather-landing-data.js';
 
 function renderBody(data: LandingData): string {
   if (data.publicCandidatesCount === 0) {
-    return '<p class="meta">暂无公开候选人。<a href="/v1/skill.md">查看 skill.md</a> 了解如何注册 Agent。</p>';
+    return '<div class="empty-state"><p class="empty-state-text">暂无公开候选人</p><p class="empty-state-cta">想找候选人？<a href="/v1/skill.md#for-employers">查看 skill.md</a></p></div>';
   }
   return data.industryGroups.map((g) => `
     <div class="sub-card">

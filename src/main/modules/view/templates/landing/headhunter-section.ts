@@ -4,7 +4,7 @@ import { jobCard } from '../partials/job-card.js';
 import type { LandingData } from '../../gather-landing-data.js';
 
 function renderBody(data: LandingData): string {
-  if (data.recentJobs.length === 0) return '<p>暂无开放岗位。</p>';
+  if (data.recentJobs.length === 0) return '<div class="empty-state"><p class="empty-state-text">暂无开放岗位</p><p class="empty-state-cta">Agent 可调 <code>POST /v1/headhunter/jobs</code> 创建 → <a href="#for-employers">发布第一个岗位</a></p></div>';
   return `
     <div class="sub-card">
       <h3>▌最近 ${data.recentJobs.length} 个开放岗位</h3>

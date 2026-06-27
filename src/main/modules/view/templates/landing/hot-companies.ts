@@ -24,7 +24,7 @@ export function hotCompanies(data: LandingData): string {
     return html`
 <section class="card hot-companies" id="hot-companies">
   <h2><span class="accent-bar"></span>🏢 热门企业</h2>
-  <p class="meta">暂无热门企业</p>
+  <div class="empty-state"><p class="empty-state-text">暂无热门企业</p><p class="empty-state-cta">完成第一笔 placement 后企业自动展示 → <a href="#for-employers">吸引企业</a></p></div>
 </section>
     `;
   }
