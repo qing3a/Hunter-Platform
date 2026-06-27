@@ -1,4 +1,6 @@
 // src/main/modules/view/templates/landing/nav.ts
+// P1.7 v3: 重设计 nav — 4 角色 link 移到 hero (role-anchors) 避免重复
+// nav 现在只 4 元素: 品牌 + status + Agent link + 复制按钮 (4 角色 link 只在 hero)
 import { html } from '../lib/html.js';
 import { statusBadge } from '../partials/status-badge.js';
 import type { LandingData } from '../../gather-landing-data.js';
@@ -11,19 +13,16 @@ export function nav(data: LandingData): string {
       <span class="brand-mark">🔍</span>
       <span class="brand-name">Hunter Platform</span>
     </a>
-    <div class="nav-status">${statusBadge(data.healthStatus, data.uptimePercent)}</div>
-    <nav class="nav-links">
-      <a href="#for-employers">🏢 雇主</a>
-      <a href="#for-headhunters">🎯 猎头</a>
-      <a href="#for-candidates">🔒 候选人</a>
-      <a href="#rankings">🏆 榜单</a>
-      <a href="/v1/skill.md" target="_blank" rel="noopener">📖 API</a>
-      <a href="/v1/openapi.json" target="_blank" rel="noopener">📋 OpenAPI</a>
-      <a href="/v1/health" target="_blank" rel="noopener">🏥 Health</a>
-    </nav>
-    <button type="button" class="copy-btn js-copy-btn" data-copy="${'/v1/skill.md'}">
-      📋 复制 skill.md
+    <button type="button" class="nav-toggle js-nav-toggle" aria-label="切换菜单" aria-expanded="false">
+      <span class="nav-toggle-icon">☰</span>
     </button>
+    <div class="nav-collapsible js-nav-collapsible">
+      <div class="nav-status">${statusBadge(data.healthStatus, data.uptimePercent)}</div>
+      <a class="nav-cta-agent" href="#rankings">🤖 Agent 开发者</a>
+      <button type="button" class="copy-btn js-copy-btn" data-copy="${'/v1/skill.md'}">
+        📋 复制 skill.md
+      </button>
+    </div>
   </div>
 </header>
   `;

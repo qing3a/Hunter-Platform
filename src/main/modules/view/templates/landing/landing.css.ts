@@ -174,6 +174,42 @@ main { max-width: 880px; margin: 0 auto; padding: 24px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .hero h1 { font-size: 36px; }
   .nav-links { gap: 8px; }
+  .nav-status, .copy-btn { display: none; }  /* P1.7: 小屏隐藏 status + copy button */
+
+/* P1.7 v2: 汉堡菜单 — 大屏 (>768px) inline, 小屏折叠 */
+.nav-toggle {
+  display: none;  /* 大屏隐藏 */
+  background: none;
+  border: 0;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--text-primary);
+}
+.nav-toggle:hover { background: var(--bg-page); border-radius: 4px; }
+.nav-toggle[aria-expanded=true] .nav-toggle-icon::before {
+  content: ✕;
+}
+.nav-toggle[aria-expanded=true] .nav-toggle-icon { font-size: 0; }
+
+@media (max-width: 767px) {
+  .nav-toggle { display: block; }
+  .nav-inner { flex-wrap: wrap; }
+  .nav-collapsible {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  .nav-collapsible.open { display: flex; }
+  .nav-links { flex-direction: column; gap: 4px; }
+  .nav-links a { padding: 8px 12px; border-radius: 6px; }
+  .nav-links a:hover { background: var(--bg-page); }
+  .nav-status, .copy-btn { display: block; align-self: flex-start; }
+}
   .role-anchors { gap: 6px; padding: 12px; }
   .role-anchor { padding: 6px 10px; font-size: 13px; }
 }

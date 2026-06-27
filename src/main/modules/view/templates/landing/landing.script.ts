@@ -3,6 +3,23 @@
 export const LANDING_SCRIPT = `
 <script>
 (function() {
+  // 0) Nav toggle: mobile menu (P1.7 v2)
+  var navToggle = document.querySelector('.js-nav-toggle');
+  var navCollapsible = document.querySelector('.js-nav-collapsible');
+  if (navToggle && navCollapsible) {
+    navToggle.addEventListener('click', function() {
+      var isOpen = navCollapsible.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    // Close menu when a nav link is clicked (mobile UX)
+    navCollapsible.querySelectorAll('a').forEach(function(link) {
+      link.addEventListener('click', function() {
+        navCollapsible.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+
   // 1) Copy buttons: copy URL to clipboard
   document.querySelectorAll('.js-copy-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
