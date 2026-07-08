@@ -89,16 +89,16 @@ export type DecomposeRunStatus =
   | 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
 /**
- * Mirrors the backend `ProjectSummary` shape (see
- * src/main/db/repositories/projects.ts → ProjectSummary). The list
- * endpoint returns ProjectRow + two aggregate counts; the create/update
- * endpoints return ProjectRow alone.
+ * Mirrors the backend `ProjectRow` shape (see
+ * src/main/db/repositories/projects.ts → ProjectRow). Returned by the
+ * create / update / get (detail) endpoints. The list endpoint adds two
+ * aggregate counts on top — see `ProjectSummary` below.
  *
  * NOTE: `target` is the project's recruitment target / scope blurb
  * (renamed from earlier "description" wording in the design doc). The
  * 名称 displayed in the UI is the `name` field.
  */
-export interface ProjectSummary {
+export interface Project {
   id: string;
   pm_user_id: string;
   name: string;
@@ -110,12 +110,21 @@ export interface ProjectSummary {
   end_at: number | null;
   current_team: { role: string; count: number }[] | null;
   status: ProjectStatus;
-  position_count: number;
-  plan_count: number;
   /** unix ms */
   created_at: number;
   /** unix ms */
   updated_at: number;
+}
+
+/**
+ * List-row shape for projects: `Project` plus two aggregate counts
+ * (`position_count`, `plan_count`). Returned only by the `list` endpoint
+ * — create / update / get all return `Project` (the row alone, no
+ * aggregates).
+ */
+export interface ProjectSummary extends Project {
+  position_count: number;
+  plan_count: number;
 }
 
 export interface PlanTask {
@@ -285,7 +294,7 @@ export const pmProjects = {
    */
   get: (id: string) =>
     request<{
-      project: ProjectSummary;
+      project: Project;
       positions: Position[];
       plans: PlanSummary[];
       stats: {
@@ -303,7 +312,7 @@ export const pmProjects = {
     end_at?: number;
     current_team?: Array<{ role: string; count: number }>;
   }) =>
-    request<ProjectSummary>(BASE, '/projects', {
+    request<Project>(BASE, '/projects', {
       method: 'POST', body: JSON.stringify(input),
     }),
   update: (id: string, patch: Partial<{
@@ -315,7 +324,7 @@ export const pmProjects = {
     current_team: Array<{ role: string; count: number }> | null;
     status: ProjectStatus;
   }>) =>
-    request<ProjectSummary>(BASE, `/projects/${id}`, {
+    request<Project>(BASE, `/projects/${id}`, {
       method: 'PATCH', body: JSON.stringify(patch),
     }),
 };
@@ -363,7 +372,7 @@ export const pmPositions = {
   },
   /** POST /v1/pm/projects/:projectId/positions */
   create: (projectId: string, input: CreatePositionInput) =>
-    request<{ position: Position }>(BASE, `/projects/${projectId}/positions`, {
+    request<Position>(BASE, `/projects/${projectId}/positions`, {
       method: 'POST', body: JSON.stringify(input),
     }),
   /** GET /v1/pm/positions/:id — also returns a tiny derived stats object. */
@@ -378,7 +387,7 @@ export const pmPositions = {
     }>(BASE, `/positions/${id}`),
   /** PATCH /v1/pm/positions/:id */
   update: (id: string, patch: Partial<UpdatePositionInput>) =>
-    request<{ position: Position }>(BASE, `/positions/${id}`, {
+    request<Position>(BASE, `/positions/${id}`, {
       method: 'PATCH', body: JSON.stringify(patch),
     }),
   /** DELETE /v1/pm/positions/:id */
