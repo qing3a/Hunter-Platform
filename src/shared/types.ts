@@ -94,6 +94,8 @@ export interface Job {
 
 export type RecStatus =
   | 'pending'
+  | 'pending_pickup'
+  | 'considering_offer'
   | 'employer_interested'
   | 'candidate_approved'
   | 'unlocked'
