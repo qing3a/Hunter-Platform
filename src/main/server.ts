@@ -37,6 +37,7 @@ import { createAdminRouter } from './routes/admin.js';
 import { createCapabilitiesRouter } from './routes/capabilities.js';
 import { createNotificationsRouter } from './routes/notifications.js';
 import { createCandidatePortalRouter } from './routes/candidate-portal.js';
+import { createHeadhunterWorkspaceRouter } from './routes/headhunter-workspace.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -159,7 +160,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   const actionHistoryRepo = createActionHistoryRepo(db);
   const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
 
-  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate', '/v1/candidate-portal'];
+  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate', '/v1/candidate-portal', '/v1/headhunter-workspace'];
   app.use((req, res, next) => {
     if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
       return next();
@@ -232,6 +233,12 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
     otpMaxAttempts: env.OTP_MAX_ATTEMPTS,
     consoleOnly: env.OTP_CONSOLE_ONLY,
   }));
+  // Hunter Workspace (Phase 3a, Task 7): 12 endpoints on /v1/headhunter-workspace.
+  // All routes require a hunter session (authMiddleware is mounted inside
+  // the router; non-headhunters get 403 from the underlying handler
+  // modules' assertHeadhunter() checks). Body parser: 4KB is enough for
+  // task descriptions (max 2000 chars + JSON overhead) and kanban moves.
+  app.use('/v1/headhunter-workspace', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createHeadhunterWorkspaceRouter(db));
   // /v1/admin/* — all routes (including /ping) require the admin bearer token.
   // The admin auth middleware rejects unauthenticated and non-admin requests
   // with 401 UNAUTHORIZED.
