@@ -71,7 +71,6 @@ export function createHunterTasksRepo(db: DB) {
   `);
 
   const findByIdStmt = db.prepare('SELECT * FROM hunter_tasks WHERE id = ? AND hunter_user_id = ?');
-  const findByIdAnyStmt = db.prepare('SELECT * FROM hunter_tasks WHERE id = ?');
 
   const updateStmt = db.prepare(`
     UPDATE hunter_tasks
@@ -130,16 +129,6 @@ export function createHunterTasksRepo(db: DB) {
      */
     findById(id: string, hunterUserId: string): HunterTaskRow | null {
       const row = findByIdStmt.get(id, hunterUserId);
-      return (row as HunterTaskRow | undefined) ?? null;
-    },
-
-    /**
-     * Repo-internal: find a row ignoring hunter scope. Used by complete /
-     * reopen so we can distinguish "not found" from "not owned" if the
-     * caller needs to (current handlers don't, but having it is cheap).
-     */
-    _findByIdUnscoped(id: string): HunterTaskRow | null {
-      const row = findByIdAnyStmt.get(id);
       return (row as HunterTaskRow | undefined) ?? null;
     },
 
