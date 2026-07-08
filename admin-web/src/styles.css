@@ -102,3 +102,48 @@ label { display: block; margin: 8px 0 4px; }
 .cp-bubble.theirs { background: var(--surface); border: 1px solid var(--border); }
 .cp-bubble-meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
 .cp-bubble.mine .cp-bubble-meta { text-align: right; }
+.cp-login { max-width: 400px; margin: 32px auto; padding: 24px; background: var(--surface); border-radius: 12px; }
+.cp-login h1 { font-size: 24px; margin-bottom: 24px; text-align: center; }
+.cp-input { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); box-sizing: border-box; }
+.cp-btn-primary { width: 100%; padding: 12px; margin-top: 16px; background: var(--c-project); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: 600; }
+.cp-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.cp-btn-link { display: block; margin: 12px auto 0; background: none; border: none; color: var(--text-muted); cursor: pointer; }
+.cp-login-hint { color: var(--text-muted); margin-bottom: 16px; text-align: center; }
+.cp-login-dev { text-align: center; margin: 12px 0; font-size: 13px; background: var(--b-candidate); padding: 8px; border-radius: 6px; }
+.cp-error { margin-top: 16px; padding: 12px; background: rgba(239, 68, 68, 0.1); color: #dc2626; border-radius: 8px; font-size: 14px; }
+
+.cp-loading { padding: 32px; text-align: center; color: var(--text-muted); }
+.cp-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.cp-filters .cp-input { flex: 1; min-width: 120px; }
+.cp-job-list { display: flex; flex-direction: column; gap: 8px; }
+
+.cp-job-detail { padding: 0 4px; }
+.cp-job-detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.cp-job-detail-header h1 { font-size: 20px; margin: 0 0 8px; }
+.cp-job-description { white-space: pre-wrap; color: var(--text); line-height: 1.6; }
+.cp-apply-box { margin-top: 24px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.cp-textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; background: var(--bg); color: var(--text); }
+
+.cp-app-list { display: flex; flex-direction: column; gap: 8px; }
+.cp-app-card { display: block; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-decoration: none; color: var(--text); }
+.cp-app-header { display: flex; justify-content: space-between; align-items: center; }
+.cp-app-title { font-weight: 600; }
+.cp-app-status { padding: 2px 8px; border-radius: 12px; color: white; font-size: 11px; }
+.cp-app-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.cp-app-note { background: var(--b-candidate); padding: 12px; border-radius: 8px; margin: 12px 0; }
+.cp-app-actions { display: flex; gap: 8px; margin-top: 16px; }
+.cp-btn-secondary { flex: 1; padding: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer; }
+.cp-offer-card { padding: 16px; margin-bottom: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+
+.cp-msg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.cp-msg-tabs button { flex: 1; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
+.cp-msg-tabs button.active { background: var(--c-project); color: white; border-color: var(--c-project); }
+.cp-msg-list { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; }
+.cp-msg-compose { margin-top: 24px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.cp-msg-compose h3 { margin-top: 0; }
+.cp-msg-compose .cp-textarea { margin: 8px 0; }
+
+.cp-profile { display: flex; flex-direction: column; gap: 24px; }
+.cp-profile section label { display: block; margin: 8px 0; font-size: 14px; }
+.cp-pii-box { padding: 12px; background: var(--bg); border: 1px dashed var(--border); border-radius: 8px; font-size: 14px; line-height: 1.8; }
+.cp-success { margin-top: 12px; padding: 8px; background: var(--b-position); color: var(--c-position); border-radius: 6px; text-align: center; }
