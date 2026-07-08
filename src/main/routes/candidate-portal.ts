@@ -90,7 +90,15 @@ export function createCandidatePortalRouter(
   });
 
   // ===== Authenticated =====
-  router.use(authMiddleware(db));
+  // Scope auth to specific path groups so unknown paths fall through to the
+  // router's 404 handler instead of being rejected with 401. This is
+  // consistent with the e2e test: "rejects requests to unknown paths under
+  // /v1/candidate-portal" expects 404, not 401.
+  const requireAuth = authMiddleware(db);
+  router.use('/jobs', requireAuth);
+  router.use('/applications', requireAuth);
+  router.use('/profile', requireAuth);
+  router.use('/messages', requireAuth);
 
   // ----- Jobs -----
 
@@ -296,6 +304,21 @@ export function createCandidatePortalRouter(
     } catch (e) {
       next(e);
     }
+  });
+
+  // 404 fallback for any unmatched path under /v1/candidate-portal.
+  // Without this, Express's default HTML 404 would leak out (or the app-level
+  // JSON 404 in server.ts would handle it, but in the test app the 404 is
+  // also JSON, so we get consistent behavior across both mounts).
+  router.use((req: Request, res: Response) => {
+    res.status(404).json({
+      ok: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: `No route matched ${req.method} ${req.path}`,
+        details: { method: req.method, path: req.path },
+      },
+    });
   });
 
   return router;
