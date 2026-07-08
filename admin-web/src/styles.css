@@ -17,3 +17,88 @@ body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
 input { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; margin: 4px 0; }
 label { display: block; margin: 8px 0 4px; }
 .error { color: #cc3300; margin: 8px 0; }
+
+/* Candidate Portal layout */
+.cp-layout { min-height: 100vh; padding-bottom: 64px; }
+.cp-topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.cp-brand { font-weight: 700; color: var(--c-project); }
+.cp-title { flex: 1; font-weight: 600; }
+.cp-logout {
+  background: none; border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.cp-main { padding: 16px; }
+.cp-tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 8px 0; z-index: 10;
+}
+.cp-tab {
+  flex: 1; text-align: center; padding: 8px;
+  text-decoration: none; color: var(--text-muted); font-size: 12px;
+}
+.cp-tab.active { color: var(--c-project); font-weight: 600; }
+
+.cp-otp-input { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+.cp-otp-digit {
+  width: 48px; height: 56px; text-align: center;
+  font-size: 24px; font-weight: 600;
+  border: 2px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text);
+}
+.cp-otp-digit:focus { outline: none; border-color: var(--c-project); }
+
+.cp-empty-state { text-align: center; padding: 48px 16px; color: var(--text-muted); }
+.cp-empty-icon { font-size: 48px; margin-bottom: 12px; }
+.cp-empty-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.cp-empty-desc { font-size: 14px; margin-bottom: 16px; }
+.cp-empty-action {
+  background: var(--c-project); color: white; border: none;
+  padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+
+@media (min-width: 769px) {
+  .cp-tabbar { display: none; }
+  .cp-layout { padding-bottom: 0; max-width: 1024px; margin: 0 auto; }
+}
+
+.cp-job-card {
+  display: block; padding: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 8px; text-decoration: none;
+  color: var(--text); transition: box-shadow 200ms;
+}
+.cp-job-card:hover { box-shadow: var(--shadow-2); }
+.cp-job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cp-job-title { font-weight: 600; font-size: 16px; }
+.cp-job-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.cp-job-tag { padding: 2px 6px; background: var(--bg); border-radius: 4px; }
+.cp-job-salary { color: var(--c-position); font-weight: 600; }
+.cp-job-skills { display: flex; flex-wrap: wrap; gap: 4px; }
+.cp-skill-tag { padding: 2px 8px; background: var(--b-match); color: var(--c-match); border-radius: 4px; font-size: 11px; }
+
+.cp-match-score { padding: 2px 8px; border-radius: 12px; color: white; font-size: 12px; font-weight: 600; }
+
+.cp-radar { display: block; margin: 16px auto; }
+
+.cp-funnel { display: flex; gap: 4px; align-items: stretch; overflow-x: auto; }
+.cp-funnel-stage {
+  flex: 1; min-width: 80px; padding: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; text-align: center;
+}
+.cp-funnel-stage.current { border-color: var(--c-project); background: var(--b-project); }
+.cp-funnel-name { font-size: 12px; color: var(--text-muted); }
+.cp-funnel-count { font-size: 24px; font-weight: 700; margin: 4px 0; }
+
+.cp-bubble { max-width: 70%; padding: 8px 12px; border-radius: 12px; margin-bottom: 8px; }
+.cp-bubble.mine { background: var(--c-project); color: white; margin-left: auto; }
+.cp-bubble.theirs { background: var(--surface); border: 1px solid var(--border); }
+.cp-bubble-meta { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+.cp-bubble.mine .cp-bubble-meta { text-align: right; }
