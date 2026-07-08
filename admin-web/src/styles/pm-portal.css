@@ -669,3 +669,269 @@
   border-top: 1px solid #fecaca;
 }
 
+/* ============================================================================
+ * Plan Comparison Page (S4 / Task 8)
+ * ============================================================================
+ *
+ * Side-by-side plan comparison. Layout:
+ *   1. Header (title + back + new-plan CTA)
+ *   2. Plan-picker row (pill chips for the user to toggle inclusion)
+ *   3. Comparison grid (1/2/3 columns, responsive)
+ *
+ * Visual rules:
+ *   - Each plan card lives in a `.pm-plan-card`. The currently-active
+ *     plan (server-side is_selected=1) gets `.pm-plan-card-selected`
+ *     with a 2px coloured border + a "当前选中" ribbon so the eye lands
+ *     on it instantly.
+ *   - Risk tags are simple pill chips, colour-coded by tone
+ *     (red=over_budget, amber=under_staffed, blue=single_skill).
+ *   - The grid falls back to a single column on narrow viewports
+ *     (≤ 640px), two columns up to 1024px, and the full 3-up from there.
+ *   - The picker pills (`.pm-compare-pill`) re-use the hunter-portal
+ *     chip pattern — pill background, 1px border, active state swaps in
+ *     the project accent colour so the user can see which plans are
+ *     in the grid.
+ */
+
+.pm-compare {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-compare-back {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  background: none;
+  border: none;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-compare-back:hover { text-decoration: underline; }
+
+.pm-compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+.pm-compare-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ---- Plan-picker row ---- */
+.pm-compare-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-compare-picker-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pm-compare-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.pm-compare-picker-count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-compare-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-compare-pill:hover:not(:disabled) {
+  border-color: var(--c-project);
+}
+.pm-compare-pill.active {
+  background: var(--b-project);
+  color: var(--c-project);
+  border-color: var(--c-project);
+}
+.pm-compare-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Comparison grid ---- */
+.pm-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  align-items: stretch;
+}
+@media (min-width: 768px) {
+  .pm-compare-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1100px) {
+  .pm-compare-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---- Single plan card ---- */
+.pm-plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-plan-card-selected {
+  border-color: var(--c-project);
+  border-width: 2px;
+  box-shadow: 0 0 0 2px var(--b-project);
+}
+
+.pm-plan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.pm-plan-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-plan-card-selected-ribbon {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--b-project);
+  color: var(--c-project);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pm-plan-card-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pm-plan-card-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pm-plan-card-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-plan-card-meta-row dt {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-plan-card-meta-row dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pm-plan-card-radar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pm-plan-card-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+.pm-plan-card-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pm-plan-card-tag-red {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+.pm-plan-card-tag-amber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border-color: #fcd34d;
+}
+.pm-plan-card-tag-blue {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+.pm-plan-card-tag-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pm-plan-card-footer {
+  display: flex;
+  justify-content: stretch;
+  margin-top: auto;
+}
+.pm-plan-card-select {
+  width: 100%;
+}
+
