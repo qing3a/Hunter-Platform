@@ -27,6 +27,15 @@ const EnvSchema = z.object({
   // Set to "false" to disable ALL rate limiting (per-user sliding window + IP register limit).
   // Use only for local development / testing. Defaults to enabled in all envs.
   RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
+  // Candidate Portal (Phase 1) — OTP 邮箱登录配置
+  // OTP_LENGTH: 验证码位数 (4-8, 默认 6)
+  OTP_LENGTH: z.coerce.number().int().min(4).max(8).default(6),
+  // OTP_TTL_SECONDS: 验证码有效期 (60-3600 秒, 默认 300 = 5 分钟)
+  OTP_TTL_SECONDS: z.coerce.number().int().min(60).max(3600).default(300),
+  // OTP_MAX_ATTEMPTS: 单个 OTP 最多尝试次数 (1-10, 默认 5)
+  OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
+  // OTP_CONSOLE_ONLY: true = 控制台打印 OTP (开发/测试); false = 走真实邮件服务 (生产, Phase 2 接入)
+  OTP_CONSOLE_ONLY: z.coerce.boolean().default(true),
 });
 
 export type Env = Omit<z.infer<typeof EnvSchema>, 'PLATFORM_ENCRYPTION_KEY'> & {

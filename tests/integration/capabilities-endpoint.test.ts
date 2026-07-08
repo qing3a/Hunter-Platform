@@ -60,7 +60,8 @@ describe('GET /v1/capabilities', () => {
     const headhunter = r.body.data.sets.find((s: any) => s.role === 'headhunter');
     expect(headhunter.capabilities.length).toBeGreaterThanOrEqual(5);
     for (const cap of headhunter.capabilities) {
-      expect(cap.name).toMatch(/^[a-z_]+\.[a-z_]+$/);
+      // Allow optional 3-part names (e.g. headhunter.recommendations.list_pending_pickup)
+      expect(cap.name).toMatch(/^[a-z_]+\.[a-z_]+(\.[a-z_]+)?$/);
       expect(cap.method).toMatch(/^(GET|POST|PUT|DELETE)$/);
       expect(cap.path).toMatch(/^\/v1\//);
       expect(typeof cap.quota_cost).toBe('number');

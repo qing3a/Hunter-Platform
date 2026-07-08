@@ -94,6 +94,8 @@ export interface Job {
 
 export type RecStatus =
   | 'pending'
+  | 'pending_pickup'
+  | 'considering_offer'
   | 'employer_interested'
   | 'candidate_approved'
   | 'unlocked'
@@ -104,7 +106,12 @@ export type RecStatus =
 
 export interface Recommendation {
   id: string;
-  headhunter_id: string;
+  /**
+   * Owning headhunter. NULL for candidate self-applied recommendations
+   * before pickup (v026 made the column nullable). For self-applied recs,
+   * the claiming hunter is tracked separately via pickup_headhunter_id.
+   */
+  headhunter_id: string | null;
   employer_id: string;
   anonymized_candidate_id: string;
   job_id: string;

@@ -32,7 +32,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       setToken(data.api_key);
-      navigate('/');
+      navigate('/admin');
     } catch (err: any) {
       setError(err.message);
     } finally {

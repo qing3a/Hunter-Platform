@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
@@ -22,33 +22,71 @@ import PrivateRoute from './components/PrivateRoute';
 import { ToastProvider } from './lib/toast';
 import Toast from './components/Toast';
 
+// Candidate Portal pages
+import { LoginPage as CandidateLoginPage } from './pages/candidate-portal/LoginPage';
+import { HomePage } from './pages/candidate-portal/HomePage';
+import { BrowsePage } from './pages/candidate-portal/BrowsePage';
+import { JobDetailPage as CandidateJobDetailPage } from './pages/candidate-portal/JobDetailPage';
+import { ApplicationsPage } from './pages/candidate-portal/ApplicationsPage';
+import { ApplicationDetailPage } from './pages/candidate-portal/ApplicationDetailPage';
+import { OfferPage } from './pages/candidate-portal/OfferPage';
+import { MessagesPage } from './pages/candidate-portal/MessagesPage';
+import { ProfilePage as CandidateProfilePage } from './pages/candidate-portal/ProfilePage';
+import { RequireAuth } from './components/candidate-portal/RequireAuth';
+
+// Admin sub-app: all admin routes live under /admin/* (no nested router).
+// The single outer BrowserRouter in main.tsx owns the routing context.
+function AdminApp() {
+  return (
+    <Routes>
+      <Route path="/admin/login" element={<LoginPage />} />
+      <Route path="/admin" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+      <Route path="/admin/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+      <Route path="/admin/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
+      <Route path="/admin/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
+      <Route path="/admin/candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
+      <Route path="/admin/candidates/:id" element={<PrivateRoute><CandidateDetailPage /></PrivateRoute>} />
+      <Route path="/admin/candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
+      <Route path="/admin/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
+      <Route path="/admin/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
+      <Route path="/admin/jobs/:id/timeline" element={<PrivateRoute><JobTimelinePage /></PrivateRoute>} />
+      <Route path="/admin/recommendations" element={<PrivateRoute><RecommendationsPage /></PrivateRoute>} />
+      <Route path="/admin/recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
+      <Route path="/admin/recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
+      <Route path="/admin/webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
+      <Route path="/admin/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="/admin/placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
+      <Route path="/admin/audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
+      <Route path="/admin/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+      <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <ToastProvider>
-      <BrowserRouter basename="/admin" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-          <Route path="/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
-          <Route path="/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
-          <Route path="/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
-          <Route path="/candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
-          <Route path="/candidates/:id" element={<PrivateRoute><CandidateDetailPage /></PrivateRoute>} />
-          <Route path="/candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
-          <Route path="/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
-          <Route path="/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
-          <Route path="/jobs/:id/timeline" element={<PrivateRoute><JobTimelinePage /></PrivateRoute>} />
-          <Route path="/recommendations" element={<PrivateRoute><RecommendationsPage /></PrivateRoute>} />
-          <Route path="/recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
-          <Route path="/recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
-          <Route path="/webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
-          <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-          <Route path="/placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
-          <Route path="/audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        {/* Admin Portal — guarded by PrivateRoute (see AdminApp) */}
+        <Route path="/admin/*" element={<AdminApp />} />
+
+        {/* Candidate Portal — auth via RequireAuth (OTP session) */}
+        <Route path="/candidate/login" element={<CandidateLoginPage />} />
+        <Route path="/candidate" element={<Navigate to="/candidate/home" replace />} />
+        <Route path="/candidate/home" element={<RequireAuth><HomePage /></RequireAuth>} />
+        <Route path="/candidate/browse" element={<RequireAuth><BrowsePage /></RequireAuth>} />
+        <Route path="/candidate/jobs/:id" element={<RequireAuth><CandidateJobDetailPage /></RequireAuth>} />
+        <Route path="/candidate/applications" element={<RequireAuth><ApplicationsPage /></RequireAuth>} />
+        <Route path="/candidate/applications/:id" element={<RequireAuth><ApplicationDetailPage /></RequireAuth>} />
+        <Route path="/candidate/offer" element={<RequireAuth><OfferPage /></RequireAuth>} />
+        <Route path="/candidate/messages" element={<RequireAuth><MessagesPage /></RequireAuth>} />
+        <Route path="/candidate/profile" element={<RequireAuth><CandidateProfilePage /></RequireAuth>} />
+        <Route path="/candidate/*" element={<Navigate to="/candidate/home" replace />} />
+
+        {/* Default: root and any unknown path → admin */}
+        <Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
       <Toast />
     </ToastProvider>
   );
