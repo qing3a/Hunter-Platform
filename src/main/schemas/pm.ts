@@ -115,6 +115,113 @@ export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
 export type ListProjectsQuery = z.infer<typeof ListProjectsQuerySchema>;
 
+// ===== Positions (Task 5) =====
+//
+// Positions belong to a project; they are PM-managed role definitions with
+// skills / level / salary / headcount / status. Storage is in
+// `project_positions` (see v028 migration). The four-state lifecycle is
+// narrower than the project's five-state one — positions don't have
+// "cancelled" surfaced on the wire (DB still allows it for parity with
+// future migrations). Task 5 introduces a separate, more limited enum
+// (open / paused / filled) and a `cancelled` state is NOT exposed via
+// the API surface until later work (matching/migration tasks may add it).
+
+/**
+ * Position lifecycle. Three states on the wire (the DB CHECK constraint
+ * also allows 'cancelled' for forward-compat but the handler does not
+ * surface it).
+ *   open    — default; can be matched / filled
+ *   paused  — temporarily not accepting candidates
+ *   filled  — all planned headcount is filled
+ */
+export const PositionStatusSchema = z.enum(['open', 'paused', 'filled']);
+
+/** Title seniority band. Optional — unlevelled positions are allowed. */
+export const TitleLevelSchema = z.enum(['junior', 'mid', 'senior', 'staff']);
+
+/** Single position response row — mirrors `project_positions`. */
+export const PositionRowSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  required_skills: z.array(z.string()),
+  title_level: z.string().nullable(),
+  industry: z.string().nullable(),
+  salary_min: z.number().int().nullable(),
+  salary_max: z.number().int().nullable(),
+  status: PositionStatusSchema,
+  headcount_planned: z.number().int().nonnegative(),
+  headcount_filled: z.number().int().nonnegative(),
+  /** unix ms */
+  created_at: z.number().int(),
+}).strict();
+
+/** Position + derived stats (used by GET /v1/pm/positions/:id). */
+export const PositionDetailSchema = z.object({
+  position: PositionRowSchema,
+  stats: z.object({
+    headcount_planned: z.number().int().nonnegative(),
+    headcount_filled: z.number().int().nonnegative(),
+    /** headcount_filled >= headcount_planned (and status === 'filled' if you want to gate UI). */
+    is_complete: z.boolean(),
+  }),
+}).strict();
+
+/** GET /v1/pm/projects/:projectId/positions?status=&limit=&offset= */
+export const ListPositionsQuerySchema = z.object({
+  status: PositionStatusSchema.optional(),
+  limit: z.coerce.number().int().min(1).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+}).strict();
+
+/** POST /v1/pm/projects/:projectId/positions */
+export const CreatePositionSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  required_skills: z.array(z.string().min(1).max(100)).max(50).optional(),
+  title_level: TitleLevelSchema.optional(),
+  industry: z.string().max(100).optional(),
+  salary_min: z.number().int().nonnegative().optional(),
+  salary_max: z.number().int().nonnegative().optional(),
+  headcount_planned: z.number().int().min(1).default(1),
+}).strict();
+
+/** PATCH /v1/pm/positions/:id — partial of create + status + headcount_filled */
+export const UpdatePositionSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  required_skills: z.array(z.string().min(1).max(100)).max(50).nullable().optional(),
+  title_level: TitleLevelSchema.nullable().optional(),
+  industry: z.string().max(100).nullable().optional(),
+  salary_min: z.number().int().nonnegative().nullable().optional(),
+  salary_max: z.number().int().nonnegative().nullable().optional(),
+  headcount_planned: z.number().int().min(1).optional(),
+  headcount_filled: z.number().int().nonnegative().optional(),
+  status: PositionStatusSchema.optional(),
+}).strict();
+
+/** POST /v1/pm/projects/:projectId/positions/bulk — body for AI decompose path. */
+export const BulkCreatePositionsSchema = z.object({
+  items: z.array(CreatePositionSchema).min(1).max(50),
+}).strict();
+
+/** Aggregate stats for a project's positions (used by ProjectDetailPage Overview tab). */
+export const PositionStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  open: z.number().int().nonnegative(),
+  paused: z.number().int().nonnegative(),
+  filled: z.number().int().nonnegative(),
+  headcount_planned_total: z.number().int().nonnegative(),
+  headcount_filled_total: z.number().int().nonnegative(),
+}).strict();
+
+export type CreatePositionInput = z.infer<typeof CreatePositionSchema>;
+export type UpdatePositionInput = z.infer<typeof UpdatePositionSchema>;
+export type ListPositionsQuery = z.infer<typeof ListPositionsQuerySchema>;
+export type BulkCreatePositionsInput = z.infer<typeof BulkCreatePositionsSchema>;
+export type PositionStats = z.infer<typeof PositionStatsSchema>;
+
 // ===== Projects — response shapes =====
 
 export const ProjectCreateResponseSchema = z.object({
@@ -152,22 +259,11 @@ const StaffingPlanSchema = z.object({
 /**
  * Position row — exposed inside the project detail response. Mirrors
  * `project_positions`. `required_skills_json` is a JSON array of strings.
+ *
+ * Reuses `PositionRowSchema` (defined above) so the wire shape is the
+ * same here and on the dedicated positions endpoints.
  */
-const ProjectPositionSchema = z.object({
-  id: z.string(),
-  project_id: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  required_skills: z.array(z.string()),
-  title_level: z.string().nullable(),
-  industry: z.string().nullable(),
-  salary_min: z.number().int().nullable(),
-  salary_max: z.number().int().nullable(),
-  status: z.enum(['open', 'paused', 'filled', 'cancelled']),
-  headcount_planned: z.number().int().nonnegative(),
-  headcount_filled: z.number().int().nonnegative(),
-  created_at: z.number().int(),
-}).strict();
+const ProjectPositionSchema = PositionRowSchema;
 
 export const ProjectDetailResponseSchema = z.object({
   ok: z.literal(true),

@@ -91,7 +91,7 @@ export interface ProjectPositionRow {
   industry: string | null;
   salary_min: number | null;
   salary_max: number | null;
-  status: 'open' | 'paused' | 'filled' | 'cancelled';
+  status: 'open' | 'paused' | 'filled';
   headcount_planned: number;
   headcount_filled: number;
   created_at: number;
@@ -199,7 +199,7 @@ export function createProjectsHandler(db: DB): ProjectsModule {
       industry: string | null;
       salary_min: number | null;
       salary_max: number | null;
-      status: 'open' | 'paused' | 'filled' | 'cancelled';
+      status: 'open' | 'paused' | 'filled';
       headcount_planned: number;
       headcount_filled: number;
       created_at: number;

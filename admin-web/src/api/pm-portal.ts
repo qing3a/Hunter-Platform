@@ -60,6 +60,29 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
   cancelled: '已取消',
 };
 
+/**
+ * Position lifecycle. Three states on the wire (the DB CHECK constraint
+ * also allows 'cancelled' for forward-compat but the handler does not
+ * surface it).
+ */
+export type PositionStatus = 'open' | 'paused' | 'filled';
+
+export const POSITION_STATUS_LABELS: Record<PositionStatus, string> = {
+  open: '招聘中',
+  paused: '已暂停',
+  filled: '已招满',
+};
+
+/** Title seniority band. */
+export type TitleLevel = 'junior' | 'mid' | 'senior' | 'staff';
+
+export const TITLE_LEVEL_LABELS: Record<TitleLevel, string> = {
+  junior: '初级',
+  mid: '中级',
+  senior: '高级',
+  staff: '资深',
+};
+
 export type PlanTaskStatus = 'todo' | 'doing' | 'blocked' | 'done';
 
 export type DecomposeRunStatus =
@@ -149,6 +172,64 @@ export interface MatchSuggestion {
   created_at: number;
 }
 
+/**
+ * Mirrors backend `PositionRow` (see
+ * src/main/db/repositories/project-positions.ts). Returned by
+ * list / create / get / update / bulkCreate endpoints.
+ */
+export interface Position {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  required_skills: string[];
+  title_level: string | null;
+  industry: string | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  status: PositionStatus;
+  headcount_planned: number;
+  headcount_filled: number;
+  /** unix ms */
+  created_at: number;
+}
+
+/** Aggregate position stats for a single project. */
+export interface PositionStats {
+  total: number;
+  open: number;
+  paused: number;
+  filled: number;
+  headcount_planned_total: number;
+  headcount_filled_total: number;
+}
+
+/** Input shape for creating / bulk-creating positions. */
+export interface CreatePositionInput {
+  title: string;
+  description?: string;
+  required_skills?: string[];
+  title_level?: TitleLevel;
+  industry?: string;
+  salary_min?: number;
+  salary_max?: number;
+  headcount_planned?: number;
+}
+
+/** Input shape for updating a position (all fields optional). */
+export interface UpdatePositionInput {
+  title?: string;
+  description?: string | null;
+  required_skills?: string[] | null;
+  title_level?: TitleLevel | null;
+  industry?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  headcount_planned?: number;
+  headcount_filled?: number;
+  status?: PositionStatus;
+}
+
 // ===== Auth (reuse candidate-portal OTP) =====
 
 export const pmAuth = {
@@ -198,8 +279,22 @@ export const pmProjects = {
       BASE, `/projects${qs ? `?${qs}` : ''}`,
     );
   },
+  /**
+   * Project detail — returns the project row + positions + plans + stats.
+   * Mirrors backend `ProjectDetail` (see src/main/modules/pm/projects.ts).
+   */
   get: (id: string) =>
-    request<ProjectSummary & { plans: PlanSummary[] }>(BASE, `/projects/${id}`),
+    request<{
+      project: ProjectSummary;
+      positions: Position[];
+      plans: PlanSummary[];
+      stats: {
+        total_positions: number;
+        filled_positions: number;
+        total_plans: number;
+        selected_plan_id: string | null;
+      };
+    }>(BASE, `/projects/${id}`),
   create: (input: {
     name: string;
     target?: string;
@@ -245,6 +340,58 @@ export const pmPlans = {
     request<PlanTask>(BASE, `/plans/${planId}/tasks/${taskId}`, {
       method: 'PATCH', body: JSON.stringify(patch),
     }),
+};
+
+/**
+ * Position CRUD namespace (Task 5). Mirrors the five endpoints exposed
+ * by createPositionsHandler in src/main/modules/pm/positions.ts plus
+ * the bulk and stats helpers used by Task 6 (AI decompose) and the
+ * ProjectDetailPage Overview tab.
+ */
+export const pmPositions = {
+  /** GET /v1/pm/projects/:projectId/positions?status=&limit=&offset= */
+  list: (
+    projectId: string,
+    params?: { status?: PositionStatus; limit?: number; offset?: number },
+  ) => {
+    const q = new URLSearchParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    const qs = q.toString();
+    return request<{ positions: Position[]; total: number }>(
+      BASE, `/projects/${projectId}/positions${qs ? `?${qs}` : ''}`,
+    );
+  },
+  /** POST /v1/pm/projects/:projectId/positions */
+  create: (projectId: string, input: CreatePositionInput) =>
+    request<{ position: Position }>(BASE, `/projects/${projectId}/positions`, {
+      method: 'POST', body: JSON.stringify(input),
+    }),
+  /** GET /v1/pm/positions/:id — also returns a tiny derived stats object. */
+  get: (id: string) =>
+    request<{
+      position: Position;
+      stats: {
+        headcount_planned: number;
+        headcount_filled: number;
+        is_complete: boolean;
+      };
+    }>(BASE, `/positions/${id}`),
+  /** PATCH /v1/pm/positions/:id */
+  update: (id: string, patch: Partial<UpdatePositionInput>) =>
+    request<{ position: Position }>(BASE, `/positions/${id}`, {
+      method: 'PATCH', body: JSON.stringify(patch),
+    }),
+  /** DELETE /v1/pm/positions/:id */
+  delete: (id: string) =>
+    request<{ deleted: true }>(BASE, `/positions/${id}`, { method: 'DELETE' }),
+  /** POST /v1/pm/projects/:projectId/positions/bulk — used by AI decompose. */
+  bulkCreate: (projectId: string, items: CreatePositionInput[]) =>
+    request<{ positions: Position[] }>(BASE, `/projects/${projectId}/positions/bulk`, {
+      method: 'POST', body: JSON.stringify({ items }),
+    }),
+  /** GET /v1/pm/projects/:projectId/positions/stats */
+  stats: (projectId: string) =>
+    request<PositionStats>(BASE, `/projects/${projectId}/positions/stats`),
 };
 
 export const pmDecompose = {
