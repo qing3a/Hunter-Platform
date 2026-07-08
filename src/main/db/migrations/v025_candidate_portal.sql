@@ -24,22 +24,24 @@ CREATE INDEX idx_otp_email_active ON candidate_otp_codes(email, consumed_at, exp
 CREATE TABLE candidate_messages (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   application_id  INTEGER,
-  from_user_id    INTEGER NOT NULL,
-  to_user_id      INTEGER NOT NULL,
+  from_user_id    TEXT    NOT NULL,
+  to_user_id      TEXT    NOT NULL,
   content         TEXT    NOT NULL,
   read_at         INTEGER,
   created_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
-  FOREIGN KEY (application_id) REFERENCES candidate_applications(id)
+  FOREIGN KEY (application_id) REFERENCES candidate_applications(id),
+  FOREIGN KEY (from_user_id)   REFERENCES users(id),
+  FOREIGN KEY (to_user_id)     REFERENCES users(id)
 );
 CREATE INDEX idx_msg_to_user   ON candidate_messages(to_user_id, read_at, created_at DESC);
 CREATE INDEX idx_msg_from_user ON candidate_messages(from_user_id, created_at DESC);
 
 CREATE TABLE candidate_applications (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-  recommendation_id     INTEGER NOT NULL UNIQUE,
-  candidate_user_id     INTEGER NOT NULL,
-  job_id                INTEGER NOT NULL,
-  pickup_headhunter_id  INTEGER,
+  recommendation_id     TEXT    NOT NULL UNIQUE,
+  candidate_user_id     TEXT    NOT NULL,
+  job_id                TEXT    NOT NULL,
+  pickup_headhunter_id  TEXT,
   candidate_note        TEXT,
   withdrawn_at          INTEGER,
   created_at            INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
@@ -54,7 +56,7 @@ CREATE INDEX idx_app_pickup    ON candidate_applications(pickup_headhunter_id, c
 -- ALTER existing tables
 ALTER TABLE recommendations ADD COLUMN source_type TEXT NOT NULL DEFAULT 'headhunter';
   -- 'headhunter' | 'candidate_self_apply' | 'system'
-ALTER TABLE recommendations ADD COLUMN pickup_headhunter_id INTEGER REFERENCES users(id);
+ALTER TABLE recommendations ADD COLUMN pickup_headhunter_id TEXT REFERENCES users(id);
 ALTER TABLE recommendations ADD COLUMN candidate_note TEXT;
 
 ALTER TABLE candidates_anonymized ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public';
