@@ -90,7 +90,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
         id: `pl_${randomUUID().slice(0, 12)}`,
         job_id: input.job_id,
         candidate_user_id: findCandidateUserId(input.anonymized_candidate_id),
-        primary_headhunter_id: rec.headhunter_id,
+        primary_headhunter_id: rec.headhunter_id ?? '',
         referrer_headhunter_id: referrerForCommission,
         anonymized_candidate_id: input.anonymized_candidate_id,
         annual_salary: input.annual_salary,

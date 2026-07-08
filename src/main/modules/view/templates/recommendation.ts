@@ -1,7 +1,8 @@
 import { SHARED_CSS } from './shared-css.js';
 
 export type RecommendationStatus =
-  | 'pending' | 'employer_interested' | 'candidate_approved'
+  | 'pending' | 'pending_pickup' | 'considering_offer'
+  | 'employer_interested' | 'candidate_approved'
   | 'unlocked' | 'placed' | 'rejected_employer' | 'rejected_candidate' | 'withdrawn';
 
 export interface RecommendationViewData {

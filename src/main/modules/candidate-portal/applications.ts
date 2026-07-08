@@ -78,7 +78,7 @@ export function createCandidatePortalApplications(db: DB): ApplicationsModule {
    * (e.g. after a network blip) will update the existing notification
    * instead of creating duplicates.
    */
-  function notifyHunters(recommendationId: string, candidateName: string, jobTitle: string): void {
+  function notifyHunters(recommendationId: string, candidateName: string | null, jobTitle: string): void {
     const hunters = listActiveHuntersStmt.all() as { id: string }[];
     for (const h of hunters) {
       notif.insert({

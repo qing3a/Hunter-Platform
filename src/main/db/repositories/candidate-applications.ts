@@ -125,11 +125,11 @@ export function createCandidateApplicationsRepo(db: DB) {
     },
 
     listByCandidate(candidateUserId: string, limit: number, offset: number): ApplicationListItem[] {
-      return listByCandidateStmt.all(candidateUserId, limit, offset) as ApplicationListItem[];
+      return listByCandidateStmt.all(candidateUserId, limit, offset) as unknown as ApplicationListItem[];
     },
 
     listPendingPickup(limit: number, offset: number): PendingPickupItem[] {
-      return listPendingPickupStmt.all(limit, offset) as PendingPickupItem[];
+      return listPendingPickupStmt.all(limit, offset) as unknown as PendingPickupItem[];
     },
 
     setPickup(id: number, hunterId: string): void {
