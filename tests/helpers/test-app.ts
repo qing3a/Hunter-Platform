@@ -99,7 +99,11 @@ export function createTestApp(opts: TestAppOptions = {}): Express {
  */
 export function resetDb(): void {
   if (!_db) return;
-  // Order matters: children before parents.
+  // Order matters: children before parents. hunter_tasks and kanban_columns
+  // were added in v027 — they FK-reference users, so they MUST be cleared
+  // before DELETE FROM users runs (otherwise FK violations silently leave
+  // the users row in place and downstream tests collide on
+  // users.api_key_hash UNIQUE).
   const tables = [
     'candidate_messages',
     'candidate_applications',
@@ -107,6 +111,8 @@ export function resetDb(): void {
     'candidates_anonymized',
     'candidates_private',
     'recommendations',
+    'hunter_tasks',
+    'kanban_columns',
     'jobs',
     'users',
     'idempotency_keys',
