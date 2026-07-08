@@ -80,6 +80,11 @@ Personal todo items owned by a single hunter. Independent from the recommendatio
 | `created_at` | INTEGER NOT NULL | Unix ms (default `unixepoch() * 1000`) |
 | `updated_at` | INTEGER NOT NULL | Unix ms |
 
+Foreign keys:
+- `FOREIGN KEY (hunter_user_id) REFERENCES users(id)` — enforces ownership (must be a hunter user)
+- `FOREIGN KEY (related_recommendation_id) REFERENCES recommendations(id)` — optional link to a recommendation
+- `FOREIGN KEY (related_candidate_user_id) REFERENCES users(id)` — optional link to a candidate user (prevents orphan references; added during implementation, not in the original 2-FK spec — acknowledged as a reasonable data integrity safeguard)
+
 Indexes:
 - `idx_hunter_tasks_hunter (hunter_user_id, completed_at)` — for "pending vs completed" lists
 - `idx_hunter_tasks_due (hunter_user_id, due_at) WHERE completed_at IS NULL` — partial index for due-soon queries
