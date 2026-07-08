@@ -5,6 +5,33 @@
 
 ---
 
+## v3.0.0 (2026-07-08) — C 端候选人门户 Phase 1
+
+新增能力:
+- `/v1/candidate-portal/*` 路由组 (OTP 认证 + 13 端点)
+- C 端候选人自助注册/登录 (邮箱 + 6 位 OTP, 开发模式控制台输出)
+- 候选人浏览/申请/撤回工作
+- 候选人消息系统
+- 候选人公开简历编辑 (技能/期望/可见性)
+- 候选人能力雷达图 (前端)
+- 移动优先响应式 UI (`/candidate/*` 路径)
+- 暗色模式 (data-theme="dark")
+
+数据库 (v025 + v026):
+- 新增 `candidate_otp_codes` / `candidate_messages` / `candidate_applications` 表
+- 扩展 `recommendations` (source_type / pickup_headhunter_id / candidate_note)
+- 扩展 `candidates_anonymized` (visibility / expectations_json)
+- 重建 `recommendations` 支持 `pending_pickup` 状态 (nullable headhunter_id)
+
+数据流:
+- 候选人申请 → 创建 recommendation (status=pending_pickup, source_type=candidate_self_apply)
+- 猎头认领 → status 转 pending, 通知候选人
+- 进入原 4 步解锁流程
+
+后续: Phase 2 PM 模式 + Phase 3 Hunter 模式 (ow-recruit-saas 借鉴)
+
+---
+
 ## v2.9.0 (Sub-G — Public Rate-Limit + Commission Config + Cache TTL 0s) — 2026-06-26
 
 Sub-F 让 worker 读 Config，但还有 3 个运营控制缺口：agent 预读 rate-limit、commission rate 调优、admin 改后立即生效。v2.9.0 解决。
