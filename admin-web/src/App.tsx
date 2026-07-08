@@ -34,6 +34,12 @@ import { MessagesPage } from './pages/candidate-portal/MessagesPage';
 import { ProfilePage as CandidateProfilePage } from './pages/candidate-portal/ProfilePage';
 import { RequireAuth } from './components/candidate-portal/RequireAuth';
 
+// Hunter Portal pages (Phase 3a — Task 11 ships only Login + Workspace;
+// Tasks 12-16 will add the kanban / candidates / tasks / settings pages).
+import { HunterLoginPage } from './pages/hunter-portal/HunterLoginPage';
+import { HunterWorkspacePage } from './pages/hunter-portal/HunterWorkspacePage';
+import { RequireHunterAuth } from './components/hunter-portal/RequireHunterAuth';
+
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
 // The single outer BrowserRouter in main.tsx owns the routing context.
 function AdminApp() {
@@ -82,6 +88,15 @@ export default function App() {
         <Route path="/candidate/messages" element={<RequireAuth><MessagesPage /></RequireAuth>} />
         <Route path="/candidate/profile" element={<RequireAuth><CandidateProfilePage /></RequireAuth>} />
         <Route path="/candidate/*" element={<Navigate to="/candidate/home" replace />} />
+
+        {/* Hunter Portal — auth via RequireHunterAuth (role=headhunter) */}
+        <Route path="/hunter/login" element={<HunterLoginPage />} />
+        <Route path="/hunter" element={<Navigate to="/hunter/workspace" replace />} />
+        <Route path="/hunter/workspace" element={<RequireHunterAuth><HunterWorkspacePage /></RequireHunterAuth>} />
+        {/* TODO Task 12+ — add /hunter/{candidates,kanban,tasks,settings} here
+            when those pages are built. The catch-all below keeps unknown paths
+            bouncing to /hunter/workspace for now. */}
+        <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
 
         {/* Default: root and any unknown path → admin */}
         <Route path="/" element={<Navigate to="/admin" replace />} />

@@ -67,7 +67,18 @@ export function createCandidatePortalRouter(
         req.socket.remoteAddress ||
         'unknown';
 
-      const result = await auth.requestOtp({ email: parsed.data.email, ip });
+      // Re-shape to satisfy exactOptionalPropertyTypes on OtpRequestInput —
+      // only set `user_type` when the client actually provided one. The auth
+      // module defaults undefined to 'candidate' so legacy callers keep working.
+      const requestInput: { email: string; user_type?: 'candidate' | 'headhunter'; ip: string } = {
+        email: parsed.data.email,
+        ip,
+      };
+      if (parsed.data.user_type !== undefined) {
+        requestInput.user_type = parsed.data.user_type;
+      }
+
+      const result = await auth.requestOtp(requestInput);
       respond(res, OtpRequestResponseSchema, { ok: true, data: result });
     } catch (e) {
       next(e);
@@ -82,7 +93,18 @@ export function createCandidatePortalRouter(
       if (!parsed.success) {
         throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
       }
-      const result = await auth.verifyOtp({ email: parsed.data.email, code: parsed.data.code });
+      // Re-shape to satisfy exactOptionalPropertyTypes on OtpVerifyInput —
+      // only set `user_type` when defined. The auth module defaults missing
+      // to 'candidate' so existing candidate login flows are unaffected.
+      const verifyInput: { email: string; code: string; user_type?: 'candidate' | 'headhunter' } = {
+        email: parsed.data.email,
+        code: parsed.data.code,
+      };
+      if (parsed.data.user_type !== undefined) {
+        verifyInput.user_type = parsed.data.user_type;
+      }
+
+      const result = await auth.verifyOtp(verifyInput);
       respond(res, OtpVerifyResponseSchema, { ok: true, data: result });
     } catch (e) {
       next(e);

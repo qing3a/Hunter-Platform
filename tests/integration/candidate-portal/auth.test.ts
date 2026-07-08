@@ -207,3 +207,118 @@ describe('POST /v1/candidate-portal/auth/otp/verify', () => {
     expect(second.body.error.code).toBe('RATE_LIMITED');
   });
 });
+
+// =============================================================================
+// Phase 3a / Task 11 — headhunter portal reuses the same OTP endpoints.
+// The candidate-portal auth.ts / schemas / routes learned an optional
+// `user_type` field; "headhunter" causes verify to auto-create a hunter user
+// instead of a candidate. These tests cover the new branch end-to-end.
+// =============================================================================
+
+describe('POST /v1/candidate-portal/auth/otp/verify (headhunter)', () => {
+  beforeEach(() => {
+    resetDb();
+    __resetRateLimits();
+  });
+  afterAll(() => closeTestDb());
+
+  it('auto-creates a headhunter user when user_type="headhunter"', async () => {
+    const app = createTestApp();
+    const req = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'hunter-new@example.com', user_type: 'headhunter' });
+    expect(req.status).toBe(200);
+    const devCode = req.body.data.dev_code as string;
+    expect(devCode).toMatch(/^\d{6}$/);
+
+    const verify = await request(app)
+      .post('/v1/candidate-portal/auth/otp/verify')
+      .send({ email: 'hunter-new@example.com', code: devCode, user_type: 'headhunter' });
+    expect(verify.status).toBe(200);
+    expect(verify.body.data.api_key).toMatch(/^hp_live_/);
+    // Hunter ids use the `hunter_` prefix instead of `cand_`.
+    expect(verify.body.data.user_id).toMatch(/^hunter_/);
+    // profile_complete is hardcoded false for headhunters — there is no
+    // portal-side onboarding flow to gate the redirect on.
+    expect(verify.body.data.profile_complete).toBe(false);
+    expect(verify.body.data.user_type).toBe('headhunter');
+  });
+
+  it('keeps a candidate-portal user separate from a headhunter-portal user with the same email', async () => {
+    const app = createTestApp();
+
+    // 1) First, log in via the candidate portal (default user_type).
+    const reqCand = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'shared@example.com' });
+    const candCode = reqCand.body.data.dev_code as string;
+    const verifyCand = await request(app)
+      .post('/v1/candidate-portal/auth/otp/verify')
+      .send({ email: 'shared@example.com', code: candCode });
+    expect(verifyCand.status).toBe(200);
+    expect(verifyCand.body.data.user_type).toBe('candidate');
+    expect(verifyCand.body.data.user_id).toMatch(/^cand_/);
+
+    // 2) Now log in via the hunter portal with the same email. The OTP lookup
+    //    is keyed only by email (not user_type), so we need a fresh code.
+    __resetRateLimits();
+    const reqHunter = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'shared@example.com', user_type: 'headhunter' });
+    const hunterCode = reqHunter.body.data.dev_code as string;
+    const verifyHunter = await request(app)
+      .post('/v1/candidate-portal/auth/otp/verify')
+      .send({ email: 'shared@example.com', code: hunterCode, user_type: 'headhunter' });
+    expect(verifyHunter.status).toBe(200);
+    expect(verifyHunter.body.data.user_type).toBe('headhunter');
+    expect(verifyHunter.body.data.user_id).toMatch(/^hunter_/);
+    // Distinct user ids — two accounts are kept (one per portal).
+    expect(verifyHunter.body.data.user_id).not.toBe(verifyCand.body.data.user_id);
+  });
+
+  it('defaults to user_type=candidate when the field is omitted (backward compat)', async () => {
+    const app = createTestApp();
+    const req = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'legacy@example.com' });
+    const code = req.body.data.dev_code as string;
+    const verify = await request(app)
+      .post('/v1/candidate-portal/auth/otp/verify')
+      .send({ email: 'legacy@example.com', code });
+    expect(verify.status).toBe(200);
+    expect(verify.body.data.user_type).toBe('candidate');
+    expect(verify.body.data.user_id).toMatch(/^cand_/);
+  });
+
+  it('rejects an explicit user_type outside the enum with 400', async () => {
+    const app = createTestApp();
+    // "employer" is intentionally NOT a valid value for these endpoints —
+    // the employer portal has its own auth path.
+    const res = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'bad@example.com', user_type: 'employer' });
+    expect(res.status).toBe(400);
+    expect(res.body.ok).toBe(false);
+  });
+
+  it('request endpoint also accepts user_type=headhunter and creates the hunter user on verify', async () => {
+    // Symmetric coverage for the request endpoint — verify that passing
+    // user_type through `request` is silently accepted (the rate-limit
+    // and email-dispatch logic is identical either way) and that the
+    // returned verify response carries the same user_type back.
+    const app = createTestApp();
+    const req = await request(app)
+      .post('/v1/candidate-portal/auth/otp/request')
+      .send({ email: 'symmetric@example.com', user_type: 'headhunter' });
+    expect(req.status).toBe(200);
+    expect(req.body.data.expires_in).toBeGreaterThan(0);
+
+    const code = req.body.data.dev_code as string;
+    const verify = await request(app)
+      .post('/v1/candidate-portal/auth/otp/verify')
+      .send({ email: 'symmetric@example.com', code, user_type: 'headhunter' });
+    expect(verify.status).toBe(200);
+    expect(verify.body.data.user_type).toBe('headhunter');
+    expect(verify.body.data.user_id).toMatch(/^hunter_/);
+  });
+});
