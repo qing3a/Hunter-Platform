@@ -47,6 +47,11 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
       bulkCreate: vi.fn(),
       stats: vi.fn(),
     },
+    pmDecompose: {
+      decompose: vi.fn(),
+      commit: vi.fn(),
+      history: vi.fn(),
+    },
     pmAuth: { requestOtp: vi.fn(), verifyOtp: vi.fn() },
   };
 });
@@ -333,7 +338,7 @@ describe('ProjectDetailPage', () => {
     expect(screen.getByTestId('pm-detail-ai-decompose')).toHaveTextContent('智能拆岗位');
   });
 
-  it('opens a placeholder modal when the "智能拆岗位" button is clicked', async () => {
+  it('opens the AI decompose modal (Task 6) when the "智能拆岗位" button is clicked', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -343,17 +348,24 @@ describe('ProjectDetailPage', () => {
     mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
     mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
 
+    const { pmDecompose: mockedPmDecompose } = await import('../../../api/pm-portal');
+    // Keep the call pending — assertions verify the loading state.
+    vi.mocked(mockedPmDecompose.decompose).mockReturnValue(new Promise(() => {}));
+
     renderPage();
     await waitFor(() => screen.getByTestId('pm-detail-tabs'));
 
     fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
     fireEvent.click(screen.getByTestId('pm-detail-ai-decompose'));
 
-    expect(screen.getByTestId('pm-detail-ai-decompose-modal')).toBeInTheDocument();
-    expect(screen.getByText(/AI 拆岗 — coming in Task 6/)).toBeInTheDocument();
+    // Loading state of AIDecomposeModal is the visible contract.
+    expect(screen.getByTestId('pm-decompose-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-decompose-loading')).toBeInTheDocument();
+    // Old placeholder test-id should no longer exist.
+    expect(screen.queryByText(/AI 拆岗 — coming in Task 6/)).toBeNull();
   });
 
-  it('closes the AI decompose modal when the close button is clicked', async () => {
+  it('closes the AI decompose modal when the × button is clicked', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -363,15 +375,43 @@ describe('ProjectDetailPage', () => {
     mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
     mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
 
+    const { pmDecompose: mockedPmDecompose } = await import('../../../api/pm-portal');
+    vi.mocked(mockedPmDecompose.decompose).mockResolvedValue({
+      decomposition: {
+        id: 'decomp-1',
+        project_id: 'proj-1',
+        source_text: 'vue frontend',
+        positions_json: [{
+          title: '高级前端工程师',
+          skills: ['vue'],
+          title_level: 'senior',
+          headcount: 1,
+          rationale: '匹配关键词: vue',
+        }],
+        source: 'ai_heuristic',
+        created_at: 1,
+      },
+      suggestions: [{
+        title: '高级前端工程师',
+        skills: ['vue'],
+        title_level: 'senior',
+        headcount: 1,
+        rationale: '匹配关键词: vue',
+      }],
+    });
+
     renderPage();
     await waitFor(() => screen.getByTestId('pm-detail-tabs'));
 
     fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
     fireEvent.click(screen.getByTestId('pm-detail-ai-decompose'));
-    expect(screen.getByTestId('pm-detail-ai-decompose-modal')).toBeInTheDocument();
+    // Wait for the preview to render so the close × button is mounted.
+    await waitFor(() => screen.getByTestId('pm-decompose-modal-close'));
 
-    fireEvent.click(screen.getByTestId('pm-detail-ai-decompose-modal-close'));
-    expect(screen.queryByTestId('pm-detail-ai-decompose-modal')).toBeNull();
+    fireEvent.click(screen.getByTestId('pm-decompose-modal-close'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('pm-decompose-modal')).toBeNull();
+    });
   });
 
   it('PositionTable row click logs the position id (placeholder for detail navigation)', async () => {

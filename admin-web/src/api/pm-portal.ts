@@ -89,6 +89,53 @@ export type DecomposeRunStatus =
   | 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
 /**
+ * Title seniority band. Mirrors the server's
+ * `DecomposeTitleLevel` (in src/main/lib/ai-decompose.ts).
+ */
+export type DecomposeTitleLevel = 'junior' | 'mid' | 'senior' | 'staff';
+
+/**
+ * Single position suggestion returned by the AI heuristic endpoint
+ * (POST /v1/pm/projects/:id/decompose). Mirrors the server's
+ * `DecomposedPosition`.
+ *
+ * The PM can edit any of these inline in the modal before committing;
+ * the server re-validates everything on commit so a tampered client
+ * still has to satisfy the same Zod schema.
+ */
+export interface DecomposedPosition {
+  title: string;
+  skills: string[];
+  title_level: DecomposeTitleLevel;
+  headcount: number;
+  rationale: string;
+}
+
+/**
+ * History row returned by the decompose endpoint + history endpoint. Mirrors
+ * the server's `DecompositionRowSchema` (src/main/schemas/pm.ts).
+ */
+export interface DecompositionHistoryItem {
+  id: string;
+  project_id: string;
+  source_text: string;
+  positions_json: DecomposedPosition[];
+  source: 'ai_heuristic' | 'manual';
+  /** unix ms */
+  created_at: number;
+}
+
+/**
+ * Result of a successful decompose call — the saved history row plus the
+ * suggestions to preview. UI edits suggestions, then sends the (edited)
+ * list to the commit endpoint together with `decomposition.id`.
+ */
+export interface DecompositionResult {
+  decomposition: DecompositionHistoryItem;
+  suggestions: DecomposedPosition[];
+}
+
+/**
  * Mirrors the backend `ProjectRow` shape (see
  * src/main/db/repositories/projects.ts → ProjectRow). Returned by the
  * create / update / get (detail) endpoints. The list endpoint adds two
@@ -404,14 +451,46 @@ export const pmPositions = {
 };
 
 export const pmDecompose = {
-  start: (input: { project_id: string; job_ids: string[] }) =>
-    request<DecomposeRun>(BASE, '/decompose', {
-      method: 'POST', body: JSON.stringify(input),
-    }),
-  get: (runId: string) =>
-    request<DecomposeRun>(BASE, `/decompose/${runId}`),
-  cancel: (runId: string) =>
-    request<DecomposeRun>(BASE, `/decompose/${runId}/cancel`, { method: 'POST' }),
+  /**
+   * POST /v1/pm/projects/:projectId/decompose
+   *
+   * Runs the keyword heuristic on project.target, persists a history row,
+   * and returns the new decomposition id + suggestions for preview.
+   * Network body is empty — the target text is read from the project row.
+   */
+  decompose: (projectId: string) =>
+    request<{ decomposition: DecompositionHistoryItem; suggestions: DecomposedPosition[] }>(
+      BASE,
+      `/projects/${projectId}/decompose`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  /**
+   * POST /v1/pm/projects/:projectId/decompose/:decompositionId/commit
+   *
+   * Bulk-creates the (possibly edited) suggestion list as project_positions.
+   * Server re-validates each item via Zod before insert.
+   */
+  commit: (projectId: string, decompositionId: string, positions: DecomposedPosition[]) =>
+    request<{ positions: Position[]; decomposition: DecompositionHistoryItem }>(
+      BASE,
+      `/projects/${projectId}/decompose/${decompositionId}/commit`,
+      { method: 'POST', body: JSON.stringify({ positions }) },
+    ),
+  /**
+   * GET /v1/pm/projects/:projectId/decompositions
+   *
+   * List historical decompose runs for a project (most-recent first).
+   * Used by the history view / debugging tools (not on the v1 main flow).
+   */
+  history: (projectId: string, params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    const qs = q.toString();
+    return request<{ decompositions: DecompositionHistoryItem[]; total: number }>(
+      BASE,
+      `/projects/${projectId}/decompositions${qs ? `?${qs}` : ''}`,
+    );
+  },
 };
 
 export const pmMatches = {

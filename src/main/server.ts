@@ -38,6 +38,7 @@ import { createCapabilitiesRouter } from './routes/capabilities.js';
 import { createNotificationsRouter } from './routes/notifications.js';
 import { createCandidatePortalRouter } from './routes/candidate-portal.js';
 import { createHeadhunterWorkspaceRouter } from './routes/headhunter-workspace.js';
+import { createPmRouter } from './routes/pm.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -239,6 +240,12 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   // modules' assertHeadhunter() checks). Body parser: 4KB is enough for
   // task descriptions (max 2000 chars + JSON overhead) and kanban moves.
   app.use('/v1/headhunter-workspace', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createHeadhunterWorkspaceRouter(db));
+  // PM Workbench (Phase 3b) — /v1/pm/* router. All endpoints require a PM
+  // session (authMiddleware is mounted inside the router; non-PM callers
+  // get 403 FORBIDDEN from the underlying handler modules' assertPm()
+  // checks). Mounted separately so future tasks (plans / matches / notes)
+  // only need to add new routes to src/main/routes/pm.ts.
+  app.use('/v1/pm', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createPmRouter(db));
   // /v1/admin/* — all routes (including /ping) require the admin bearer token.
   // The admin auth middleware rejects unauthenticated and non-admin requests
   // with 401 UNAUTHORIZED.

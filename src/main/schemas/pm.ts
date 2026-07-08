@@ -222,6 +222,38 @@ export type ListPositionsQuery = z.infer<typeof ListPositionsQuerySchema>;
 export type BulkCreatePositionsInput = z.infer<typeof BulkCreatePositionsSchema>;
 export type PositionStats = z.infer<typeof PositionStatsSchema>;
 
+// ===== Positions — response shapes =====
+
+export const PositionCreateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PositionRowSchema,
+}).strict();
+
+export const PositionListResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    positions: z.array(PositionRowSchema),
+    total: z.number().int().nonnegative(),
+  }),
+}).strict();
+
+export const PositionUpdateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PositionRowSchema,
+}).strict();
+
+export const PositionDeleteResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({ deleted: z.literal(true) }),
+}).strict();
+
+export const PositionBulkCreateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    positions: z.array(PositionRowSchema),
+  }),
+}).strict();
+
 // ===== Projects — response shapes =====
 
 export const ProjectCreateResponseSchema = z.object({
@@ -289,3 +321,88 @@ export const ProjectDeleteResponseSchema = z.object({
   ok: z.literal(true),
   data: z.object({ deleted: z.literal(true) }),
 }).strict();
+
+// ===== AI Decompose (Task 6) =====
+//
+// The PM clicks "智能拆岗位" → we run the keyword heuristic on the project's
+// `target` text → return suggested positions + persist a history row. The UI
+// then lets the PM edit the suggestions inline before committing (which
+// bulk-creates the actual `project_positions` rows).
+//
+// Two endpoints:
+//   - POST /v1/pm/projects/:projectId/decompose
+//       → runs heuristic, stores history, returns suggestions to preview
+//   - POST /v1/pm/projects/:projectId/decompose/:decompositionId/commit
+//       → bulk-creates the positions recorded in the decomposition row
+//
+// Response shapes mirror `PositionRowSchema` for the commit payload (so the
+// UI can refresh its position table in place).
+
+/** Mirrors DecomposedPosition in src/main/lib/ai-decompose.ts. */
+export const DecomposedPositionSchema = z.object({
+  title: z.string().min(1).max(200),
+  skills: z.array(z.string().min(1).max(100)).max(50),
+  title_level: z.enum(['junior', 'mid', 'senior', 'staff']),
+  headcount: z.number().int().min(1),
+  /** Non-empty rationale — per plan's Self-Review "AI 启发式必须有理由,不能黑盒". */
+  rationale: z.string().min(1).max(500),
+}).strict();
+
+/** History row — one per decompose call. */
+export const DecompositionRowSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  source_text: z.string(),
+  positions_json: z.array(DecomposedPositionSchema),
+  source: z.enum(['ai_heuristic', 'manual']),
+  /** unix ms */
+  created_at: z.number().int(),
+}).strict();
+
+/**
+ * POST /v1/pm/projects/:projectId/decompose — has no body (target is read
+ * from the project row), but we still declare an empty-object schema for
+ * future-proofing (lets us add `override_text` etc. later without a schema
+ * migration).
+ */
+export const DecomposeRequestSchema = z.object({}).strict();
+
+export const DecomposeResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    decomposition: DecompositionRowSchema,
+    suggestions: z.array(DecomposedPositionSchema),
+  }),
+}).strict();
+
+/**
+ * POST /v1/pm/projects/:projectId/decompose/:decompositionId/commit
+ *
+ * Body is the (possibly edited) suggestions the PM wants to commit. We
+ * re-validate them server-side — the UI can rename / re-skill / re-headcount
+ * suggestions before commit, but the schema is the same as the heuristic
+ * output so the contract stays uniform.
+ */
+export const CommitDecompositionRequestSchema = z.object({
+  positions: z.array(DecomposedPositionSchema).min(1).max(50),
+}).strict();
+
+export const CommitDecompositionResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    positions: z.array(PositionRowSchema),
+  }),
+}).strict();
+
+/** GET /v1/pm/projects/:projectId/decompositions (history view). */
+export const ListDecompositionsResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    decompositions: z.array(DecompositionRowSchema),
+    total: z.number().int().nonnegative(),
+  }),
+}).strict();
+
+export type DecomposedPositionInput = z.infer<typeof DecomposedPositionSchema>;
+export type DecompositionRow = z.infer<typeof DecompositionRowSchema>;
+export type CommitDecompositionInput = z.infer<typeof CommitDecompositionRequestSchema>;

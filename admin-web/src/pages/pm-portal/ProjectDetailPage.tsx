@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   pmProjects,
   pmPositions,
@@ -10,16 +10,17 @@ import {
 import { formatBudgetYuan } from '../../components/pm-portal/ProjectCard';
 import { PositionTable } from '../../components/pm-portal/PositionTable';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
+import { AIDecomposeModal } from '../../components/pm-portal/AIDecomposeModal';
 
 // ============================================================================
-// ProjectDetailPage (S2 / Task 5)
+// ProjectDetailPage (S2 / Task 5 + Task 6)
 // ============================================================================
 //
 // Per-project detail surface for the PM Workbench. Renders the project
 // header (name / target / budget / dates / team / status) plus four
 // tabs:
 //   - 概览 (Overview)   project-level KPI tiles + recent positions
-//   - 岗位 (Positions)  full PositionTable + "智能拆岗位" CTA placeholder
+//   - 岗位 (Positions)  full PositionTable + "智能拆岗位" CTA → AIDecomposeModal
 //   - 计划 (Plans)      placeholder (Task 7)
 //   - 匹配 (Matches)    placeholder (Task 10)
 //
@@ -35,6 +36,11 @@ import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
 //   - pmPositions.list(id)     lazy — only fires when the Positions tab
 //                              is opened (avoids loading the full list
 //                              for PMs who only want to read the Overview)
+//
+// Task 6 surface: the "智能拆岗位" button mounts AIDecomposeModal, which
+// runs the heuristic, lets the PM edit suggestions inline, and on commit
+// bulk-creates real project_positions. We invalidate the positions /
+// project queries on commit so the Overview + Positions tabs refresh.
 
 type TabKey = 'overview' | 'positions' | 'plans' | 'matches';
 
@@ -94,8 +100,22 @@ function summarizeTeam(
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showAiModal, setShowAiModal] = useState(false);
+
+  /**
+   * Called by AIDecomposeModal after a successful commit. Invalidates
+   * the three queries that reflect project_positions state so the
+   * Overview + Positions tabs update immediately. No extra GET round
+   * trips — react-query just refetches the cached queries.
+   */
+  function onDecomposeCommitted() {
+    if (!id) return;
+    queryClient.invalidateQueries({ queryKey: ['pm', 'positions', 'list', id] });
+    queryClient.invalidateQueries({ queryKey: ['pm', 'positions', 'stats', id] });
+    queryClient.invalidateQueries({ queryKey: ['pm', 'projects', 'get', id] });
+  }
 
   // The project detail fetch. This is unconditional because every tab
   // (Overview / Positions / Plans / Matches) needs the project header.
@@ -321,35 +341,12 @@ export function ProjectDetailPage() {
         </section>
       )}
 
-      {showAiModal && (
-        <div
-          className="pm-modal-backdrop"
-          data-testid="pm-detail-ai-decompose-modal"
-          onClick={() => setShowAiModal(false)}
-        >
-          <div
-            className="pm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pm-detail-ai-decompose-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="pm-detail-ai-decompose-modal-title">AI 拆岗 — coming in Task 6</h2>
-            <p>
-              这里会展示 AI 拆岗的输入框(粘贴 JD / 上传 PDF)和「生成岗位建议」按钮。
-              AI 拆岗服务在 Task 6 中实现,届时会调用 LLM 把项目目标拆成一批候选岗位,
-              并支持 PM 在生成后逐个编辑 / 接受 / 拒绝。
-            </p>
-            <button
-              type="button"
-              className="pm-btn-primary"
-              data-testid="pm-detail-ai-decompose-modal-close"
-              onClick={() => setShowAiModal(false)}
-            >
-              关闭
-            </button>
-          </div>
-        </div>
+      {showAiModal && id && (
+        <AIDecomposeModal
+          projectId={id}
+          onClose={() => setShowAiModal(false)}
+          onCommitted={onDecomposeCommitted}
+        />
       )}
     </div>
   );

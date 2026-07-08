@@ -482,3 +482,190 @@
   font-family: inherit;
 }
 .pm-btn-link:hover { text-decoration: underline; }
+
+/* ============================================================================
+ * AI Decompose Modal (S2 / Task 6)
+ * ============================================================================
+ *
+ * The decompose modal is wider than the placeholder modal (max-width 640px)
+ * because it renders an editable preview table with several form fields.
+ * Layout: vertical header → loading state OR source summary + editable
+ * list of suggested positions → footer with Cancel / Confirm buttons.
+ *
+ * The spinner is a simple CSS-only animated circle so we don't pull in any
+ * new dependency. The rationale box uses a soft yellow accent (--c-amber
+ * or fallback) so the PM sees the AI's reasoning without it dominating.
+ */
+.pm-decompose-modal {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.pm-decompose-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-decompose-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-decompose-modal-close {
+  font-size: 24px !important;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text-muted);
+}
+
+/* ---- Loading state ---- */
+.pm-decompose-loading {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+}
+.pm-decompose-loading p { margin: var(--sp-2) 0; }
+.pm-decompose-loading-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-decompose-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto var(--sp-3);
+  border: 3px solid var(--border);
+  border-top-color: var(--c-project);
+  border-radius: 50%;
+  animation: pm-decompose-spin 1s linear infinite;
+}
+@keyframes pm-decompose-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Error + retry state ---- */
+.pm-decompose-error {
+  padding: var(--sp-5);
+  text-align: center;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+.pm-decompose-error p { margin: 0 0 var(--sp-3); }
+.pm-decompose-error .pm-btn-primary { background: #dc2626; }
+
+/* ---- Source summary (target text) ---- */
+.pm-decompose-source {
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.pm-decompose-source h3 {
+  margin: 0 0 var(--sp-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.pm-decompose-source-text {
+  margin: 0 0 var(--sp-2);
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  max-height: 60px;
+  overflow-y: auto;
+}
+.pm-decompose-source-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- Suggestion list ---- */
+.pm-decompose-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-5);
+}
+.pm-decompose-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--sp-5);
+}
+.pm-decompose-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: var(--sp-3);
+  background: var(--surface);
+}
+.pm-decompose-item-main {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--sp-2);
+  align-items: flex-end;
+}
+.pm-decompose-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-decompose-field span { font-size: 11px; }
+.pm-decompose-field .pm-input { width: 100%; }
+.pm-decompose-field-inline {
+  min-width: 90px;
+}
+.pm-decompose-field-full {
+  grid-column: 1 / -1;
+}
+.pm-decompose-headcount-input {
+  width: 60px;
+  text-align: center;
+}
+.pm-decompose-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  border-top: 1px dashed var(--border);
+  padding-top: var(--sp-2);
+}
+.pm-decompose-rationale {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.pm-decompose-remove {
+  color: #b91c1c !important;
+  font-size: 12px !important;
+}
+
+/* ---- Footer ---- */
+.pm-decompose-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-decompose-error-msg {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+}
+
