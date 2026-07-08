@@ -165,3 +165,71 @@ export const stats = {
     return request<StatsPayload>(`/stats?${q}`);
   },
 };
+
+// =========================================================================
+// Pickup queue (Candidate Portal Phase 1 — Task 13)
+//
+// These endpoints live under the legacy `/v1/headhunter/*` router (not
+// `/v1/headhunter-workspace/*`), so they go through a dedicated request
+// helper with its own base path. Auth is the same candidate-session bearer
+// token as the workspace endpoints.
+// =========================================================================
+
+const PICKUP_BASE = '/v1/headhunter';
+
+async function pickupRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init.headers as Record<string, string> | undefined),
+  };
+  const auth = getAuthHeader();
+  if (auth) headers['Authorization'] = auth;
+
+  const res = await fetch(PICKUP_BASE + path, { ...init, headers });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (res.status === 401) clearSession();
+    throw new ApiError(
+      json.error?.code ?? 'UNKNOWN_ERROR',
+      json.error?.message ?? `HTTP ${res.status}`,
+      res.status,
+    );
+  }
+  return json.data;
+}
+
+export interface PendingPickupItem {
+  id: number;
+  recommendation_id: string;
+  candidate_user_id: string;
+  job_id: string;
+  pickup_headhunter_id: string | null;
+  candidate_note: string | null;
+  withdrawn_at: number | null;
+  created_at: number;
+  job_title: string | null;
+  candidate_display_name: string | null;
+  recommendation_status: string;
+}
+
+export interface PendingPickupPayload {
+  items: PendingPickupItem[];
+  next_cursor: null;
+}
+
+export interface PickupResult {
+  recommendation_id: string;
+  status: 'pending';
+}
+
+export const pickup = {
+  /** List self-applied recommendations awaiting pickup (open queue). */
+  listPending: (opts: { limit?: number; offset?: number } = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(opts).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    return pickupRequest<PendingPickupPayload>(`/recommendations/pending-pickup?${q}`);
+  },
+  /** Claim a pending_pickup recommendation (atomic state transition). */
+  claim: (recommendationId: string) =>
+    pickupRequest<PickupResult>(`/recommendations/${recommendationId}/pickup`, { method: 'POST' }),
+};
