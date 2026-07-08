@@ -59,7 +59,7 @@ describe('pnpm conformance:gen', () => {
     const roles = getAllCapabilitySets().map((s) => s.role).sort();
     const describeCount = (src.match(/^describe\(/gm) ?? []).length;
     expect(describeCount).toBe(roles.length);
-    expect(describeCount).toBe(6);
+    expect(describeCount).toBe(7);  // auth, headhunter, employer, candidate, admin, notifications, candidate-portal
     for (const role of roles) {
       expect(src).toContain(`describe('${role}'`);
     }
