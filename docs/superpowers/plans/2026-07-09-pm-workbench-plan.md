@@ -33,7 +33,7 @@
 
 | P | 任务 | 工时 |
 |---|------|------|
-| P0.1 | v028 migration (5 新表) | 2h |
+| P0.1 | v028 migration (6 新表) | 2h |
 | P0.2 | Projects repository + handler | 4h |
 | P0.3 | PM Login + Projects list (S8) | 3h |
 | P1.4 | Project detail (S2) + Positions table | 5h |
@@ -227,7 +227,7 @@ CREATE TABLE pm_notes (
 
 ---
 
-## Task 1: 数据库迁移 v028 (5 新表 + 索引)
+## Task 1: 数据库迁移 v028 (6 新表 + 索引)
 
 **Files:**
 - Create: `src/main/db/migrations/v028_pm_workbench.sql` (上述 SQL)

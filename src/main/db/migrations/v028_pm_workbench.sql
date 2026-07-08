@@ -35,7 +35,7 @@ CREATE TABLE projects (
   budget_total    INTEGER,
   start_at        INTEGER,
   end_at          INTEGER,
-  current_team    TEXT,
+  current_team    TEXT,                          -- JSON: [{role, count, ...}]
   status          TEXT NOT NULL DEFAULT 'planning',
   -- status: 'planning' | 'active' | 'paused' | 'completed' | 'cancelled'
   created_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
@@ -80,12 +80,14 @@ CREATE INDEX idx_staffing_plans_project ON staffing_plans(project_id, is_selecte
 
 CREATE TABLE position_decompositions (
   id              TEXT PRIMARY KEY,
+  project_id      TEXT NOT NULL,
   source_text     TEXT NOT NULL,
   positions_json  TEXT NOT NULL,
-  source          TEXT NOT NULL DEFAULT 'ai_heuristic',
-  -- source: 'ai_heuristic' | 'ai_llm' | 'manual'
-  created_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000)
+  source          TEXT NOT NULL DEFAULT 'ai_heuristic',  -- ai_heuristic | manual
+  created_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_position_decompositions_project ON position_decompositions(project_id);
 
 CREATE TABLE matches (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +109,7 @@ CREATE TABLE pm_notes (
   candidate_user_id TEXT NOT NULL,
   starred         INTEGER NOT NULL DEFAULT 0,
   note_text       TEXT,
+  created_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   updated_at      INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
   FOREIGN KEY (pm_user_id) REFERENCES users(id),
   FOREIGN KEY (candidate_user_id) REFERENCES users(id),
