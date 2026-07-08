@@ -174,6 +174,12 @@ export function resetDb(): void {
   _db.exec('PRAGMA foreign_keys = OFF');
   try {
     const tables = [
+      'pm_notes',
+      'matches',
+      'position_decompositions',
+      'staffing_plans',
+      'project_positions',
+      'projects',
       'candidate_messages',
       'candidate_applications',
       'candidate_otp_codes',
@@ -252,6 +258,12 @@ export function resetHunterDb(): void {
   _hunterDb.exec('PRAGMA foreign_keys = OFF');
   try {
     const tables = [
+      'pm_notes',
+      'matches',
+      'position_decompositions',
+      'staffing_plans',
+      'project_positions',
+      'projects',
       'candidate_messages',
       'candidate_applications',
       'candidate_otp_codes',
