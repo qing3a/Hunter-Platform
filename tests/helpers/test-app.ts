@@ -60,6 +60,7 @@ export function createTestApp(opts: TestAppOptions = {}): Express {
 
   const app = express();
   app.use(
+    '/v1/candidate-portal',
     createUtf8OnlyMiddleware(),
     express.json({ limit: MAX_BODY_SIZE }),
     createCandidatePortalRouter(_db, {

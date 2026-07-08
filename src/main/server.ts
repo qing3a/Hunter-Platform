@@ -36,6 +36,7 @@ import { createAdminAuthMiddleware } from './modules/admin/auth.js';
 import { createAdminRouter } from './routes/admin.js';
 import { createCapabilitiesRouter } from './routes/capabilities.js';
 import { createNotificationsRouter } from './routes/notifications.js';
+import { createCandidatePortalRouter } from './routes/candidate-portal.js';
 import type { DB } from './db/connection.js';
 
 /**
@@ -158,7 +159,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   const actionHistoryRepo = createActionHistoryRepo(db);
   const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
 
-  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate'];
+  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate', '/v1/candidate-portal'];
   app.use((req, res, next) => {
     if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
       return next();
@@ -220,6 +221,17 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/headhunter', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer',   createUtf8OnlyMiddleware(64 * 1024), express.json({ limit: BODY_LIMIT_LARGE }), createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/candidate',  createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  // Candidate Portal Phase 1 (Task 11): 13 endpoints (OTP public, rest authed).
+  // Mounted after /v1/candidate so the legacy candidate routes still own the
+  // /v1/candidate/* prefix and only the new /v1/candidate-portal/* tree is
+  // served by this router. Auth boundary (public OTP vs. bearer-token
+  // authenticated) is enforced inside the router.
+  app.use('/v1/candidate-portal', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createCandidatePortalRouter(db, {
+    otpLength: env.OTP_LENGTH,
+    otpTtlSeconds: env.OTP_TTL_SECONDS,
+    otpMaxAttempts: env.OTP_MAX_ATTEMPTS,
+    consoleOnly: env.OTP_CONSOLE_ONLY,
+  }));
   // /v1/admin/* — all routes (including /ping) require the admin bearer token.
   // The admin auth middleware rejects unauthenticated and non-admin requests
   // with 401 UNAUTHORIZED.
