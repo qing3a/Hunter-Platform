@@ -1,0 +1,306 @@
+/* PM Workbench — Projects Library (Phase 3b / Task 4) styles.
+ *
+ * Sits alongside hunter-portal.css. Re-uses the same colour tokens
+ * (var(--c-*) / var(--b-*)) and spacing scale (var(--sp-*)) defined in
+ * tokens.css so the two portals feel like one product. New selectors
+ * are prefixed `.pm-` to avoid collision with the candidate / hunter
+ * classes.
+ */
+
+/* ---- Page shell (Task 4 ships a bare wrapper; Task 17 wraps it in
+   the full PM chrome with sidebar / topbar). ---- */
+.pm-library {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+  flex-wrap: wrap;
+}
+.pm-library-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ---- KPI grid (4 tiles) ---- */
+.pm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+@media (min-width: 768px) {
+  .pm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.pm-kpi-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.pm-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-all;
+}
+.pm-kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+}
+.pm-kpi-tile[data-accent="green"]  .pm-kpi-value { color: #16a34a; }
+.pm-kpi-tile[data-accent="blue"]   .pm-kpi-value { color: #2563eb; }
+.pm-kpi-tile[data-accent="amber"]  .pm-kpi-value { color: #d97706; }
+.pm-kpi-tile[data-accent="purple"] .pm-kpi-value { color: #9333ea; }
+
+/* ---- Filters (search + status + view toggle) ---- */
+.pm-filters {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pm-input,
+.pm-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.pm-select { flex: 0 1 160px; }
+
+.pm-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.pm-view-toggle-btn {
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: none;
+  border-right: 1px solid var(--border);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-view-toggle-btn:last-child { border-right: none; }
+.pm-view-toggle-btn.active {
+  background: var(--c-project);
+  color: white;
+}
+
+/* ---- Primary / secondary buttons ---- */
+.pm-btn-primary {
+  padding: 8px 16px;
+  background: var(--c-project);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-btn-primary:hover { filter: brightness(1.05); }
+.pm-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pm-btn-secondary {
+  padding: 8px 16px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ---- Loading / error ---- */
+.pm-loading,
+.pm-error {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.pm-error {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+}
+
+/* ---- Table view ---- */
+.pm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+}
+.pm-table th,
+.pm-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.pm-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+}
+.pm-table tbody tr:last-child td { border-bottom: none; }
+.pm-table a {
+  color: var(--c-project);
+  text-decoration: none;
+}
+.pm-table a:hover { text-decoration: underline; }
+
+/* ---- Status badge (lifecycle: planning / active / paused / completed / cancelled) ---- */
+.pm-project-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ---- Card view ---- */
+.pm-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px)  { .pm-card-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .pm-card-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.pm-project-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.pm-project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+.pm-project-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-project-card-target {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pm-project-card-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pm-project-card-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+.pm-project-card-meta-row dt {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-project-card-meta-row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-project-card-action {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--c-project);
+  color: var(--c-project);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-project-card-action:hover {
+  background: var(--b-project);
+}
+
+/* ---- Modal (placeholder for ProjectMetaModal in Task 15) ---- */
+.pm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--sp-4);
+}
+.pm-modal {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: var(--sp-6);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-4);
+}
+.pm-modal h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-modal p {
+  margin: 0 0 var(--sp-4);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}

@@ -51,15 +51,33 @@ export type PlanTaskStatus = 'todo' | 'doing' | 'blocked' | 'done';
 export type DecomposeRunStatus =
   | 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 
+/**
+ * Mirrors the backend `ProjectSummary` shape (see
+ * src/main/db/repositories/projects.ts → ProjectSummary). The list
+ * endpoint returns ProjectRow + two aggregate counts; the create/update
+ * endpoints return ProjectRow alone.
+ *
+ * NOTE: `target` is the project's recruitment target / scope blurb
+ * (renamed from earlier "description" wording in the design doc). The
+ * 名称 displayed in the UI is the `name` field.
+ */
 export interface ProjectSummary {
   id: string;
   pm_user_id: string;
-  title: string;
-  company_name: string | null;
+  name: string;
+  target: string | null;
+  budget_total: number | null;
+  /** unix ms */
+  start_at: number | null;
+  /** unix ms */
+  end_at: number | null;
+  current_team: { role: string; count: number }[] | null;
   status: ProjectStatus;
-  job_count: number;
+  position_count: number;
   plan_count: number;
+  /** unix ms */
   created_at: number;
+  /** unix ms */
   updated_at: number;
 }
 
