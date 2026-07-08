@@ -99,28 +99,41 @@ export function createTestApp(opts: TestAppOptions = {}): Express {
  */
 export function resetDb(): void {
   if (!_db) return;
-  // Order matters: children before parents. hunter_tasks and kanban_columns
-  // were added in v027 — they FK-reference users, so they MUST be cleared
-  // before DELETE FROM users runs (otherwise FK violations silently leave
-  // the users row in place and downstream tests collide on
-  // users.api_key_hash UNIQUE).
-  const tables = [
-    'candidate_messages',
-    'candidate_applications',
-    'candidate_otp_codes',
-    'candidates_anonymized',
-    'candidates_private',
-    'recommendations',
-    'hunter_tasks',
-    'kanban_columns',
-    'jobs',
-    'users',
-    'idempotency_keys',
-    'rate_limit_buckets',
-    'action_history',
-  ];
-  for (const t of tables) {
-    try { _db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet */ }
+  // Disable FK enforcement so the order-of-DELETEs dance is unnecessary
+  // and a row referencing users can never silently block DELETE FROM users.
+  // We re-enable immediately after — the test helpers below only need a
+  // clean slate, not FK semantics.
+  _db.exec('PRAGMA foreign_keys = OFF');
+  try {
+    const tables = [
+      'candidate_messages',
+      'candidate_applications',
+      'candidate_otp_codes',
+      'candidates_anonymized',
+      'candidates_private',
+      'recommendations',
+      'hunter_tasks',
+      'kanban_columns',
+      'jobs',
+      'users',
+      'idempotency_keys',
+      'rate_limit_buckets',
+      'action_history',
+      'notifications',
+      'placements',
+      'unlock_audit_log',
+      'admin_action_log',
+      'admin_users',
+      'admin_login_events',
+      'view_tokens',
+      'config',
+      'webhook_delivery_queue',
+    ];
+    for (const t of tables) {
+      try { _db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet */ }
+    }
+  } finally {
+    _db.exec('PRAGMA foreign_keys = ON');
   }
   __resetRateLimits();
 }
