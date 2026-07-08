@@ -46,6 +46,7 @@ const MOUNT_PREFIXES: Record<string, string | null> = {
   'capabilities.ts': null,  // Phase 4: routes use full /v1/capabilities* paths inside the file
   'notifications.ts': '/v1/notifications',
   'candidate-portal.ts': null,  // Phase 1 (candidate-portal): routes use full /v1/candidate-portal/* paths inside the file
+  'headhunter-workspace.ts': null,  // Phase 3a (hunter workspace): routes use full /v1/headhunter-workspace/* paths inside the file
   'landing.ts':    null,
 };
 

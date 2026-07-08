@@ -30,15 +30,36 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return json.data;
 }
 
+export type OtpUserType = 'candidate' | 'headhunter';
+
 export const otp = {
-  request: (email: string) =>
+  /**
+   * Request an OTP for the given email.
+   *
+   * `user_type` is optional — omitting it is treated as the historical
+   * candidate-portal behaviour (`user_type='candidate'`). The hunter portal
+   * passes `user_type='headhunter'` so the verify step auto-creates a
+   * headhunter user (instead of a candidate) on first login.
+   *
+   * In console mode the server returns a `dev_code` so local tests can
+   * verify without a real SMTP hop.
+   */
+  request: (email: string, user_type?: OtpUserType) =>
     request<{ expires_in: number; dev_code?: string }>('/auth/otp/request', {
-      method: 'POST', body: JSON.stringify({ email }),
+      method: 'POST', body: JSON.stringify({ email, user_type }),
     }),
-  verify: (email: string, code: string) =>
-    request<{ api_key: string; user_id: string; profile_complete: boolean }>(
-      '/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, code }) }
-    ),
+  /**
+   * Verify an OTP. On success returns the bearer API key + user id, plus a
+   * `user_type` echo that tells the client which portal (`/candidate/home`
+   * vs `/hunter/workspace`) to redirect to.
+   */
+  verify: (email: string, code: string, user_type?: OtpUserType) =>
+    request<{
+      api_key: string;
+      user_id: string;
+      profile_complete: boolean;
+      user_type: OtpUserType;
+    }>('/auth/otp/verify', { method: 'POST', body: JSON.stringify({ email, code, user_type }) }),
 };
 
 export const jobs = {

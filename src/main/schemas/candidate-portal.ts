@@ -17,9 +17,18 @@ import { z } from 'zod';
 
 // ===== Auth =====
 
+/**
+ * User-type discriminator accepted by the OTP endpoints. Phase 3a (Task 11)
+ * adds `headhunter` so the hunter portal can reuse the same OTP endpoints.
+ * `employer` is intentionally absent because the employer portal uses a
+ * separate auth path.
+ */
+const UserTypeSchema = z.enum(['candidate', 'headhunter']);
+
 /** POST /v1/candidate-portal/auth/otp/request */
 export const OtpRequestSchema = z.object({
   email: z.string().email(),
+  user_type: UserTypeSchema.optional(),
 }).strict();
 
 export const OtpRequestResponseSchema = z.object({
@@ -37,6 +46,7 @@ export const OtpRequestResponseSchema = z.object({
 export const OtpVerifySchema = z.object({
   email: z.string().email(),
   code: z.string().min(4).max(8),
+  user_type: UserTypeSchema.optional(),
 }).strict();
 
 export const OtpVerifyResponseSchema = z.object({
@@ -45,6 +55,8 @@ export const OtpVerifyResponseSchema = z.object({
     api_key: z.string().regex(/^hp_live_/),
     user_id: z.string().min(1),
     profile_complete: z.boolean(),
+    /** Echo of the resolved user_type so the client can pick the right portal. */
+    user_type: UserTypeSchema,
   }),
 }).strict();
 
