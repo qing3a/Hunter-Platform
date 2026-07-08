@@ -187,6 +187,29 @@ export interface PlanTask {
   updated_at: number;
 }
 
+/**
+ * Mirrors the backend `PlanRowSchema` (see
+ * src/main/schemas/pm.ts and src/main/db/repositories/staffing-plans.ts).
+ * Returned by the list / create / get / update / select endpoints.
+ *
+ * NOTE: this is the actual wire shape — it differs from the legacy
+ * PlanSummary above (which was a planned-but-not-shipped Task-7+ design
+ * with `task_count`). Task 8's UI will replace PlanSummary references
+ * with this `Plan` type as the comparison page lands.
+ */
+export interface Plan {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string | null;
+  total_headcount: number;
+  estimated_cost: number | null;
+  positions_json: Array<{ position_id: string; count: number }>;
+  /** 0 = draft, 1 = currently selected plan for the project. */
+  is_selected: number;
+  created_at: number;
+}
+
 export interface PlanSummary {
   id: string;
   project_id: string;
@@ -377,25 +400,62 @@ export const pmProjects = {
 };
 
 export const pmPlans = {
-  list: (projectId: string) =>
-    request<{ plans: PlanSummary[] }>(BASE, `/projects/${projectId}/plans`),
+  /**
+   * GET /v1/pm/projects/:projectId/plans?limit=&offset=
+   * Mirrors backend `listPlans` (createPlansHandler in
+   * src/main/modules/pm/plans.ts).
+   */
+  list: (
+    projectId: string,
+    params?: { limit?: number; offset?: number },
+  ) => {
+    const q = new URLSearchParams();
+    Object.entries(params ?? {}).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    const qs = q.toString();
+    return request<{ plans: Plan[]; total: number }>(
+      BASE, `/projects/${projectId}/plans${qs ? `?${qs}` : ''}`,
+    );
+  },
+  /** GET /v1/pm/plans/:id */
   get: (id: string) =>
-    request<PlanSummary & { tasks: PlanTask[] }>(BASE, `/plans/${id}`),
-  create: (projectId: string, input: { title: string; description?: string | null }) =>
-    request<PlanSummary>(BASE, `/projects/${projectId}/plans`, {
+    request<Plan>(BASE, `/plans/${id}`),
+  /** POST /v1/pm/projects/:projectId/plans */
+  create: (
+    projectId: string,
+    input: {
+      name: string;
+      description?: string;
+      total_headcount?: number;
+      estimated_cost?: number;
+      positions_json?: Array<{ position_id: string; count: number }>;
+    },
+  ) =>
+    request<Plan>(BASE, `/projects/${projectId}/plans`, {
       method: 'POST', body: JSON.stringify(input),
     }),
-  updateTask: (planId: string, taskId: string, patch: Partial<{
-    title: string;
+  /** PATCH /v1/pm/plans/:id — partial of create (is_selected is NOT
+   *  exposed here; callers must use select() so the unselect-all +
+   *  select-one writes run transactionally). */
+  update: (id: string, patch: Partial<{
+    name: string;
     description: string | null;
-    status: PlanTaskStatus;
-    position: number;
-    due_at: number | null;
-    assignee_user_id: string | null;
+    total_headcount: number;
+    estimated_cost: number | null;
+    positions_json: Array<{ position_id: string; count: number }> | null;
   }>) =>
-    request<PlanTask>(BASE, `/plans/${planId}/tasks/${taskId}`, {
+    request<Plan>(BASE, `/plans/${id}`, {
       method: 'PATCH', body: JSON.stringify(patch),
     }),
+  /** DELETE /v1/pm/plans/:id */
+  delete: (id: string) =>
+    request<{ deleted: true }>(BASE, `/plans/${id}`, { method: 'DELETE' }),
+  /**
+   * POST /v1/pm/plans/:id/select — mark this plan as the project's
+   * selected plan. Uniqueness (only one selected plan per project)
+   * is enforced atomically by the backend in a BEGIN/COMMIT.
+   */
+  select: (id: string) =>
+    request<Plan>(BASE, `/plans/${id}/select`, { method: 'POST' }),
 };
 
 /**

@@ -407,3 +407,117 @@ export const ListDecompositionsResponseSchema = z.object({
 export type DecomposedPositionInput = z.infer<typeof DecomposedPositionSchema>;
 export type DecompositionRow = z.infer<typeof DecompositionRowSchema>;
 export type CommitDecompositionInput = z.infer<typeof CommitDecompositionRequestSchema>;
+
+// ===== Staffing Plans (Task 7) =====
+//
+// A plan is a named staffing scenario attached to a project. Each
+// project starts with one auto-selected default plan (created in
+// projects.insert); subsequent plans are drafts until the PM clicks
+// "select", which atomically swaps the is_selected flag (only one
+// selected plan per project — uniqueness is enforced in the repo
+// inside a BEGIN/COMIT, NOT in this schema layer).
+//
+// Wire shape:
+//   - is_selected is INTEGER 0|1 (SQLite convention); keep that
+//     on the wire so the client doesn't have to do a type-coerce
+//     dance. The UI can render it as a boolean.
+//   - positions_json is a typed array of { position_id, count };
+//     these reference project_positions rows by id. The repo
+//     stringifies on write, parses on read.
+//   - total_headcount is a non-negative integer.
+//   - estimated_cost is an optional non-negative integer (omit to
+//     mean "PM hasn't estimated yet" — distinct from 0 which would
+//     mean "estimated to zero").
+
+/** Single entry in `plan.positions_json`. */
+const PlanPositionSpecSchema = z.object({
+  position_id: z.string().min(1).max(200),
+  count: z.number().int().min(1).max(10000),
+}).strict();
+
+/** Mirrors `PlanRow` in db/repositories/staffing-plans.ts. */
+export const PlanRowSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  total_headcount: z.number().int().nonnegative(),
+  estimated_cost: z.number().int().nullable(),
+  positions_json: z.array(PlanPositionSpecSchema),
+  is_selected: z.number().int().min(0).max(1),
+  created_at: z.number().int(),
+}).strict();
+
+/** GET /v1/pm/projects/:projectId/plans?limit=&offset= */
+export const ListPlansQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+}).strict();
+
+/** POST /v1/pm/projects/:projectId/plans */
+export const CreatePlanSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  total_headcount: z.number().int().nonnegative().default(0),
+  estimated_cost: z.number().int().nonnegative().optional(),
+  positions_json: z.array(PlanPositionSpecSchema).default([]),
+}).strict();
+
+/** PATCH /v1/pm/plans/:id — partial of create + is_selected */
+//
+// is_selected is exposed on the update endpoint even though
+// setSelectedPlan is the canonical way to flip it — allowing direct
+// PATCH is convenient for tests and admin tooling. Uniqueness is
+// still enforced because setSelectedPlan runs through the repo's
+// transactional unselect-all+select-one path; direct PATCH of
+// is_selected=1 on a second plan would technically violate the
+// invariant, so we intentionally OMIT is_selected from this schema
+// and route selection through the dedicated endpoint.
+export const UpdatePlanSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  total_headcount: z.number().int().nonnegative().optional(),
+  estimated_cost: z.number().int().nonnegative().nullable().optional(),
+  positions_json: z.array(PlanPositionSpecSchema).nullable().optional(),
+}).strict();
+
+// ===== Staffing Plans — response shapes =====
+
+export const PlanCreateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PlanRowSchema,
+}).strict();
+
+export const PlanListResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    plans: z.array(PlanRowSchema),
+    total: z.number().int().nonnegative(),
+  }),
+}).strict();
+
+export const PlanDetailResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PlanRowSchema,
+}).strict();
+
+export const PlanUpdateResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PlanRowSchema,
+}).strict();
+
+export const PlanDeleteResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({ deleted: z.literal(true) }),
+}).strict();
+
+export const PlanSelectResponseSchema = z.object({
+  ok: z.literal(true),
+  data: PlanRowSchema,
+}).strict();
+
+export type CreatePlanInput = z.infer<typeof CreatePlanSchema>;
+export type UpdatePlanInput = z.infer<typeof UpdatePlanSchema>;
+export type ListPlansQuery = z.infer<typeof ListPlansQuerySchema>;
+export type PlanRow = z.infer<typeof PlanRowSchema>;
+export type PlanPositionSpec = z.infer<typeof PlanPositionSpecSchema>;

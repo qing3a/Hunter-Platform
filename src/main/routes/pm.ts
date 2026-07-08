@@ -13,7 +13,8 @@
 //              /positions/:id
 //   - Task 6:  /projects/:projectId/decompose(, /:id/commit)     (decompose module)
 //              /projects/:projectId/decompositions
-//   - Task 7+: /projects/:projectId/plans, /plans, /matches, ...
+//   - Task 7:  /projects/:projectId/plans, /plans, /plans/:id/select (plans module)
+//   - Task 8+: /projects/:projectId/matches, ...
 //
 // Auth boundary: `router.use(authMiddleware(db))` is the only gate; each
 // handler module re-checks `user_type === 'pm'` so the underlying functions
@@ -39,10 +40,12 @@ import type { User } from '../../shared/types.js';
 import { createProjectsHandler } from '../modules/pm/projects.js';
 import { createPositionsHandler } from '../modules/pm/positions.js';
 import { createDecomposeHandler } from '../modules/pm/decompose.js';
+import { createPlansHandler } from '../modules/pm/plans.js';
 import {
   CreateProjectSchema, UpdateProjectSchema, ListProjectsQuerySchema,
   CreatePositionSchema, UpdatePositionSchema, ListPositionsQuerySchema,
   BulkCreatePositionsSchema,
+  CreatePlanSchema, UpdatePlanSchema, ListPlansQuerySchema,
   DecomposeRequestSchema, CommitDecompositionRequestSchema,
   ProjectCreateResponseSchema, ProjectListResponseSchema,
   ProjectDetailResponseSchema, ProjectUpdateResponseSchema, ProjectDeleteResponseSchema,
@@ -51,6 +54,9 @@ import {
   PositionCreateResponseSchema, PositionListResponseSchema,
   PositionUpdateResponseSchema, PositionDeleteResponseSchema,
   PositionBulkCreateResponseSchema,
+  PlanCreateResponseSchema, PlanListResponseSchema,
+  PlanDetailResponseSchema, PlanUpdateResponseSchema,
+  PlanDeleteResponseSchema, PlanSelectResponseSchema,
   DecomposeResponseSchema, CommitDecompositionResponseSchema,
   ListDecompositionsResponseSchema,
 } from '../schemas/pm.js';
@@ -62,6 +68,7 @@ export function createPmRouter(db: DB): Router {
   const projects = createProjectsHandler(db);
   const positions = createPositionsHandler(db);
   const decompose = createDecomposeHandler(db);
+  const plans = createPlansHandler(db);
 
   // ===== Projects =====
 
@@ -261,6 +268,77 @@ export function createPmRouter(db: DB): Router {
       }
       const result = decompose.listDecompositions(user, String(req.params.projectId), filter);
       respond(res, ListDecompositionsResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // ===== Plans (Task 7) =====
+
+  // POST /v1/pm/projects/:projectId/plans
+  router.post('/projects/:projectId/plans', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const parsed = CreatePlanSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      }
+      const plan = plans.createPlan(user, String(req.params.projectId), parsed.data);
+      respond(res, PlanCreateResponseSchema, { ok: true, data: plan });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/pm/projects/:projectId/plans?limit=&offset=
+  router.get('/projects/:projectId/plans', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const parsed = ListPlansQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        throw Errors.invalidParams('Invalid query', { issues: parsed.error.issues });
+      }
+      const filter: { limit?: number; offset?: number } = {};
+      if (parsed.data.limit !== undefined) filter.limit = parsed.data.limit;
+      if (parsed.data.offset !== undefined) filter.offset = parsed.data.offset;
+      const result = plans.listPlans(user, String(req.params.projectId), filter);
+      respond(res, PlanListResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/pm/plans/:id
+  router.get('/plans/:id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const plan = plans.getPlan(user, String(req.params.id));
+      respond(res, PlanDetailResponseSchema, { ok: true, data: plan });
+    } catch (e) { next(e); }
+  });
+
+  // PATCH /v1/pm/plans/:id
+  router.patch('/plans/:id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const parsed = UpdatePlanSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      }
+      const plan = plans.updatePlan(user, String(req.params.id), parsed.data);
+      respond(res, PlanUpdateResponseSchema, { ok: true, data: plan });
+    } catch (e) { next(e); }
+  });
+
+  // DELETE /v1/pm/plans/:id
+  router.delete('/plans/:id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = plans.deletePlan(user, String(req.params.id));
+      respond(res, PlanDeleteResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/pm/plans/:id/select
+  router.post('/plans/:id/select', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const plan = plans.setSelectedPlan(user, String(req.params.id));
+      respond(res, PlanSelectResponseSchema, { ok: true, data: plan });
     } catch (e) { next(e); }
   });
 
