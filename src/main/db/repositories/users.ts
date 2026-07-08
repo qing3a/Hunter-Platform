@@ -32,6 +32,12 @@ export function createUsersRepo(db: DB) {
     "SELECT * FROM users WHERE contact = ? AND user_type = 'headhunter' AND status = 'active' LIMIT 1"
   );
 
+  // PM Workbench (Phase 3b / Task 1b): lookup a PM by their login email.
+  // Mirrors findHeadhunterByEmail — same `contact` column, third user_type.
+  const findPmByEmailStmt = db.prepare(
+    "SELECT * FROM users WHERE contact = ? AND user_type = 'pm' AND status = 'active' LIMIT 1"
+  );
+
   // Candidate Portal: update only the api_key_hash + api_key_prefix columns
   // (and updated_at). Used by the OTP flow to issue a fresh API key on first
   // login after the candidate row is created with empty api_key values.
@@ -59,6 +65,10 @@ export function createUsersRepo(db: DB) {
     },
     findHeadhunterByEmail(email: string): User | null {
       const row = findHeadhunterByEmailStmt.get(email) as User | undefined;
+      return row ?? null;
+    },
+    findPmByEmail(email: string): User | null {
+      const row = findPmByEmailStmt.get(email) as User | undefined;
       return row ?? null;
     },
     createCandidate(id: string, email: string): void {
@@ -113,6 +123,37 @@ export function createUsersRepo(db: DB) {
         prev_api_key_prefix: null,
         prev_api_key_expires_at: null,
         quota_per_day: 200,       // 猎头配额 (QUOTA_PER_DAY.headhunter)
+        quota_used: 0,
+        quota_reset_at: tomorrow,
+        reputation: 50,
+        status: 'active',
+        created_at: now,
+        updated_at: now,
+      } as unknown as Record<string, import('node:sqlite').SQLInputValue>);
+    },
+    createPm(id: string, email: string): void {
+      const now = new Date().toISOString();
+      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
+      // PM Workbench (Phase 3b / Task 1b). Mirrors createHeadhunter() but
+      // writes user_type='pm' and uses a PM-sized quota (300/day — PMs run
+      // large projects with many candidates, so higher than a hunter).
+      // Email becomes the contact field; the real display name will be
+      // filled in when the PM completes their workbench profile.
+      const placeholderHash = `placeholder_${id}`;
+      const placeholderPrefix = 'pending';
+      insertStmt.run({
+        id,
+        user_type: 'pm',
+        name: email.split('@')[0] || email,
+        contact: email,
+        agent_endpoint: null,
+        api_key_hash: placeholderHash,
+        api_key_prefix: placeholderPrefix,
+        api_key_expires_at: null,
+        prev_api_key_hash: null,
+        prev_api_key_prefix: null,
+        prev_api_key_expires_at: null,
+        quota_per_day: 300,       // PM 配额 (比猎头高: 一个 PM 管多个项目)
         quota_used: 0,
         quota_reset_at: tomorrow,
         reputation: 50,

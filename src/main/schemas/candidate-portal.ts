@@ -19,11 +19,12 @@ import { z } from 'zod';
 
 /**
  * User-type discriminator accepted by the OTP endpoints. Phase 3a (Task 11)
- * adds `headhunter` so the hunter portal can reuse the same OTP endpoints.
+ * added `headhunter` so the hunter portal can reuse the same OTP endpoints.
+ * Phase 3b (PM Workbench / Task 1b) adds `pm` for the /pm/* portal.
  * `employer` is intentionally absent because the employer portal uses a
  * separate auth path.
  */
-const UserTypeSchema = z.enum(['candidate', 'headhunter']);
+const UserTypeSchema = z.enum(['candidate', 'headhunter', 'pm']);
 
 /** POST /v1/candidate-portal/auth/otp/request */
 export const OtpRequestSchema = z.object({

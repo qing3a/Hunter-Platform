@@ -59,7 +59,10 @@ describe('pnpm conformance:gen', () => {
     const roles = getAllCapabilitySets().map((s) => s.role).sort();
     const describeCount = (src.match(/^describe\(/gm) ?? []).length;
     expect(describeCount).toBe(roles.length);
-    expect(describeCount).toBe(7);  // auth, headhunter, employer, candidate, admin, notifications, candidate-portal
+    // 8 roles: auth, headhunter, employer, candidate, admin, notifications,
+    // candidate-portal, pm. The pm set was added in Phase 3b (Task 1b) so
+    // bump this count whenever a new capability set is registered.
+    expect(describeCount).toBe(8);
     for (const role of roles) {
       expect(src).toContain(`describe('${role}'`);
     }

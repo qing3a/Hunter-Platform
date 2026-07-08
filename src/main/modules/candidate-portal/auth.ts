@@ -10,16 +10,18 @@ import { Errors } from '../../errors.js';
 
 /**
  * User-type discriminator accepted by the OTP endpoints. The candidate-portal
- * router historically only handled `candidate`; Phase 3a (Task 11) extends it
+ * router historically only handled `candidate`; Phase 3a (Task 11) extended it
  * to also authenticate headhunters so the hunter portal can reuse the same
  * `/v1/candidate-portal/auth/otp/*` endpoints without spinning up a separate
- * router.
+ * router. Phase 3b (PM Workbench / Task 1b) adds `pm` for the /pm/* portal —
+ * the same OTP endpoints mint a PM portal account, mirroring the headhunter
+ * branch.
  *
  * `employer` is intentionally absent — the employer portal uses a different
  * auth path (admin login). If a caller passes anything outside this union,
  * the request schema rejects it with a 400.
  */
-export type OtpUserType = 'candidate' | 'headhunter';
+export type OtpUserType = 'candidate' | 'headhunter' | 'pm';
 
 export interface OtpRequestInput {
   email: string;
@@ -136,9 +138,10 @@ export function createCandidatePortalAuth(
 
       // Find or auto-create the user, keyed by (contact = email, user_type).
       // We deliberately do NOT treat "this email exists as a candidate" as
-      // "this email exists as a headhunter" — the two portals must remain
-      // disjoint so a candidate who later becomes a hunter gets two distinct
-      // accounts (api_keys / quotas / role differ).
+      // "this email exists as a headhunter or PM" — the three portals must
+      // remain disjoint so the same email gets up to three distinct accounts
+      // (api_keys / quotas / role differ). This mirrors Phase 3a's
+      // candidate/headhunter separation (Task 11).
       let user: User | null;
       let profileComplete = false;
 
@@ -155,6 +158,24 @@ export function createCandidatePortalAuth(
           }
         }
         // Hunters skip the portal-side profile-completion gate.
+        profileComplete = false;
+      } else if (userType === 'pm') {
+        // PM Workbench (Phase 3b / Task 1b). Same auto-create pattern as
+        // headhunter: lookup by (contact = email, user_type = 'pm'), and if
+        // no row exists, mint one with the `pm_` id prefix. PMs skip the
+        // portal-side profile-completion gate — the workbench has no
+        // onboarding step, and the projects list itself is the "next" page.
+        user = users.findPmByEmail(input.email);
+        if (!user) {
+          const id = `pm_${randomUUID().slice(0, 12)}`;
+          users.createPm(id, input.email);
+          user = users.findPmByEmail(input.email);
+          if (!user) {
+            // Should never happen — the createPm call above must have
+            // inserted the row. Surface as 500 (internal) so the client retries.
+            throw Errors.internal('Failed to create PM user');
+          }
+        }
         profileComplete = false;
       } else {
         user = users.findCandidateByEmail(input.email);

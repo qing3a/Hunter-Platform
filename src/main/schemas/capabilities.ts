@@ -13,7 +13,12 @@ import { EnvelopeSchema } from './common.js';
 const CapabilitySummarySchema = z.object({
   name: z.string(),
   description: z.string(),
-  method: z.enum(['GET', 'POST', 'PUT', 'DELETE']),
+  // Mirrors the `method` union in src/main/capabilities/types.ts.
+  // PM Workbench (Phase 3b / Task 1b) added PATCH for pm.update_project /
+  // pm.update_position; the schema has to accept every HTTP verb the
+  // capability set declares, otherwise GET /v1/capabilities blows up at
+  // zod validation time with `Invalid enum value. Expected ... 'PATCH'`.
+  method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   path: z.string(),
   quota_cost: z.number().int(),
   preconditions: z.array(z.string()),

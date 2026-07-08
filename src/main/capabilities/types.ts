@@ -26,7 +26,7 @@ export interface Capability {
 }
 
 export interface CapabilitySet {
-  role: 'candidate' | 'headhunter' | 'employer' | 'admin' | 'auth';
+  role: 'candidate' | 'headhunter' | 'employer' | 'pm' | 'admin' | 'auth';
   capabilities: Capability[];
 }
 

@@ -38,6 +38,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 19, description: 'Recommendation flow: nullable headhunter_id + status extended with pending_pickup / considering_offer (candidate self-apply)', file: 'migrations/v026_recommendation_pending_pickup.sql' },
   { version: 20, description: 'Hunter workspace (tasks + kanban)', file: 'migrations/v027_hunter_workspace.sql' },
   { version: 21, description: 'PM Workbench (projects, positions, plans, decompositions, matches, notes)', file: 'migrations/v028_pm_workbench.sql' },
+  { version: 22, description: 'Extend users.user_type CHECK to allow pm (PM Workbench /pm/* portal)', file: 'migrations/v029_add_pm_user_type.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
