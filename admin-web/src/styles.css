@@ -1,3 +1,5 @@
+@import './styles/tokens.css';
+
 body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
 .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 220px; background: #1a1a1a; color: white; display: flex; flex-direction: column; padding: 16px 0; box-sizing: border-box; }
 .sidebar__brand { font-size: 18px; font-weight: 600; padding: 8px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
