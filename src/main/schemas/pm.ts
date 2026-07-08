@@ -391,6 +391,7 @@ export const CommitDecompositionResponseSchema = z.object({
   ok: z.literal(true),
   data: z.object({
     positions: z.array(PositionRowSchema),
+    decomposition: DecompositionRowSchema,
   }),
 }).strict();
 
