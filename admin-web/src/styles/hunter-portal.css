@@ -347,3 +347,92 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ---- Kanban board (Phase 3a / Task 15) ---- */
+.hp-kanban-board {
+  display: flex;
+  gap: var(--sp-3);
+  overflow-x: auto;
+  padding-bottom: var(--sp-3);
+}
+.hp-kanban-column {
+  flex: 0 0 280px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.hp-kanban-column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-3);
+}
+.hp-kanban-column-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.hp-kanban-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  flex: 1;
+}
+.hp-kanban-column-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: var(--sp-4) 0;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+.hp-kanban-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--sp-3);
+  cursor: grab;
+  user-select: none;
+}
+.hp-kanban-card:active { cursor: grabbing; }
+.hp-kanban-card-name { font-weight: 600; }
+.hp-kanban-card-job {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+}
+.hp-kanban-card-score {
+  font-size: 11px;
+  color: var(--c-hunter);
+  margin-top: var(--sp-1);
+}
+
+@media (max-width: 768px) {
+  .hp-kanban-board {
+    flex-direction: column;
+  }
+  .hp-kanban-column {
+    flex: 1;
+    width: 100%;
+  }
+}
+
+/* ---- Toast (kanban move errors) ---- */
+.hp-toast {
+  position: fixed;
+  bottom: var(--sp-6);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  padding: var(--sp-3) var(--sp-6);
+  border-radius: 6px;
+  box-shadow: var(--shadow-3);
+  z-index: 100;
+  font-size: 14px;
+  max-width: 80vw;
+  text-align: center;
+}

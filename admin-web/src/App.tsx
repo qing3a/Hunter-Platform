@@ -39,6 +39,8 @@ import { RequireAuth } from './components/candidate-portal/RequireAuth';
 import { HunterLoginPage } from './pages/hunter-portal/HunterLoginPage';
 import { HunterWorkspacePage } from './pages/hunter-portal/HunterWorkspacePage';
 import { PickupQueuePage } from './pages/hunter-portal/PickupQueuePage';
+import { CandidateListPage } from './pages/hunter-portal/CandidateListPage';
+import { KanbanPage } from './pages/hunter-portal/KanbanPage';
 import { RequireHunterAuth } from './components/hunter-portal/RequireHunterAuth';
 
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
@@ -95,7 +97,9 @@ export default function App() {
         <Route path="/hunter" element={<Navigate to="/hunter/workspace" replace />} />
         <Route path="/hunter/workspace" element={<RequireHunterAuth><HunterWorkspacePage /></RequireHunterAuth>} />
         <Route path="/hunter/pickup" element={<RequireHunterAuth><PickupQueuePage /></RequireHunterAuth>} />
-        {/* TODO Task 12+ — add /hunter/{candidates,kanban,tasks,settings} here
+        <Route path="/hunter/candidates" element={<RequireHunterAuth><CandidateListPage /></RequireHunterAuth>} />
+        <Route path="/hunter/kanban" element={<RequireHunterAuth><KanbanPage /></RequireHunterAuth>} />
+        {/* TODO Task 12+ — add /hunter/{tasks,settings} here
             when those pages are built. The catch-all below keeps unknown paths
             bouncing to /hunter/workspace for now. */}
         <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
