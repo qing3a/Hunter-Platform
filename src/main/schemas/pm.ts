@@ -103,6 +103,18 @@ export const UpdateProjectSchema = z.object({
   status: ProjectStatusSchema.optional(),
 }).strict();
 
+/**
+ * Inferred TypeScript types from the Zod schemas above. These are the
+ * canonical handler-input types — handlers and the repo should reference
+ * them instead of duplicating the shape with a redundant `as` cast.
+ *
+ * (Defined as `z.infer<...>` so the type stays in lock-step with the
+ * schema; if the schema changes, the type changes automatically.)
+ */
+export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
+export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
+export type ListProjectsQuery = z.infer<typeof ListProjectsQuerySchema>;
+
 // ===== Projects — response shapes =====
 
 export const ProjectCreateResponseSchema = z.object({

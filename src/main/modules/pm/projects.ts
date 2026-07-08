@@ -32,9 +32,7 @@ import type { User } from '../../../shared/types.js';
 import {
   createProjectsRepo,
   type ProjectRow,
-  type ProjectStatus,
   type ProjectSummary,
-  type TeamMember,
 } from '../../db/repositories/projects.js';
 import { Errors } from '../../errors.js';
 import {
@@ -42,6 +40,9 @@ import {
   ListProjectsQuerySchema,
   ProjectStatusSchema,
   UpdateProjectSchema,
+  type CreateProjectInput,
+  type ListProjectsQuery,
+  type UpdateProjectInput,
 } from '../../schemas/pm.js';
 
 /**
@@ -150,68 +151,30 @@ export function createProjectsHandler(db: DB): ProjectsModule {
   }
 
   /** Strict-parse the create body; throws INVALID_PARAMS on failure. */
-  function parseCreateInput(input: unknown): {
-    name: string;
-    target: string | undefined;
-    budget_total: number | undefined;
-    start_at: number | undefined;
-    end_at: number | undefined;
-    current_team: TeamMember[] | undefined;
-  } {
+  function parseCreateInput(input: unknown): CreateProjectInput {
     const parsed = CreateProjectSchema.safeParse(input);
     if (!parsed.success) {
       throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
     }
-    return parsed.data as {
-      name: string;
-      target: string | undefined;
-      budget_total: number | undefined;
-      start_at: number | undefined;
-      end_at: number | undefined;
-      current_team: TeamMember[] | undefined;
-    };
+    return parsed.data;
   }
 
   /** Strict-parse the update body; throws INVALID_PARAMS on failure. */
-  function parseUpdateInput(input: unknown): {
-    name: string | undefined;
-    target: string | null | undefined;
-    budget_total: number | null | undefined;
-    start_at: number | null | undefined;
-    end_at: number | null | undefined;
-    current_team: TeamMember[] | null | undefined;
-    status: ProjectStatus | undefined;
-  } {
+  function parseUpdateInput(input: unknown): UpdateProjectInput {
     const parsed = UpdateProjectSchema.safeParse(input);
     if (!parsed.success) {
       throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
     }
-    return parsed.data as {
-      name: string | undefined;
-      target: string | null | undefined;
-      budget_total: number | null | undefined;
-      start_at: number | null | undefined;
-      end_at: number | null | undefined;
-      current_team: TeamMember[] | null | undefined;
-      status: ProjectStatus | undefined;
-    };
+    return parsed.data;
   }
 
   /** Strict-parse the list query; throws INVALID_PARAMS on failure. */
-  function parseListFilter(filter: unknown): {
-    status: ProjectStatus | undefined;
-    limit: number;
-    offset: number;
-  } {
+  function parseListFilter(filter: unknown): ListProjectsQuery {
     const parsed = ListProjectsQuerySchema.safeParse(filter ?? {});
     if (!parsed.success) {
       throw Errors.invalidParams('Invalid query parameters', { issues: parsed.error.issues });
     }
-    return parsed.data as {
-      status: ProjectStatus | undefined;
-      limit: number;
-      offset: number;
-    };
+    return parsed.data;
   }
 
   /**

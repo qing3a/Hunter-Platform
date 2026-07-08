@@ -219,33 +219,47 @@ export function createProjectsRepo(db: DB) {
     insert(input: ProjectInsert): ProjectRow {
       const now = Date.now();
       const id = `proj_${randomUUID().slice(0, 12)}`;
-      const teamJson = input.current_team ? JSON.stringify(input.current_team) : null;
-      insertProjectStmt.run(
-        id,
-        input.pm_user_id,
-        input.name,
-        input.target ?? null,
-        input.budget_total ?? null,
-        input.start_at ?? null,
-        input.end_at ?? null,
-        teamJson,
-        'planning',
-        now,
-        now,
-      );
-
-      // Seed the default 5-stage plan template.
       const planId = `plan_${randomUUID().slice(0, 12)}`;
-      insertDefaultPlanStmt.run(planId, id, DEFAULT_PLAN_NAME, now);
+      const teamJson = input.current_team ? JSON.stringify(input.current_team) : null;
 
-      // Re-read to return a fully-hydrated row (ensures current_team is
-      // parsed the same way as a subsequent findById()).
-      const row = this.findById(id, input.pm_user_id);
-      if (!row) {
-        // Should never happen — INSERT just succeeded.
-        throw new Error(`projects.insert: failed to read back ${id}`);
+      // node:sqlite doesn't expose db.transaction(); wrap both inserts in
+      // an explicit BEGIN/COMMIT so the spec guarantee "create always
+      // auto-creates a default plan" is atomic. Without this, a failure
+      // on the second INSERT (disk fault, future FK violation, etc.)
+      // would leave the project row without its default plan.
+      // Same recipe as src/main/modules/employer/handler.ts.
+      db.exec('BEGIN');
+      try {
+        insertProjectStmt.run(
+          id,
+          input.pm_user_id,
+          input.name,
+          input.target ?? null,
+          input.budget_total ?? null,
+          input.start_at ?? null,
+          input.end_at ?? null,
+          teamJson,
+          'planning',
+          now,
+          now,
+        );
+
+        // Seed the default 5-stage plan template.
+        insertDefaultPlanStmt.run(planId, id, DEFAULT_PLAN_NAME, now);
+
+        // Re-read to return a fully-hydrated row (ensures current_team is
+        // parsed the same way as a subsequent findById()).
+        const row = this.findById(id, input.pm_user_id);
+        if (!row) {
+          // Should never happen — INSERT just succeeded.
+          throw new Error(`projects.insert: failed to read back ${id}`);
+        }
+        db.exec('COMMIT');
+        return row;
+      } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
       }
-      return row;
     },
 
     /**
