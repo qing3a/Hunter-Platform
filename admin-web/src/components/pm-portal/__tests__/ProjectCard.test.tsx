@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ProjectCard, formatBudgetYuan } from '../ProjectCard';
-import type { ProjectStatus, ProjectSummary } from '../../../api/pm-portal';
+import {
+  PROJECT_STATUS_LABELS,
+  type ProjectStatus,
+  type ProjectSummary,
+} from '../../../api/pm-portal';
 
 // ---- Mocks ----------------------------------------------------------------
 
@@ -119,18 +123,10 @@ describe('ProjectCard — status badge', () => {
     navigateSpy.mockClear();
   });
 
-  const STATUS_LABEL: Record<ProjectStatus, string> = {
-    planning: '筹备中',
-    active: '进行中',
-    paused: '已暂停',
-    completed: '已完成',
-    cancelled: '已取消',
-  };
-
-  for (const status of Object.keys(STATUS_LABEL) as ProjectStatus[]) {
+  for (const status of Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]) {
     it(`renders the localized label for status="${status}"`, () => {
       renderCard(makeProject({ status }));
-      expect(screen.getByTestId('pm-project-status')).toHaveTextContent(STATUS_LABEL[status]);
+      expect(screen.getByTestId('pm-project-status')).toHaveTextContent(PROJECT_STATUS_LABELS[status]);
     });
 
     it(`exposes status="${status}" via data-status for CSS targeting`, () => {

@@ -46,6 +46,20 @@ async function request<T>(base: string, path: string, init: RequestInit = {}): P
 
 export type ProjectStatus = 'planning' | 'active' | 'completed' | 'paused' | 'cancelled';
 
+/**
+ * Chinese display labels for the five ProjectStatus values. The lifecycle
+ * states mirror the CHECK constraint introduced in v028 (pm_workbench),
+ * so any new state added to the backend must be added here too — the
+ * record type enforces exhaustiveness at compile time.
+ */
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  planning: '筹备中',
+  active: '进行中',
+  paused: '已暂停',
+  completed: '已完成',
+  cancelled: '已取消',
+};
+
 export type PlanTaskStatus = 'todo' | 'doing' | 'blocked' | 'done';
 
 export type DecomposeRunStatus =
@@ -187,16 +201,23 @@ export const pmProjects = {
   get: (id: string) =>
     request<ProjectSummary & { plans: PlanSummary[] }>(BASE, `/projects/${id}`),
   create: (input: {
-    title: string;
-    company_name?: string | null;
-    description?: string | null;
+    name: string;
+    target?: string;
+    budget_total?: number;
+    start_at?: number;
+    end_at?: number;
+    current_team?: Array<{ role: string; count: number }>;
   }) =>
     request<ProjectSummary>(BASE, '/projects', {
       method: 'POST', body: JSON.stringify(input),
     }),
   update: (id: string, patch: Partial<{
-    title: string;
-    company_name: string | null;
+    name: string;
+    target: string | null;
+    budget_total: number | null;
+    start_at: number | null;
+    end_at: number | null;
+    current_team: Array<{ role: string; count: number }> | null;
     status: ProjectStatus;
   }>) =>
     request<ProjectSummary>(BASE, `/projects/${id}`, {

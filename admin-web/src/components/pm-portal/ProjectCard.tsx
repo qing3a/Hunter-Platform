@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import type { ProjectStatus, ProjectSummary } from '../../api/pm-portal';
+import { PROJECT_STATUS_LABELS, type ProjectStatus, type ProjectSummary } from '../../api/pm-portal';
 
 // ============================================================================
 // Status badge (project lifecycle)
@@ -15,14 +15,6 @@ import type { ProjectStatus, ProjectSummary } from '../../api/pm-portal';
 // We intentionally do NOT import a shared `<StatusBadge>` from the
 // hunter portal — the colour palettes are different (pipeline stages
 // are *workflow* states, project statuses are *lifecycle* states).
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  planning: '筹备中',
-  active: '进行中',
-  paused: '已暂停',
-  completed: '已完成',
-  cancelled: '已取消',
-};
 
 const STATUS_COLORS: Record<ProjectStatus, string> = {
   planning: '#6b7280',  // gray
@@ -49,7 +41,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
         borderColor: color,
       }}
     >
-      {STATUS_LABELS[status]}
+      {PROJECT_STATUS_LABELS[status]}
     </span>
   );
 }

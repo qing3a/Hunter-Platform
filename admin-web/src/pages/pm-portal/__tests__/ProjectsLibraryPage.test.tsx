@@ -13,15 +13,24 @@ import type { ProjectStatus, ProjectSummary } from '../../../api/pm-portal';
 // this file with a "method is not a function" runtime error — the
 // stub namespace will simply lack the new method until tests break
 // intentionally.
-vi.mock('../../../api/pm-portal', () => ({
-  pmProjects: {
-    list: vi.fn(),
-    get: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-  },
-  pmAuth: { requestOtp: vi.fn(), verifyOtp: vi.fn() },
-}));
+//
+// `importOriginal` lets us pass through real exports (the label maps
+// in particular) so the page under test can resolve them when its
+// own module is loaded — mocking only `pmProjects`/`pmAuth` would
+// leave PROJECT_STATUS_LABELS undefined.
+vi.mock('../../../api/pm-portal', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../api/pm-portal')>();
+  return {
+    ...actual,
+    pmProjects: {
+      list: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    pmAuth: { requestOtp: vi.fn(), verifyOtp: vi.fn() },
+  };
+});
 
 const mockedList = vi.mocked(pmProjects.list);
 

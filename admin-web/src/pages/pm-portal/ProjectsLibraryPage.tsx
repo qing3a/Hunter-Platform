@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { pmProjects, type ProjectStatus, type ProjectSummary } from '../../api/pm-portal';
+import { pmProjects, PROJECT_STATUS_LABELS, type ProjectStatus, type ProjectSummary } from '../../api/pm-portal';
 import { EmptyState } from '../../components/candidate-portal/EmptyState';
 import { ProjectCard, formatBudgetYuan } from '../../components/pm-portal/ProjectCard';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
@@ -38,14 +38,6 @@ const STATUS_FILTERS: { value: ProjectStatus | 'all'; label: string }[] = [
   { value: 'completed', label: '已完成' },
   { value: 'cancelled', label: '已取消' },
 ];
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  planning: '筹备中',
-  active: '进行中',
-  paused: '已暂停',
-  completed: '已完成',
-  cancelled: '已取消',
-};
 
 function loadViewMode(): ViewMode {
   try {
@@ -278,7 +270,7 @@ export function ProjectsLibraryPage() {
                     className="pm-project-status"
                     data-status={p.status}
                   >
-                    {STATUS_LABELS[p.status]}
+                    {PROJECT_STATUS_LABELS[p.status]}
                   </span>
                 </td>
                 <td>{formatBudgetYuan(p.budget_total)}</td>
