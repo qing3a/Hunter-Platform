@@ -30,7 +30,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return json.data;
 }
 
-export type OtpUserType = 'candidate' | 'headhunter';
+// PM was added in PM Workbench Task 3 (login reuses the candidate-portal OTP
+// endpoint); employer is reserved for the upcoming employer portal. The server
+// only hardcodes branching for candidate vs headhunter today, but accepting
+// the extra values here keeps the client-side contract aligned with the
+// broader role taxonomy in `candidate-session.ts`.
+export type OtpUserType = 'candidate' | 'headhunter' | 'pm' | 'employer';
 
 export const otp = {
   /**

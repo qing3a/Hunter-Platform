@@ -47,6 +47,10 @@ import { TasksPage } from './pages/hunter-portal/TasksPage';
 import { HunterSettingsPage } from './pages/hunter-portal/HunterSettingsPage';
 import { RequireHunterAuth } from './components/hunter-portal/RequireHunterAuth';
 
+// PM Workbench pages (Phase 1 / Task 3 ships only the login page; the full
+// route tree + RequirePMAuth-guarded routes mount in Task 17).
+import { PMLoginPage } from './pages/pm-portal/PMLoginPage';
+
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
 // The single outer BrowserRouter in main.tsx owns the routing context.
 function AdminApp() {
@@ -108,6 +112,11 @@ export default function App() {
         <Route path="/hunter/tasks" element={<RequireHunterAuth><TasksPage /></RequireHunterAuth>} />
         <Route path="/hunter/settings" element={<RequireHunterAuth><HunterSettingsPage /></RequireHunterAuth>} />
         <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
+
+        {/* PM Workbench — only the login page is mounted here in Task 3.
+            The full /pm/* tree ships with Task 17 (RequirePMAuth gates
+            /pm/projects, /pm/plans, /pm/decompose, /pm/matches, etc.). */}
+        <Route path="/pm/login" element={<PMLoginPage />} />
 
         {/* Default: root and any unknown path → admin */}
         <Route path="/" element={<Navigate to="/admin" replace />} />
