@@ -436,3 +436,260 @@
   max-width: 80vw;
   text-align: center;
 }
+
+/* ---- Candidate detail page (Phase 3a / Task 16) ---- */
+.hp-detail-header {
+  margin-bottom: var(--sp-6);
+}
+.hp-detail-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-2);
+}
+.hp-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.hp-detail-job {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.hp-detail-score {
+  font-size: 12px;
+  color: var(--c-hunter);
+  font-weight: 600;
+}
+.hp-detail-timeline-placeholder {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: var(--sp-3);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  text-align: center;
+}
+.hp-detail-actions {
+  display: flex;
+  gap: var(--sp-3);
+}
+.hp-btn-secondary {
+  padding: 6px 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.hp-btn-secondary:hover {
+  background: var(--bg);
+}
+.hp-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Comparison page (Phase 3a / Task 16) ---- */
+.hp-compare-picker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+.hp-compare-picker select {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+.hp-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 768px) {
+  .hp-compare-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .hp-compare-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.hp-compare-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.hp-compare-col-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-3);
+}
+.hp-compare-col-name { font-weight: 700; }
+.hp-compare-col-remove {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.hp-compare-col-remove:hover { color: #dc2626; }
+.hp-compare-col-job {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-3);
+}
+.hp-compare-col-attr {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.hp-compare-col-attr:last-child { border-bottom: none; }
+.hp-compare-col-attr-key { color: var(--text-muted); }
+
+/* ---- Tasks page (Phase 3a / Task 16) ---- */
+.hp-task-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+.hp-task-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.hp-task-tab.active {
+  color: var(--c-hunter);
+  border-bottom-color: var(--c-hunter);
+  font-weight: 600;
+}
+.hp-task-tab-count {
+  font-size: 12px;
+  margin-left: 4px;
+  color: var(--text-muted);
+}
+.hp-task-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: var(--sp-2);
+}
+.hp-task-row[data-completed="true"] {
+  opacity: 0.6;
+}
+.hp-task-row[data-completed="true"] .hp-task-title {
+  text-decoration: line-through;
+}
+.hp-task-row-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.hp-task-row-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text);
+}
+.hp-task-row-btn:hover { background: var(--bg); }
+.hp-task-row-btn[data-variant="danger"]:hover { color: #dc2626; }
+.hp-task-add-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.hp-task-add-form input,
+.hp-task-add-form textarea,
+.hp-task-add-form select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.hp-task-add-form-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+.hp-task-add-toggle {
+  margin-bottom: var(--sp-3);
+}
+
+/* ---- Settings page (Phase 3a / Task 16) ---- */
+.hp-settings-section {
+  margin-bottom: var(--sp-6);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.hp-settings-section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-3);
+}
+.hp-settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.hp-settings-row:last-child { border-bottom: none; }
+.hp-settings-label {
+  flex: 1;
+  font-size: 14px;
+}
+.hp-settings-col-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.hp-settings-stage-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--border);
+  color: var(--text-muted);
+}
+.hp-settings-notice {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-2);
+}

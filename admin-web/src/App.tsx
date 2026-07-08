@@ -13,7 +13,7 @@ import JobTimelinePage from './pages/JobTimelinePage';
 import RecommendationTimelinePage from './pages/RecommendationTimelinePage';
 import UserDetailPage from './pages/UserDetailPage';
 import JobDetailPage from './pages/JobDetailPage';
-import CandidateDetailPage from './pages/CandidateDetailPage';
+import AdminCandidateDetailPage from './pages/CandidateDetailPage';
 import RecommendationDetailPage from './pages/RecommendationDetailPage';
 import WebhookDeadLetterPage from './pages/WebhookDeadLetterPage';
 import PlacementsPage from './pages/PlacementsPage';
@@ -35,12 +35,16 @@ import { ProfilePage as CandidateProfilePage } from './pages/candidate-portal/Pr
 import { RequireAuth } from './components/candidate-portal/RequireAuth';
 
 // Hunter Portal pages (Phase 3a — Task 11 ships only Login + Workspace;
-// Tasks 12-16 will add the kanban / candidates / tasks / settings pages).
+// Tasks 12-16 add the kanban / candidates / tasks / settings pages).
 import { HunterLoginPage } from './pages/hunter-portal/HunterLoginPage';
 import { HunterWorkspacePage } from './pages/hunter-portal/HunterWorkspacePage';
 import { PickupQueuePage } from './pages/hunter-portal/PickupQueuePage';
 import { CandidateListPage } from './pages/hunter-portal/CandidateListPage';
 import { KanbanPage } from './pages/hunter-portal/KanbanPage';
+import { CandidateDetailPage } from './pages/hunter-portal/CandidateDetailPage';
+import { ComparisonPage } from './pages/hunter-portal/ComparisonPage';
+import { TasksPage } from './pages/hunter-portal/TasksPage';
+import { HunterSettingsPage } from './pages/hunter-portal/HunterSettingsPage';
 import { RequireHunterAuth } from './components/hunter-portal/RequireHunterAuth';
 
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
@@ -54,7 +58,7 @@ function AdminApp() {
       <Route path="/admin/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
       <Route path="/admin/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
       <Route path="/admin/candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
-      <Route path="/admin/candidates/:id" element={<PrivateRoute><CandidateDetailPage /></PrivateRoute>} />
+      <Route path="/admin/candidates/:id" element={<PrivateRoute><AdminCandidateDetailPage /></PrivateRoute>} />
       <Route path="/admin/candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
       <Route path="/admin/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
       <Route path="/admin/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
@@ -98,10 +102,11 @@ export default function App() {
         <Route path="/hunter/workspace" element={<RequireHunterAuth><HunterWorkspacePage /></RequireHunterAuth>} />
         <Route path="/hunter/pickup" element={<RequireHunterAuth><PickupQueuePage /></RequireHunterAuth>} />
         <Route path="/hunter/candidates" element={<RequireHunterAuth><CandidateListPage /></RequireHunterAuth>} />
+        <Route path="/hunter/candidates/:id" element={<RequireHunterAuth><CandidateDetailPage /></RequireHunterAuth>} />
         <Route path="/hunter/kanban" element={<RequireHunterAuth><KanbanPage /></RequireHunterAuth>} />
-        {/* TODO Task 12+ — add /hunter/{tasks,settings} here
-            when those pages are built. The catch-all below keeps unknown paths
-            bouncing to /hunter/workspace for now. */}
+        <Route path="/hunter/compare" element={<RequireHunterAuth><ComparisonPage /></RequireHunterAuth>} />
+        <Route path="/hunter/tasks" element={<RequireHunterAuth><TasksPage /></RequireHunterAuth>} />
+        <Route path="/hunter/settings" element={<RequireHunterAuth><HunterSettingsPage /></RequireHunterAuth>} />
         <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
 
         {/* Default: root and any unknown path → admin */}

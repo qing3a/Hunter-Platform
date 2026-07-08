@@ -233,3 +233,60 @@ export const pickup = {
   claim: (recommendationId: string) =>
     pickupRequest<PickupResult>(`/recommendations/${recommendationId}/pickup`, { method: 'POST' }),
 };
+
+// =========================================================================
+// My recommendations (Candidate Portal Phase 1 — Task 14)
+//
+// Lists this hunter's owned recommendations. Endpoint lives at
+// `/v1/headhunter/recommendations` (same router as the pickup queue), so it
+// also goes through `pickupRequest`. The backend currently filters by
+// `status` (legacy RecStatus enum); `stage` and `keyword` are applied
+// client-side by the page to match the task's UX spec.
+// =========================================================================
+
+export interface HunterRecommendation {
+  id: string;
+  candidate_user_id: string;
+  candidate_name: string | null;
+  job_id: string;
+  job_title: string;
+  pipeline_stage: PipelineStage;
+  updated_at: number;
+}
+
+export interface RecommendationsListItem {
+  id: string;
+  candidate_user_id: string | null;
+  candidate_name: string | null;
+  job_id: string;
+  job_title: string | null;
+  pipeline_stage: PipelineStage;
+  updated_at: number;
+}
+
+export const recommendations = {
+  /**
+   * List the hunter's owned recommendations. Returns an array of items with
+   * the lightweight pre-join view (`candidate_name`, `job_title`,
+   * `pipeline_stage`, epoch-ms `updated_at`) used by the workspace pages.
+   *
+   * `stage` and `keyword` are client-side filters applied by the page; they
+   * are forwarded as query params so the backend can use them when present.
+   */
+  list: (
+    opts: {
+      stage?: PipelineStage;
+      job_id?: string;
+      keyword?: string;
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) => {
+    const q = new URLSearchParams();
+    Object.entries(opts).forEach(([k, v]) => v != null && q.set(k, String(v)));
+    const qs = q.toString();
+    return pickupRequest<RecommendationsListItem[]>(
+      `/recommendations${qs ? `?${qs}` : ''}`,
+    );
+  },
+};
