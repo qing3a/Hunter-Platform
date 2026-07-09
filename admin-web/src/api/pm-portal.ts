@@ -881,93 +881,117 @@ export const pmSnapshot = {
 };
 
 // ============================================================================
-// PM Private Notes (Task 13 UI stub — Task 16 will wire the real endpoint)
+// PM Private Notes (Task 16)
 // ============================================================================
 //
-// Forward declaration of the PM-private notes API. Task 13 (this PR)
-// renders the editor UI on the candidate-detail page; the actual
-// backend persistence is implemented in Task 16 (PM Notes CRUD). Until
-// Task 16 ships, the two methods below are intentionally noThrow-style
-// stubs so the UI can be developed & tested in isolation without a
-// server endpoint.
+// PM-private note editor API for individual candidates.
 //
-// Wire shape (will be authoritative in Task 16):
-//   - GET  /v1/pm/candidates/:userId/note → { starred, note_text }
-//   - PUT  /v1/pm/candidates/:userId/note body { starred, note_text }
+// Wire shape (mirrors backend `NoteResponseSchema` / `NoteUpdateSchema` in
+// src/main/schemas/pm.ts):
+//   - GET  /v1/pm/notes/:candidate_user_id → { starred, note_text, updated_at }
+//   - PUT  /v1/pm/notes/:candidate_user_id body { starred?, note_text? }
+//   - GET  /v1/pm/notes → { notes: Array<{candidate_user_id, starred,
+//     note_text, updated_at}> }
 //
 // `starred` is a boolean PM-side flag (true = "high-priority candidate
 // I want to follow up on"), not a candidate-fit assessment. `note_text`
-// is free-form UTF-8 text, max 2000 chars per the PM-notes schema
-// (mirrors admin-server's pm_notes.note_text_limit).
+// is free-form UTF-8 text, max 2000 chars server-side.
+//
+// `updated_at` (unix ms) is bumped on every PUT so the editor can use
+// it as a "last edit" timestamp if it wants to render a relative time.
+//
+// The Task 13 UI stub used `/v1/pm/candidates/:userId/note` as the path
+// prefix; Task 16's wire shape moves it under the dedicated
+// `/v1/pm/notes/...` namespace, which mirrors how the backend splits
+// it (`createNotesHandler` lives in src/main/modules/pm/notes.ts). The
+// stub fan-out in `listAll` is replaced with a single bulk GET that
+// returns the full list in one round-trip.
 
 /** PM-private notes response payload. Stable across GET / PUT. */
 export interface PmPrivateNote {
   /** True when the PM flagged this candidate for follow-up. */
   starred: boolean;
-  /** Free-form note text (UTF-8, max 2000 chars server-side). */
-  note_text: string;
+  /**
+   * Free-form note text (UTF-8, max 2000 chars server-side). `null` from
+   * the GET endpoint when no note has been saved yet — the editor
+   * degrades to an empty string locally so the textarea can stay
+   * uncontrolled without a null-check.
+   */
+  note_text: string | null;
+  /** unix ms — last edit timestamp; 0 on a never-edited note. */
+  updated_at: number;
+}
+
+/** Single row inside `listAll()`'s response payload. */
+export interface PmPrivateNoteListItem {
+  candidate_user_id: string;
+  starred: boolean;
+  note_text: string | null;
+  /** unix ms */
+  updated_at: number;
 }
 
 /** Input shape for creating / updating a PM-private note. */
 export interface UpdatePmPrivateNoteInput {
   starred?: boolean;
-  note_text?: string;
+  /**
+   * Free-form text. Server-side cap is 2000 chars; the editor's
+   * `<textarea maxLength={2000} />` enforces the same limit client-side
+   * so a fat-finger paste can't push us over.
+   */
+  note_text?: string | null;
 }
 
 export const pmNotes = {
   /**
-   * GET /v1/pm/candidates/:userId/note
+   * GET /v1/pm/notes/:candidate_user_id
    *
-   * Task 13 placeholder: returns an "empty" stub response so the UI
-   * renders gracefully before Task 16 lands the real handler. Task 16
-   * will replace the body — call-sites stay stable.
+   * Returns the PM's note for the given candidate. The server
+   * synthesises empty defaults (`starred=false, note_text=null,
+   * updated_at=0`) when no note has been saved yet — the editor
+   * renders an empty-state copy in that case (Task 13's "暂无笔记"
+   * placeholder), so the UI never has to special-case 404s.
+   *
+   * Mirrors backend `getNote` (createNotesHandler in
+   * src/main/modules/pm/notes.ts).
    */
   get: (candidateUserId: string) =>
-    request<PmPrivateNote>(BASE, `/candidates/${candidateUserId}/note`),
+    request<PmPrivateNote>(BASE, `/notes/${candidateUserId}`),
   /**
-   * PUT /v1/pm/candidates/:userId/note
+   * PUT /v1/pm/notes/:candidate_user_id
    *
-   * Task 13 placeholder: same handler signature as Task 16 will use —
-   * the mutation hook already wires onSuccess → queryClient
-   * invalidation so the editor reflects the saved payload.
+   * UPSERT a (PM, candidate) note. Body is a partial patch — flipping
+   * the star (just `starred`) or editing the text (just `note_text`)
+   * are both supported; the server only touches the columns that are
+   * present in the payload.
+   *
+   * Returns the freshly persisted note (with updated `updated_at`) so
+   * the mutation hook can reconcile the cache without a follow-up GET.
    */
   update: (candidateUserId: string, input: UpdatePmPrivateNoteInput) =>
-    request<PmPrivateNote>(BASE, `/candidates/${candidateUserId}/note`, {
+    request<PmPrivateNote>(BASE, `/notes/${candidateUserId}`, {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
   /**
-   * Bulk-fetch every PM-private note for a list of candidate user IDs.
+   * GET /v1/pm/notes — bulk list every PM-private note.
    *
-   * Task 14 / S9 — used by the Candidate Library page to hydrate the
-   * ⭐ / 📝 icons for every visible candidate in one round-trip. The
-   * backend endpoint is not yet wired (Task 16 will replace this
-   * body with a real `GET /v1/pm/notes?candidate_user_ids=...`
-   * handler); until then the stub fans out one `pmNotes.get()` call
-   * per id in parallel and folds the results into a single
-   * `{ user_id -> note }` map. UI call-sites stay stable.
+   * Used by the Candidate Library page (Task 14 / S9) to hydrate the
+   * ⭐ / 📝 icons for every visible row in a single round-trip.
+   * Returns a `Record<candidate_user_id, PmPrivateNote>` for O(1) lookup
+   * inside the row render loop. Missing candidates (no note saved yet)
+   * simply don't appear in the map; the UI treats absence as the empty
+   * default (no star, no text).
+   *
+   * Replaces the Task 13 stub's per-candidate fan-out — the backend
+   * now exposes the bulk endpoint so a 50-row library page no longer
+   * makes 50 parallel GETs.
    */
-  listAll: async (candidateUserIds: string[]) => {
-    const unique = Array.from(new Set(candidateUserIds)).filter(Boolean);
-    const results = await Promise.all(
-      unique.map(async (userId) => {
-        try {
-          const note = await request<PmPrivateNote>(
-            BASE,
-            `/candidates/${userId}/note`,
-          );
-          return [userId, note] as const;
-        } catch {
-          // Treat any per-candidate failure as "no note yet" — the
-          // library page tolerates partial data so a single bad row
-          // shouldn't blank the whole page.
-          return [userId, { starred: false, note_text: '' }] as const;
-        }
-      }),
-    );
-    const map: Record<string, PmPrivateNote> = {};
-    for (const [userId, note] of results) {
-      map[userId] = note;
+  listAll: async (): Promise<Record<string, PmPrivateNoteListItem>> => {
+    const res = await request<{ notes: PmPrivateNoteListItem[] }>(BASE, '/notes');
+    const map: Record<string, PmPrivateNoteListItem> = {};
+    for (const note of res.notes) {
+      map[note.candidate_user_id] = note;
     }
     return map;
   },

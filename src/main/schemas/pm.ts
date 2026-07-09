@@ -778,3 +778,71 @@ export type SnapshotFunnel = z.infer<typeof SnapshotFunnelSchema>;
 export type ActivityEvent = z.infer<typeof ActivityEventSchema>;
 export type ActivityEventType = z.infer<typeof ActivityEventTypeSchema>;
 export type SnapshotResponse = z.infer<typeof SnapshotResponseSchema>;
+
+// ===== PM Private Notes (Task 16) =====
+//
+// Per-PM private notes on individual candidates. Each PM has at most one
+// note per candidate (UNIQUE(pm_user_id, candidate_user_id)); the row
+// carries a `starred` flag + free-form `note_text` (max 2000 chars).
+//
+// Wire shapes:
+//   - GET  /v1/pm/notes/:candidate_user_id → { starred, note_text }
+//     Returns `{ starred: false, note_text: null }` when no note exists
+//     (the handler synthesises the defaults so the editor can render an
+//     empty state without a second round-trip).
+//   - PUT  /v1/pm/notes/:candidate_user_id body { starred?, note_text? }
+//     UPSERT — re-saving an existing note refreshes the row in place
+//     (no UNIQUE conflict, no spurious INSERTs).
+//   - GET  /v1/pm/notes → { notes: Array<{candidate_user_id, starred,
+//     note_text, updated_at}> }
+//     Used by the candidate library page (Task 14) to bulk-hydrate ⭐ /
+//     📝 icons in a single round-trip.
+//
+// Why not embed in the candidate-detail response: notes are private per
+// PM and would otherwise bloat the (already heavy) detail GET. Keeping
+// them on a dedicated endpoint makes the candidate detail payload
+// shape-stable for non-PM consumers (future admin tooling).
+
+/** Maximum allowed length for `note_text` (matches the v028 schema intent). */
+export const NOTE_TEXT_MAX = 2000;
+
+/** PUT /v1/pm/notes/:candidate_user_id — body shape. */
+export const NoteUpdateSchema = z.object({
+  starred: z.boolean().optional(),
+  /** Free-form UTF-8 text. `null` clears the note; absent leaves it unchanged. */
+  note_text: z.string().max(NOTE_TEXT_MAX).nullable().optional(),
+}).strict();
+
+/** GET/PUT single-note response. */
+export const NoteResponseSchema = z.object({
+  starred: z.boolean(),
+  /** Free-form text. `null` when no note has been saved yet (GET on missing). */
+  note_text: z.string().nullable(),
+  /** unix ms — server timestamp, bumped on every PUT. */
+  updated_at: z.number().int(),
+}).strict();
+
+/** GET /v1/pm/notes — bulk list shape. */
+export const NoteListItemSchema = z.object({
+  candidate_user_id: z.string(),
+  starred: z.boolean(),
+  note_text: z.string().nullable(),
+  /** unix ms */
+  updated_at: z.number().int(),
+}).strict();
+
+export const NoteListResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    notes: z.array(NoteListItemSchema),
+  }),
+}).strict();
+
+export const NoteSingleResponseSchema = z.object({
+  ok: z.literal(true),
+  data: NoteResponseSchema,
+}).strict();
+
+export type NoteUpdateInput = z.infer<typeof NoteUpdateSchema>;
+export type NoteResponse = z.infer<typeof NoteResponseSchema>;
+export type NoteListItem = z.infer<typeof NoteListItemSchema>;

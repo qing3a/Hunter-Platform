@@ -44,6 +44,7 @@ import { createPlansHandler } from '../modules/pm/plans.js';
 import { createSandboxHandler } from '../modules/pm/sandbox.js';
 import { createMatchesHandler } from '../modules/pm/matches.js';
 import { createSnapshotHandler } from '../modules/pm/snapshot.js';
+import { createNotesHandler } from '../modules/pm/notes.js';
 import {
   CreateProjectSchema, UpdateProjectSchema, ListProjectsQuerySchema,
   CreatePositionSchema, UpdatePositionSchema, ListPositionsQuerySchema,
@@ -67,6 +68,9 @@ import {
   ListMatchesResponseSchema,
   RecomputeMatchesResponseSchema,
   SnapshotResponseSchema,
+  NoteUpdateSchema,
+  NoteSingleResponseSchema,
+  NoteListResponseSchema,
 } from '../schemas/pm.js';
 
 export function createPmRouter(db: DB): Router {
@@ -80,6 +84,7 @@ export function createPmRouter(db: DB): Router {
   const sandbox = createSandboxHandler(db);
   const matches = createMatchesHandler(db);
   const snapshot = createSnapshotHandler(db);
+  const notes = createNotesHandler(db);
 
   // ===== Projects =====
 
@@ -400,6 +405,39 @@ export function createPmRouter(db: DB): Router {
       const user = (req as Request & { user?: User }).user!;
       const result = snapshot.getSnapshot(user);
       respond(res, SnapshotResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // ===== PM Private Notes (Task 16) =====
+
+  // GET /v1/pm/notes/:candidate_user_id
+  router.get('/notes/:candidate_user_id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = notes.getNote(user, String(req.params.candidate_user_id));
+      respond(res, NoteSingleResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // PUT /v1/pm/notes/:candidate_user_id
+  router.put('/notes/:candidate_user_id', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const parsed = NoteUpdateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      }
+      const result = notes.upsertNote(user, String(req.params.candidate_user_id), parsed.data);
+      respond(res, NoteSingleResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/pm/notes — bulk list (Task 14 / S9 candidate-library hydration)
+  router.get('/notes', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = notes.listMyNotes(user);
+      respond(res, NoteListResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 

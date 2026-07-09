@@ -6,6 +6,16 @@ import { pmNotes } from '../../../api/pm-portal';
 import { ToastProvider } from '../../../lib/toast';
 
 // ---- Mocks ----------------------------------------------------------------
+//
+// We mock the `pmNotes` namespace (not raw `fetch`) because the component
+// depends on the namespace methods — pmNotes.get / pmNotes.update. The
+// Task 13 stub namespace has been replaced (Task 16) with calls to the
+// real backend; the mock responses below mirror the wire shape returned
+// by GET /v1/pm/notes/:id (NoteResponseSchema):
+//   { starred: boolean, note_text: string|null, updated_at: number }
+// Empty-state responses use `note_text: null` to match what the backend
+// synthesises when no note has been saved yet (see
+// createNotesHandler.getNote in src/main/modules/pm/notes.ts).
 
 vi.mock('../../../api/pm-portal', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../api/pm-portal')>();
@@ -14,6 +24,7 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
     pmNotes: {
       get: vi.fn(),
       update: vi.fn(),
+      listAll: vi.fn(),
     },
   };
 });
@@ -23,10 +34,15 @@ const mockedUpdate = vi.mocked(pmNotes.update);
 
 // ---- Helpers --------------------------------------------------------------
 
-function makeNote(overrides: { starred?: boolean; note_text?: string } = {}) {
+function makeNote(overrides: {
+  starred?: boolean;
+  note_text?: string | null;
+  updated_at?: number;
+} = {}) {
   return {
     starred: overrides.starred ?? false,
-    note_text: overrides.note_text ?? '',
+    note_text: overrides.note_text ?? null,
+    updated_at: overrides.updated_at ?? 0,
   };
 }
 
@@ -120,8 +136,8 @@ describe('PrivateNoteCard — edit mode', () => {
   });
 
   it('calls pmNotes.update with the trimmed text on save', async () => {
-    mockedGet.mockResolvedValueOnce(makeNote({ note_text: '' }));
-    mockedUpdate.mockResolvedValue({ starred: false, note_text: '已联系 · 等回复' });
+    mockedGet.mockResolvedValueOnce(makeNote({ note_text: null }));
+    mockedUpdate.mockResolvedValue({ starred: false, note_text: '已联系 · 等回复', updated_at: Date.now() });
     renderCard();
     await waitFor(() =>
       expect(screen.getByTestId('pm-private-note-empty')).toBeInTheDocument(),
