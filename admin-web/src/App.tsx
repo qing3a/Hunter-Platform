@@ -71,6 +71,7 @@ import { JobsManagementPage } from './pages/employer-portal/JobsManagementPage';
 import { BrowseTalentPage } from './pages/employer-portal/BrowseTalentPage';
 import { PlacementsPage as EmployerPlacementsPage } from './pages/employer-portal/PlacementsPage';
 import { PendingClaimsPage } from './pages/employer-portal/PendingClaimsPage';
+import { SettingsPage as EmployerSettingsPage } from './pages/employer-portal/SettingsPage';
 import { RequireEmployerAuth } from './components/employer-portal/RequireEmployerAuth';
 import { EmployerMobileLayout } from './components/employer-portal/EmployerMobileLayout';
 
@@ -189,7 +190,7 @@ export default function App() {
           <Route path="/admin/employer/candidates" element={<BrowseTalentPage />} />
           <Route path="/admin/employer/placements" element={<EmployerPlacementsPage />} />
           <Route path="/admin/employer/pending-claims" element={<PendingClaimsPage />} />
-          {/* Task 9 will add: /settings */}
+          <Route path="/admin/employer/settings" element={<EmployerSettingsPage />} />
           <Route path="/admin/employer/*" element={<Navigate to="/admin/employer/dashboard" replace />} />
         </Route>
 

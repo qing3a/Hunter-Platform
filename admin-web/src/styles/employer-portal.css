@@ -1085,3 +1085,144 @@
   color: var(--danger, #dc2626);
   font-size: 14px;
 }
+
+/* ============================================================================
+ * Settings (Task 9 — read-only company info + notification toggles + API key)
+ * ========================================================================== */
+
+.employer-settings {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.employer-settings-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.employer-settings-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.employer-settings-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.employer-settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.employer-settings-section-title {
+  margin: 0 0 var(--sp-2);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.employer-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.employer-settings-row:last-of-type {
+  border-bottom: none;
+}
+
+.employer-settings-row-api {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.employer-settings-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.employer-settings-value {
+  font-size: 14px;
+  color: var(--text);
+  word-break: break-all;
+  text-align: right;
+}
+
+.employer-settings-notice {
+  margin: var(--sp-2) 0 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+
+.employer-settings-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.employer-settings-api-key-value {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  word-break: break-all;
+  color: var(--text);
+}
+
+.employer-settings-api-key-copy {
+  background: var(--c-stage-position);
+  border: 1px solid var(--c-stage-position);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.employer-settings-api-key-copy:hover:enabled {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+}
+.employer-settings-api-key-copy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.employer-settings-api-key-copied {
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 600;
+}
