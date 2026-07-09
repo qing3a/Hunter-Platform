@@ -106,7 +106,7 @@ export interface Job {
   salary_min: number | null;
   salary_max: number | null;
   status: 'open' | 'claimed' | 'paused' | 'closed' | 'filled';
-  priority: number | null;
+  priority: 'low' | 'normal' | 'high' | 'urgent' | null;
   deadline: string | null;
   industry: string | null;
   created_at: string;
@@ -120,10 +120,28 @@ export interface CreateJobInput {
   required_skills?: string[];
   salary_min?: number;
   salary_max?: number;
-  priority?: number;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
   deadline?: string;
   industry?: string;
 }
+
+/**
+ * Input shape for `PATCH /v1/employer/jobs/:id`. The full edit set is
+ * the union of the create fields minus the keys that must not be edited
+ * (employer_id, source_headhunter_id, created_for_employer_id, status —
+ * status is mutated through the dedicated `pause` / `resume` / `close`
+ * endpoints). All keys are optional; the backend re-validates the
+ * merged result against CreateJobSchema.
+ */
+export type JobUpdateInput = Partial<
+  Pick<
+    CreateJobInput,
+    'title' | 'description' | 'required_skills' | 'salary_min' | 'salary_max' | 'priority' | 'deadline' | 'industry'
+  >
+>;
+
+/** Discriminated union of the five lifecycle states a Job can occupy. */
+export type JobStatus = Job['status'];
 
 /** Input shape for `POST /v1/employer/reject-jobs/:id` (RejectJobSchema). */
 export interface RejectJobInput {
@@ -269,11 +287,57 @@ export const employerJobs = {
     const qs = q.toString();
     return request<Job[]>(`/v1/employer`, `/jobs${qs ? `?${qs}` : ''}`);
   },
+  /**
+   * GET /v1/employer/jobs/:id — single-job detail endpoint. Added in
+   * the 🟡 EXTEND gap from `docs/employer-api-inventory.md` §2; the
+   * backend (admin-server) handler was wired alongside Task 5 so the
+   * edit form can hydrate from a canonical payload rather than the
+   * filtered `list` row.
+   */
+  get: (id: string) => request<Job>(`/v1/employer`, `/jobs/${id}`),
   /** POST /v1/employer/jobs */
   create: (input: CreateJobInput) =>
     request<Job>(`/v1/employer`, '/jobs', {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  /**
+   * PATCH /v1/employer/jobs/:id — edit-form submission. Returns the
+   * updated Job. Owner-only enforced server-side (the existing
+   * `jobs.listByEmployer` scope lives on the create / list paths; the
+   * PATCH route inherits the same `user_type === 'employer'` check +
+   * ownership via `employer_id = me`).
+   */
+  update: (id: string, input: JobUpdateInput) =>
+    request<Job>(`/v1/employer`, `/jobs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  /**
+   * POST /v1/employer/jobs/:id/pause — flips `open` / `claimed` →
+   * `paused`. Audit + quota-free (status flips only).
+   */
+  pause: (id: string) =>
+    request<{ status: 'paused' }>(`/v1/employer`, `/jobs/${id}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  /**
+   * POST /v1/employer/jobs/:id/resume — flips `paused` → `open`.
+   */
+  resume: (id: string) =>
+    request<{ status: 'open' }>(`/v1/employer`, `/jobs/${id}/resume`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+  /**
+   * POST /v1/employer/jobs/:id/close — hard-closes the job
+   * (`open` / `claimed` / `paused` → `closed`). Terminal state.
+   */
+  close: (id: string) =>
+    request<{ status: 'closed' }>(`/v1/employer`, `/jobs/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     }),
   /**
    * POST /v1/employer/reject-jobs/:id — closes a pending claim with an

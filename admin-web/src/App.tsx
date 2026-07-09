@@ -63,10 +63,11 @@ import { RequirePMAuth } from './components/pm-portal/RequirePMAuth';
 import { PMMobileLayout } from './components/pm-portal/PMMobileLayout';
 
 // Employer Panel pages (Phase 3c — Task 4 ships Login + Dashboard;
-// Tasks 5-9 will add Jobs / Candidates / Placements / PendingClaims /
-// Settings under the same RequireEmployerAuth layout).
+// Task 5 adds Jobs; Tasks 6-9 will add Candidates / Placements /
+// PendingClaims / Settings under the same RequireEmployerAuth layout).
 import { EmployerLoginPage } from './pages/employer-portal/EmployerLoginPage';
 import { EmployerDashboardPage } from './pages/employer-portal/EmployerDashboardPage';
+import { JobsManagementPage } from './pages/employer-portal/JobsManagementPage';
 import { RequireEmployerAuth } from './components/employer-portal/RequireEmployerAuth';
 import { EmployerMobileLayout } from './components/employer-portal/EmployerMobileLayout';
 
@@ -181,7 +182,8 @@ export default function App() {
           }
         >
           <Route path="/admin/employer/dashboard" element={<EmployerDashboardPage />} />
-          {/* Tasks 5-9 will add: /jobs /candidates /placements /pending-claims /settings */}
+          <Route path="/admin/employer/jobs" element={<JobsManagementPage />} />
+          {/* Tasks 6-9 will add: /candidates /placements /pending-claims /settings */}
           <Route path="/admin/employer/*" element={<Navigate to="/admin/employer/dashboard" replace />} />
         </Route>
 
