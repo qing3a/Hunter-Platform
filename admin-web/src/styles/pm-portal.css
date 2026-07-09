@@ -2264,3 +2264,196 @@
   cursor: not-allowed;
 }
 
+/* ============================================================================
+ * Candidate Library Page (Task 14 / S9)
+ * ============================================================================
+ *
+ * Read-only view of every candidate that has been recommended across the
+ * PM's projects + positions. Re-uses the page-shell primitives
+ * (`.pm-library` / `.pm-kpi-grid` / `.pm-filters` / `.pm-table` /
+ * `.pm-card-grid` / `.pm-view-toggle`) so the page feels native to the
+ * rest of the workbench.
+ *
+ * The component-specific selectors (`.pm-library-candidates`,
+ * `.pm-library-row-*`, `.pm-library-card-*`) stay scoped to this
+ * page so a future "candidates from a single hunter" view can ship
+ * its own primitives without colliding.
+ */
+
+/* ---- Library page wrapper ---- */
+.pm-library-candidates {
+  display: block;
+}
+
+/* ---- Table variant ---- */
+.pm-library-table .pm-library-row-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-library-table .pm-library-row-match {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.pm-library-table .pm-library-row-position {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.pm-library-table .pm-library-row-project {
+  color: var(--text-muted);
+  font-size: 13px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pm-library-table .pm-library-row-positions {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-align: center;
+}
+.pm-library-table .pm-library-row-star-cell,
+.pm-library-table .pm-library-row-detail-cell {
+  width: 56px;
+  text-align: center;
+}
+
+/* ---- Star button ---- */
+.pm-library-row-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-library-row-star:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+.pm-library-row-star:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pm-library-row-star[aria-pressed="true"] {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #fcd34d;
+  color: #b45309;
+}
+.pm-library-row-star-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ---- Detail button (inline in row) ---- */
+.pm-library-row-detail {
+  background: var(--surface);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: var(--c-project);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.pm-library-row-detail:hover:not(:disabled) {
+  background: var(--b-project);
+}
+.pm-library-row-detail:disabled {
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ---- Card variant ---- */
+.pm-library-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px)  { .pm-library-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .pm-library-cards { grid-template-columns: repeat(3, 1fr); } }
+
+.pm-library-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-library-card:hover {
+  border-color: var(--c-project);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pm-library-card-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pm-library-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pm-library-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-2);
+}
+
+.pm-library-card-position {
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-library-card-project {
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-library-card-note {
+  margin-top: var(--sp-2);
+  font-size: 12px;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

@@ -936,4 +936,238 @@ export const pmNotes = {
       method: 'PUT',
       body: JSON.stringify(input),
     }),
+  /**
+   * Bulk-fetch every PM-private note for a list of candidate user IDs.
+   *
+   * Task 14 / S9 — used by the Candidate Library page to hydrate the
+   * ⭐ / 📝 icons for every visible candidate in one round-trip. The
+   * backend endpoint is not yet wired (Task 16 will replace this
+   * body with a real `GET /v1/pm/notes?candidate_user_ids=...`
+   * handler); until then the stub fans out one `pmNotes.get()` call
+   * per id in parallel and folds the results into a single
+   * `{ user_id -> note }` map. UI call-sites stay stable.
+   */
+  listAll: async (candidateUserIds: string[]) => {
+    const unique = Array.from(new Set(candidateUserIds)).filter(Boolean);
+    const results = await Promise.all(
+      unique.map(async (userId) => {
+        try {
+          const note = await request<PmPrivateNote>(
+            BASE,
+            `/candidates/${userId}/note`,
+          );
+          return [userId, note] as const;
+        } catch {
+          // Treat any per-candidate failure as "no note yet" — the
+          // library page tolerates partial data so a single bad row
+          // shouldn't blank the whole page.
+          return [userId, { starred: false, note_text: '' }] as const;
+        }
+      }),
+    );
+    const map: Record<string, PmPrivateNote> = {};
+    for (const [userId, note] of results) {
+      map[userId] = note;
+    }
+    return map;
+  },
+};
+
+// ============================================================================
+// Candidate Library (Task 14 / S9) — 候选人只读视图
+// ============================================================================
+//
+// Read-only view that aggregates every candidate that has been
+// recommended by a headhunter across the PM's projects + positions.
+// The backend doesn't expose a single `/v1/pm/library` endpoint yet,
+// so `pmLibrary.list()` orchestrates the existing N+1 client-side
+// aggregation pattern:
+//
+//   1. pmProjects.list()              every project the PM owns
+//   2. pmPositions.list(projectId)    every position per project
+//   3. pmMatches.list(positionId)     every match per position
+//   4. group by candidate_user_id, pick the highest score per
+//      candidate as "current_best_match"
+//
+// Aggregation logic lives next to the call-sites (CandidateLibraryPage)
+// rather than here so that future Tasks (a dedicated /v1/pm/library
+// endpoint) can swap the body without touching UI consumers.
+
+/**
+ * A single row in the Candidate Library: a de-duplicated candidate
+ * with their best-scoring match across every PM position.
+ */
+export interface LibraryCandidate {
+  /** candidate_user_id (matches /v1/pm/candidates/:id wire field). */
+  candidate_user_id: string;
+  /**
+   * Best-scoring match across all positions. The PM uses this to
+   * triage the library — a 90+ means the candidate is a strong
+   * overall fit, a sub-60 means at least one position has a low
+   * match and the PM should investigate.
+   */
+  current_best_match: {
+    /** 0-100 integer. */
+    score: number;
+    /** Position title for the best-scoring match (human-readable). */
+    position_title: string;
+    /** Position id — useful for navigation back to position detail. */
+    position_id: string;
+    /** Project name the best-scoring position belongs to. */
+    project_name: string;
+    /** Project id for the best-scoring position. */
+    project_id: string;
+  };
+  /**
+   * Total count of positions this candidate has been matched against
+   * across all PM projects. Used by the stats strip and the row
+   * meta ("@ 3 个岗位").
+   */
+  position_count: number;
+  /**
+   * Highest-scoring display name we observed across the candidate's
+   * matches. Stored as nullable so unknown / masked names degrade to
+   * a 匿名候选人 placeholder in the UI.
+   */
+  display_name: string | null;
+}
+
+export interface LibraryListResponse {
+  /** De-duplicated candidates, sorted by best_score DESC then user_id ASC. */
+  candidates: LibraryCandidate[];
+  /** Total distinct candidates across all PM positions. */
+  total: number;
+}
+
+/**
+ * Page size for the cascading aggregation. We fetch up to 100
+ * projects, 100 positions per project, 100 matches per position.
+ * For v1 (≤ 20 projects × ≤ 20 positions) this leaves plenty of
+ * headroom and keeps the library page responsive.
+ */
+const LIBRARY_AGGREGATION_PAGE_SIZE = 100;
+
+export const pmLibrary = {
+  /**
+   * Fetch every headhunter-recommended candidate visible to the PM.
+   *
+   * Aggregates pmProjects → pmPositions → pmMatches into a single
+   * candidate-keyed list. Returns the de-duplicated candidates with
+   * their best-scoring match and the total match count per
+   * candidate.
+   */
+  list: async (): Promise<LibraryListResponse> => {
+    // 1. Projects.
+    const projectsRes = await pmProjects.list({ limit: LIBRARY_AGGREGATION_PAGE_SIZE });
+    const projects = projectsRes.projects;
+
+    // 2. Positions per project (parallel).
+    const positionsPerProject = await Promise.all(
+      projects.map((p) =>
+        pmPositions.list(p.id, { limit: LIBRARY_AGGREGATION_PAGE_SIZE }).then((r) => ({
+          project: p,
+          positions: r.positions,
+        })),
+      ),
+    );
+
+    // Flatten project → positions; skip projects whose positions
+    // query failed (treated as empty so a single bad project
+    // doesn't take down the whole library).
+    const flatPositions: Array<{ project: ProjectSummary; position: Position }> = [];
+    for (const entry of positionsPerProject) {
+      for (const position of entry.positions) {
+        flatPositions.push({ project: entry.project, position });
+      }
+    }
+
+    // 3. Matches per position (parallel). Each entry keeps the
+    //    project + position reference so we can attach titles to
+    //    the best-match row.
+    const matchesPerPosition = await Promise.all(
+      flatPositions.map(async ({ project, position }) => {
+        try {
+          const res = await pmMatches.list(position.id, {
+            min_score: 0,
+            limit: LIBRARY_AGGREGATION_PAGE_SIZE,
+          });
+          return { project, position, matches: res.matches };
+        } catch {
+          return { project, position, matches: [] };
+        }
+      }),
+    );
+
+    // 4. Aggregate by candidate_user_id.
+    const byCandidate = new Map<
+      string,
+      {
+        candidate_user_id: string;
+        display_name: string | null;
+        best_match: LibraryCandidate['current_best_match'] | null;
+        positionIds: Set<string>;
+      }
+    >();
+
+    for (const { project, position, matches } of matchesPerPosition) {
+      for (const match of matches) {
+        if (!match.candidate_user_id) continue;
+        const existing = byCandidate.get(match.candidate_user_id);
+        if (existing) {
+          existing.positionIds.add(position.id);
+          if (match.candidate_display_name && !existing.display_name) {
+            existing.display_name = match.candidate_display_name;
+          }
+          if (
+            !existing.best_match ||
+            match.score > existing.best_match.score
+          ) {
+            existing.best_match = {
+              score: match.score,
+              position_title: position.title,
+              position_id: position.id,
+              project_name: project.name,
+              project_id: project.id,
+            };
+          }
+          continue;
+        }
+        const positionIds = new Set<string>();
+        positionIds.add(position.id);
+        byCandidate.set(match.candidate_user_id, {
+          candidate_user_id: match.candidate_user_id,
+          display_name: match.candidate_display_name ?? null,
+          best_match: {
+            score: match.score,
+            position_title: position.title,
+            position_id: position.id,
+            project_name: project.name,
+            project_id: project.id,
+          },
+          positionIds,
+        });
+      }
+    }
+
+    // 5. Project to wire shape, sort by best score DESC then by
+    //    candidate_user_id ASC for stable ordering.
+    const candidates: LibraryCandidate[] = [];
+    for (const entry of byCandidate.values()) {
+      if (!entry.best_match) continue;
+      candidates.push({
+        candidate_user_id: entry.candidate_user_id,
+        display_name: entry.display_name,
+        current_best_match: entry.best_match,
+        position_count: entry.positionIds.size,
+      });
+    }
+    candidates.sort((a, b) => {
+      if (b.current_best_match.score !== a.current_best_match.score) {
+        return b.current_best_match.score - a.current_best_match.score;
+      }
+      return a.candidate_user_id.localeCompare(b.candidate_user_id);
+    });
+
+    return { candidates, total: candidates.length };
+  },
 };
