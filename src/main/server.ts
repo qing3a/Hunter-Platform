@@ -12,6 +12,7 @@ import { ApiError } from './errors.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createHeadhunterRouter } from './routes/headhunter.js';
 import { createEmployerRouter } from './routes/employer.js';
+import { createEmployerPanelRouter } from './routes/employer-panel.js';
 import { createCandidateRouter } from './routes/candidate.js';
 import { createUsersRouter } from './routes/users.js';
 import { createConfigRouter } from './routes/config.js';
@@ -161,7 +162,7 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   const actionHistoryRepo = createActionHistoryRepo(db);
   const actionHistoryMW = createActionHistoryMiddleware(actionHistoryRepo);
 
-  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/candidate', '/v1/candidate-portal', '/v1/headhunter-workspace'];
+  const AUDITED_PREFIXES = ['/v1/auth', '/v1/users', '/v1/headhunter', '/v1/employer', '/v1/employer-panel', '/v1/candidate', '/v1/candidate-portal', '/v1/headhunter-workspace'];
   app.use((req, res, next) => {
     if (!AUDITED_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) {
       return next();
@@ -222,6 +223,13 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
   app.use('/v1/market',     createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createMarketRouter(db));
   app.use('/v1/headhunter', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createHeadhunterRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   app.use('/v1/employer',   createUtf8OnlyMiddleware(64 * 1024), express.json({ limit: BODY_LIMIT_LARGE }), createEmployerRouter(db, env.PLATFORM_ENCRYPTION_KEY));
+  // Employer Panel (Phase 3c, Task 3) — /v1/employer-panel/dashboard and
+  // future employer SPA endpoints. Mounted alongside the legacy employer
+  // router; the panel tree holds the new aggregate / SPA-shaped endpoints
+  // while the legacy /v1/employer/* tree stays for backwards compatibility.
+  // Body parser: 4KB is enough for the dashboard (GET only, no body) and
+  // any future endpoint we add here.
+  app.use('/v1/employer-panel', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createEmployerPanelRouter(db));
   app.use('/v1/candidate',  createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }),    createCandidateRouter(db, env.PLATFORM_ENCRYPTION_KEY));
   // Candidate Portal Phase 1 (Task 11): 13 endpoints (OTP public, rest authed).
   // Mounted after /v1/candidate so the legacy candidate routes still own the
