@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { PositionTable } from '../PositionTable';
-import { POSITION_STATUS_LABELS, TITLE_LEVEL_LABELS } from '../../../api/pm-portal';
-import type { Position, PositionStatus, TitleLevel } from '../../../api/pm-portal';
+import { TITLE_LEVEL_LABELS } from '../../../api/pm-portal';
+import type { Position, TitleLevel } from '../../../api/pm-portal';
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -81,17 +81,6 @@ describe('PositionTable', () => {
     expect(within(row).getByTestId('pm-position-headcount')).toHaveTextContent('1 / 3');
   });
 
-  it('renders the status badge with localized label and data-status', () => {
-    for (const status of Object.keys(POSITION_STATUS_LABELS) as PositionStatus[]) {
-      cleanup();
-      renderTable([makePosition({ id: `p-${status}`, status })]);
-      const row = screen.getByTestId('pm-position-row');
-      const badge = within(row).getByTestId('pm-position-status');
-      expect(badge).toHaveTextContent(POSITION_STATUS_LABELS[status]);
-      expect(badge.getAttribute('data-status')).toBe(status);
-    }
-  });
-
   it('renders the title level label when present', () => {
     renderTable([makePosition({ title_level: 'staff' })]);
     const row = screen.getByTestId('pm-position-row');
@@ -152,11 +141,9 @@ describe('PositionTable', () => {
     fireEvent.change(filter, { target: { value: 'paused' } });
     const rows = screen.getAllByTestId('pm-position-row');
     expect(rows).toHaveLength(1);
-    // The status badge carries data-status="paused" — assert on the
-    // attribute rather than the localized text (which the test would
-    // otherwise depend on a translation for).
-    const badge = within(rows[0]!).getByTestId('pm-position-status');
-    expect(badge.getAttribute('data-status')).toBe('paused');
+    // The lifecycle status column was removed in Task 5; verify the filter
+    // by asserting the surviving row corresponds to the paused position.
+    expect(rows[0]!.getAttribute('data-position-id')).toBe('b');
   });
 
   it('combines search and status filter (intersection)', () => {
@@ -183,13 +170,21 @@ describe('PositionTable', () => {
     expect(screen.queryByTestId('pm-position-row')).toBeNull();
   });
 
-  it('renders the table header with all six columns', () => {
+  it('renders the table header with seven columns (岗位 / 级别 / 数量 / 必须技能 / 到岗 / 薪资 / ERP 状态)', () => {
     renderTable([makePosition()]);
     const table = screen.getByTestId('pm-positions-table');
     const headers = within(table).getAllByRole('columnheader');
     expect(headers.map((h) => h.textContent)).toEqual([
-      '标题', '技能', '职级', '计划/已招 HC', '状态', '操作',
+      '岗位', '级别', '数量', '必须技能', '到岗', '薪资', 'ERP 状态',
     ]);
+  });
+
+  it('renders the PublishStatus chip in the ERP 状态 column', () => {
+    renderTable([makePosition()]);
+    const row = screen.getByTestId('pm-position-row');
+    const cells = within(row).getAllByRole('cell');
+    // 7th column (index 6) is ERP 状态
+    expect(cells[6]).toHaveTextContent('未发布');
   });
 
   it('uses every TitleLevel in the union at least once across positions (compile check)', () => {

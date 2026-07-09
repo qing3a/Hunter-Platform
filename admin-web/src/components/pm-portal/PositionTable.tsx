@@ -6,15 +6,15 @@ import {
   type PositionStatus,
   type TitleLevel,
 } from '../../api/pm-portal';
+import { PublishStatus } from './PublishStatus';
 
 // ============================================================================
-// PositionTable (S2 / Task 5)
+// PositionTable (S2 / Task 5 — PM UI Visual Fidelity)
 // ============================================================================
 //
-// Table view of a project's positions. Columns: 标题 / 技能 / 职级 /
-// 计划/已招 HC / 状态 / 操作. Mirrors the ProjectsLibraryPage table UX
-// (the .pm-table class in pm-portal.css) so the visual treatment stays
-// consistent.
+// Table view of a project's positions. Columns: 岗位 / 级别 / 数量 / 必须技能 /
+// 到岗 / 薪资 / ERP 状态. Mirrors the ProjectsLibraryPage table UX (the .pm-table
+// class in pm-portal.css) so the visual treatment stays consistent.
 //
 // Filtering is client-side (the backend already returns a paged set, and
 // the per-project list is bounded by the v1 PM workload). When the
@@ -22,14 +22,9 @@ import {
 // navigate there; for now the parent passes an `onRowClick` callback
 // that can be wired or left as a no-op (Task 6/10 may add navigation).
 //
-// Status pill colors mirror the project status badge colors so the
-// admin palette is consistent across lifecycle and recruitment state.
-
-const STATUS_COLORS: Record<PositionStatus, string> = {
-  open: '#10b981',    // green
-  paused: '#f59e0b',  // amber
-  filled: '#2563eb',  // blue
-};
+// ERP status is rendered via PublishStatus. For v1 every row is hardcoded
+// to `unpublished` because there is no publish-to-ERP backend yet; when
+// the endpoint ships, this is the single place to wire in real state.
 
 const STATUS_FILTERS: { value: PositionStatus | 'all'; label: string }[] = [
   { value: 'all', label: '全部' },
@@ -40,26 +35,14 @@ const STATUS_FILTERS: { value: PositionStatus | 'all'; label: string }[] = [
 
 const SKILLS_VISIBLE = 4;
 
-function StatusBadge({ status }: { status: PositionStatus }) {
-  const color = STATUS_COLORS[status];
-  return (
-    <span
-      className="pm-position-status"
-      data-status={status}
-      data-testid="pm-position-status"
-      style={{
-        backgroundColor: color + '22',
-        color,
-        borderColor: color,
-      }}
-    >
-      {POSITION_STATUS_LABELS[status]}
-    </span>
-  );
-}
-
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+function formatSalary(min: number | null, max: number | null): string {
+  if (min == null && max == null) return '-';
+  if (min != null && max != null) return `${min}-${max}`;
+  return String(min ?? max);
 }
 
 interface PositionTableProps {
@@ -130,12 +113,13 @@ export function PositionTable({ positions, loading, onRowClick }: PositionTableP
         <table className="pm-table" data-testid="pm-positions-table">
           <thead>
             <tr>
-              <th>标题</th>
-              <th>技能</th>
-              <th>职级</th>
-              <th>计划/已招 HC</th>
-              <th>状态</th>
-              <th>操作</th>
+              <th>岗位</th>
+              <th>级别</th>
+              <th>数量</th>
+              <th>必须技能</th>
+              <th>到岗</th>
+              <th>薪资</th>
+              <th>ERP 状态</th>
             </tr>
           </thead>
           <tbody>
@@ -160,6 +144,10 @@ export function PositionTable({ positions, loading, onRowClick }: PositionTableP
                   <td title={p.title}>
                     <span data-testid="pm-position-title">{truncate(p.title, 40)}</span>
                   </td>
+                  <td data-testid="pm-position-level">{levelLabel}</td>
+                  <td data-testid="pm-position-headcount">
+                    {p.headcount_filled} / {p.headcount_planned}
+                  </td>
                   <td data-testid="pm-position-skills">
                     {skills.length === 0 ? (
                       <span style={{ color: 'var(--text-muted)' }}>-</span>
@@ -170,28 +158,18 @@ export function PositionTable({ positions, loading, onRowClick }: PositionTableP
                       </>
                     )}
                   </td>
-                  <td data-testid="pm-position-level">{levelLabel}</td>
-                  <td data-testid="pm-position-headcount">
-                    {p.headcount_filled} / {p.headcount_planned}
+                  <td data-testid="pm-position-arrival">
+                    <span style={{ color: 'var(--text-muted)' }}>-</span>
                   </td>
-                  <td>
-                    <StatusBadge status={p.status} />
+                  <td data-testid="pm-position-salary">
+                    {formatSalary(p.salary_min, p.salary_max)}
                   </td>
-                  <td>
-                    {onRowClick ? (
-                      <button
-                        type="button"
-                        className="pm-btn-link"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRowClick(p.id);
-                        }}
-                      >
-                        查看
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>-</span>
-                    )}
+                  <td data-testid="pm-position-erp">
+                    <PublishStatus
+                      status="unpublished"
+                      onPublish={() => { window.alert('发布功能即将上线'); }}
+                      onRepublish={() => { window.alert('重发功能即将上线'); }}
+                    />
                   </td>
                 </tr>
               );

@@ -3033,3 +3033,45 @@
   display: block; text-align: center; margin-top: var(--sp-3);
   padding: var(--sp-2); font-size: 11px; color: var(--accent);
 }
+
+/* ============================================================================
+ * ERP Publish Status chip (Task 5 / S2 positions)
+ * ============================================================================
+ * Lives in the last cell of the positions table. The chip shows the
+ * current publish state (unpublished / publishing / published / failed)
+ * with a colour-coded label and an action button when the status
+ * warrants user intervention (publish on first run, republish on failure).
+ *
+ * `.pm-erp-state` is reserved for a future badge variant that summarises
+ * the broader ERP integration state at the column header (currently
+ * unused but reserved so a later task can plug in without a rename).
+ */
+
+.pm-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 11px;
+}
+.pm-publish-label { font-weight: 600; }
+.pm-publish-time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pm-publish-reason { color: var(--text-muted); }
+.pm-publish-btn {
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  margin-left: var(--sp-1);
+}
+
+.pm-publish--unpublished { color: var(--text-muted); }
+.pm-publish--publishing  { color: #d97706; }
+.pm-publish--published   { color: var(--ok, #16a34a); }
+.pm-publish--failed      { color: var(--danger, #dc2626); }
+
+.pm-erp-state {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: var(--b-stage-hunter);
+  color: var(--c-stage-hunter);
+}
