@@ -169,7 +169,7 @@ export interface BrowseTalentParams {
   title_level?: string;
   min_years?: number;
   max_years?: number;
-  /** CSV of skill names. */
+  /** CSV of skill names — sent as a comma-joined string. */
   skills?: string[];
   min_salary?: number;
   max_salary?: number;

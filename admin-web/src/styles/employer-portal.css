@@ -303,3 +303,642 @@
   border-color: var(--c-stage-position);
   color: var(--c-stage-position);
 }
+
+/* ============================================================================
+ * Jobs Management Page (Task 5 — list + create + edit + pause)
+ * ========================================================================== */
+
+.employer-jobs {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+}
+
+.employer-jobs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.employer-jobs-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.employer-jobs-new {
+  background: var(--c-stage-position);
+  border: 1px solid var(--c-stage-position);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+}
+.employer-jobs-new:hover {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+}
+
+/* ---- Status filters ---- */
+
+.employer-jobs-filters {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.employer-jobs-filter {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-jobs-filter.active {
+  background: var(--b-stage-position);
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+  font-weight: 600;
+}
+
+/* ---- Stats ---- */
+
+.employer-jobs-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.employer-jobs-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.employer-jobs-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.employer-jobs-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* ---- Empty + error states ---- */
+
+.employer-jobs-empty {
+  padding: var(--sp-5);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.employer-jobs-error {
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+  margin-top: var(--sp-3);
+}
+
+/* ---- Table ---- */
+
+.employer-jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.employer-jobs-table th,
+.employer-jobs-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.employer-jobs-table th {
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.employer-jobs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.employer-jobs-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.employer-jobs-action {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-jobs-action:hover {
+  background: var(--b-stage-position);
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+}
+
+/* ============================================================================
+ * Job Post Form + Modal (Task 5 — create / edit modal)
+ * ========================================================================== */
+
+.employer-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--sp-3);
+}
+
+.employer-modal {
+  background: var(--surface);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.employer-modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-family: inherit;
+  padding: 0 4px;
+}
+
+.employer-jobs-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.employer-jobs-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.employer-jobs-modal-body {
+  padding: var(--sp-4);
+  flex: 1;
+}
+
+.employer-jobs-modal-error {
+  padding: var(--sp-2) var(--sp-4);
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.employer-jobs-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border);
+}
+
+.employer-btn-primary,
+.employer-btn-secondary {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.employer-btn-primary {
+  background: var(--c-stage-position);
+  border: 1px solid var(--c-stage-position);
+  color: white;
+}
+.employer-btn-primary:hover:enabled {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+}
+.employer-btn-primary:disabled,
+.employer-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.employer-btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.employer-btn-secondary:hover:enabled {
+  background: var(--bg);
+}
+
+/* ---- Form ---- */
+
+.employer-job-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--sp-3);
+}
+
+.employer-job-form-field-inline label,
+.employer-job-form-field-half label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.employer-job-form-field-half {
+  flex: 1;
+}
+
+.employer-job-form-row {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.employer-job-form-required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.employer-job-form-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.employer-job-form-input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-job-form-input:focus {
+  outline: 2px solid var(--c-stage-position);
+  outline-offset: 1px;
+}
+.employer-job-form-input:disabled {
+  background: var(--bg);
+  cursor: not-allowed;
+}
+
+.employer-job-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.employer-job-form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* ============================================================================
+ * Browse Talent (Task 6 — candidate grid + filter sidebar)
+ * ========================================================================== */
+
+.employer-candidates {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+}
+
+.employer-candidates-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.employer-candidates-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.employer-candidates-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.employer-candidates-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .employer-candidates-layout {
+    grid-template-columns: 240px 1fr;
+  }
+}
+
+.employer-candidates-error {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--danger-bg, rgba(220, 38, 38, 0.08));
+  border: 1px solid var(--danger, #dc2626);
+  border-radius: 6px;
+  color: var(--danger, #dc2626);
+  font-size: 14px;
+}
+
+.employer-candidates-empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+/* ---- Filter sidebar ---- */
+
+.employer-filter-bar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  position: sticky;
+  top: 64px;
+}
+
+.employer-filter-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.employer-filter-bar-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.employer-filter-reset {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.employer-filter-reset:hover {
+  color: var(--c-stage-position);
+  border-color: var(--c-stage-position);
+}
+
+.employer-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.employer-filter-group-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.employer-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.employer-filter-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-filter-chip:hover {
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+}
+.employer-filter-chip.active {
+  background: var(--c-stage-position);
+  border-color: var(--c-stage-position);
+  color: white;
+}
+
+.employer-filter-input {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  width: 100%;
+}
+.employer-filter-input:focus {
+  outline: 2px solid var(--c-stage-position);
+  outline-offset: 1px;
+}
+
+.employer-filter-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.employer-filter-salary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.employer-filter-salary-row .employer-filter-input {
+  flex: 1;
+  min-width: 0;
+}
+.employer-filter-salary-sep {
+  color: var(--text-muted);
+}
+
+/* ---- Candidate card ---- */
+
+.employer-candidate-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px)  { .employer-candidate-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .employer-candidate-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.employer-candidate-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.employer-candidate-card-header {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.employer-candidate-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.employer-candidate-card-titleblock {
+  flex: 1;
+  min-width: 0;
+}
+
+.employer-candidate-card-title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.employer-candidate-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.employer-candidate-tag {
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-muted);
+}
+
+.employer-candidate-tag-level {
+  background: var(--b-stage-position);
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+}
+
+.employer-candidate-card-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.employer-candidate-secondary-item {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.employer-candidate-card-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.employer-candidate-skill {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.employer-candidate-skill-overflow {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.employer-candidate-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+.employer-candidate-card-actions button {
+  flex: 1;
+}
