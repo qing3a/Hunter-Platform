@@ -306,6 +306,169 @@
 }
 
 /* ============================================================================
+ * Create Project Modal (Task 15)
+ * ============================================================================
+ *
+ * Visual structure:
+ *   1. Header strip (title + × close button)
+ *   2. Body — the form (ProjectMetaForm), scrollable if it overflows
+ *   3. Optional error banner above the footer
+ *   4. Footer with Cancel / Create buttons
+ *
+ * The modal is wider than the placeholder (.pm-modal default = 480px)
+ * because the form has two date columns, a textarea, and a team list.
+ * We use 640px to match .pm-decompose-modal so the two modals feel
+ * like siblings.
+ *
+ * The form's own styles live below the modal styles in the
+ * `.pm-project-form*` namespace. Re-uses `.pm-input` for the inputs
+ * so the visual language matches the rest of the workbench.
+ */
+
+.pm-create-project-modal {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-create-project-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-create-project-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-create-project-modal-close {
+  font-size: 24px !important;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text-muted);
+}
+
+.pm-create-project-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.pm-create-project-error {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+}
+
+.pm-create-project-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ---- ProjectMetaForm ---- */
+
+.pm-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.pm-project-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-project-form-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.pm-project-form-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+.pm-project-form-hint {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.pm-project-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.pm-project-form-field-inline .pm-input { width: 100%; }
+
+.pm-project-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 480px) {
+  .pm-project-form-row { grid-template-columns: 1fr; }
+}
+.pm-project-form-field-half { min-width: 0; }
+
+.pm-project-form-error {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+  line-height: 1.4;
+}
+.pm-project-form .pm-input[aria-invalid="true"] {
+  border-color: #fca5a5;
+}
+
+/* ---- Team list ---- */
+
+.pm-project-form-team-list {
+  list-style: none;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-project-form-team-row {
+  display: grid;
+  grid-template-columns: 1fr 80px auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.pm-project-form-team-role { min-width: 0; }
+.pm-project-form-team-count { text-align: center; }
+.pm-project-form-team-remove {
+  color: #b91c1c !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+.pm-project-form-team-add {
+  align-self: flex-start;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* ============================================================================
  * Project Detail Page (S2 / Task 5)
  * ============================================================================
  *

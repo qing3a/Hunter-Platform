@@ -314,27 +314,42 @@ describe('ProjectsLibraryPage', () => {
     expect(screen.getByTestId('pm-new-project')).toHaveTextContent('+ 新建项目');
   });
 
-  it('opens the placeholder New Project modal when the button is clicked', async () => {
+  it('opens the real New Project modal when the button is clicked', async () => {
     mockedList.mockResolvedValueOnce({ projects: [], total: 0 });
     renderPage();
     await waitFor(() => screen.getByTestId('pm-new-project'));
 
     fireEvent.click(screen.getByTestId('pm-new-project'));
-    expect(screen.getByTestId('pm-new-project-modal')).toBeInTheDocument();
-    // The placeholder text is hard-coded in the modal body.
-    expect(screen.getByText(/ProjectMetaModal — coming in Task 15/)).toBeInTheDocument();
+    expect(screen.getByTestId('pm-create-project-modal')).toBeInTheDocument();
+    // The real form is rendered (not the old placeholder).
+    expect(screen.getByTestId('pm-project-form-root')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-create-project-submit')).toBeInTheDocument();
+    // Old placeholder text should NOT be present.
+    expect(screen.queryByText(/ProjectMetaModal — coming in Task 15/)).toBeNull();
   });
 
-  it('closes the New Project modal when the close button is clicked', async () => {
+  it('closes the New Project modal when the × button is clicked', async () => {
     mockedList.mockResolvedValueOnce({ projects: [], total: 0 });
     renderPage();
     await waitFor(() => screen.getByTestId('pm-new-project'));
 
     fireEvent.click(screen.getByTestId('pm-new-project'));
-    expect(screen.getByTestId('pm-new-project-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-create-project-modal')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('pm-new-project-modal-close'));
-    expect(screen.queryByTestId('pm-new-project-modal')).toBeNull();
+    fireEvent.click(screen.getByTestId('pm-create-project-modal-close'));
+    expect(screen.queryByTestId('pm-create-project-modal')).toBeNull();
+  });
+
+  it('closes the New Project modal when the cancel button is clicked', async () => {
+    mockedList.mockResolvedValueOnce({ projects: [], total: 0 });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-new-project'));
+
+    fireEvent.click(screen.getByTestId('pm-new-project'));
+    expect(screen.getByTestId('pm-create-project-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('pm-create-project-cancel'));
+    expect(screen.queryByTestId('pm-create-project-modal')).toBeNull();
   });
 
   it('closes the modal when the backdrop is clicked', async () => {
@@ -343,11 +358,49 @@ describe('ProjectsLibraryPage', () => {
     await waitFor(() => screen.getByTestId('pm-new-project'));
 
     fireEvent.click(screen.getByTestId('pm-new-project'));
-    const backdrop = screen.getByTestId('pm-new-project-modal');
+    const backdrop = screen.getByTestId('pm-create-project-modal');
     // The backdrop is the testid-bearing element; clicking it should
     // dismiss the modal. The inner .pm-modal stops propagation.
     fireEvent.click(backdrop);
-    expect(screen.queryByTestId('pm-new-project-modal')).toBeNull();
+    expect(screen.queryByTestId('pm-create-project-modal')).toBeNull();
+  });
+
+  it('navigates to the new project detail page after a successful create', async () => {
+    // The page navigates after a successful create, so the list call
+    // (which would re-fire on remount) is not necessary here — but we
+    // pre-seed it just in case react-query refetches on invalidate.
+    mockedList.mockResolvedValue({ projects: [], total: 0 });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-new-project'));
+
+    fireEvent.click(screen.getByTestId('pm-new-project'));
+    fireEvent.change(screen.getByTestId('pm-project-form-name'), {
+      target: { value: 'My New Project' },
+    });
+
+    // Mock the create call (set up via the global pmProjects mock).
+    const { pmProjects } = await import('../../../api/pm-portal');
+    const mockedCreate = vi.mocked(pmProjects.create);
+    mockedCreate.mockResolvedValueOnce({
+      id: 'proj-new',
+      pm_user_id: 'pm-1',
+      name: 'My New Project',
+      target: null,
+      budget_total: null,
+      start_at: null,
+      end_at: null,
+      current_team: null,
+      status: 'planning',
+      created_at: 1,
+      updated_at: 1,
+    });
+
+    fireEvent.click(screen.getByTestId('pm-create-project-submit'));
+
+    await waitFor(() => {
+      // After success, the modal closes and the route changes.
+      expect(screen.queryByTestId('pm-create-project-modal')).toBeNull();
+    });
   });
 
   it('renders the row status badge with the correct data-status', async () => {

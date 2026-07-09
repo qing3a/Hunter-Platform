@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { pmProjects, PROJECT_STATUS_LABELS, type ProjectStatus, type ProjectSummary } from '../../api/pm-portal';
 import { EmptyState } from '../../components/candidate-portal/EmptyState';
 import { ProjectCard, formatBudgetYuan } from '../../components/pm-portal/ProjectCard';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
+import { CreateProjectModal } from '../../components/pm-portal/CreateProjectModal';
 
 // ============================================================================
 // Projects Library — S8 / Task 4
@@ -98,6 +99,7 @@ export function ProjectsLibraryPage() {
   const [search, setSearch] = useState('');
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Persist view mode across reloads. We write on every change rather
   // than in a beforeunload handler so a PM who closes the tab right
@@ -118,6 +120,16 @@ export function ProjectsLibraryPage() {
     // counts will be under-reported (noted in the file header).
     queryFn: () => pmProjects.list({ limit: 100 }),
   });
+
+  /**
+   * After a successful create we (1) invalidate the project list so
+   * the new row shows up, and (2) navigate straight to the new
+   * project's detail page — the PM almost always wants to start
+   * adding positions right away.
+   */
+  function onProjectCreated() {
+    queryClient.invalidateQueries({ queryKey: ['pm', 'projects', 'list'] });
+  }
 
   const projects = data?.projects ?? [];
   const totalFromServer = data?.total ?? 0;
@@ -303,30 +315,17 @@ export function ProjectsLibraryPage() {
       )}
 
       {showNewProjectModal && (
-        <div
-          className="pm-modal-backdrop"
-          data-testid="pm-new-project-modal"
-          onClick={() => setShowNewProjectModal(false)}
-        >
-          <div
-            className="pm-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pm-new-project-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="pm-new-project-modal-title">ProjectMetaModal — coming in Task 15</h2>
-            <p>这里会展示创建项目的表单字段(名称 / 目标 / 预算 / 计划 / 团队)。</p>
-            <button
-              type="button"
-              className="pm-btn-primary"
-              data-testid="pm-new-project-modal-close"
-              onClick={() => setShowNewProjectModal(false)}
-            >
-              关闭
-            </button>
-          </div>
-        </div>
+        <CreateProjectModal
+          onClose={() => setShowNewProjectModal(false)}
+          onCreated={(project) => {
+            onProjectCreated();
+            // Navigate to the new project's detail page so the PM can
+            // immediately start adding positions. The list query has
+            // already been invalidated, so the row will be there on
+            // back-navigation.
+            navigate(`/pm/projects/${project.id}`);
+          }}
+        />
       )}
     </div>
   );
