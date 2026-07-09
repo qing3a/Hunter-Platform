@@ -194,7 +194,7 @@ describe('CandidateDetailPage — loading + error', () => {
 });
 
 // ============================================================================
-// Header + back navigation
+// Header (back + title + candidate picker)
 // ============================================================================
 
 describe('CandidateDetailPage — header', () => {
@@ -220,19 +220,6 @@ describe('CandidateDetailPage — header', () => {
     });
   });
 
-  it('renders the masked display name from the demo candidate lookup', async () => {
-    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
-    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
-    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue(makeNote());
-    renderPage('cand-1');
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-profile-name')).toHaveTextContent(
-        '张*三',
-      );
-    });
-  });
-
   it('returns the user back via navigate(-1) on the back button', async () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
@@ -245,27 +232,13 @@ describe('CandidateDetailPage — header', () => {
     fireEvent.click(screen.getByTestId('pm-candidate-detail-back'));
     expect(navigateSpy).toHaveBeenCalledWith(-1);
   });
-
-  it('exposes the candidateUserId as a data-* attribute on the profile row', async () => {
-    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
-    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
-    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue(makeNote());
-    renderPage('cand-abc');
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-profile-userid')).toHaveAttribute(
-        'data-candidate-user-id',
-        'cand-abc',
-      );
-    });
-  });
 });
 
 // ============================================================================
-// Profile section (top row)
+// PMViewBanner (S5 disclaimer)
 // ============================================================================
 
-describe('CandidateDetailPage — profile (top row)', () => {
+describe('CandidateDetailPage — PM view banner', () => {
   beforeEach(() => {
     cleanup();
     navigateSpy.mockClear();
@@ -275,59 +248,116 @@ describe('CandidateDetailPage — profile (top row)', () => {
     mockedNotesGet.mockReset();
   });
 
-  it('renders years + title_level + skills in the meta dl for cand-1 (demo data)', async () => {
+  it('renders the PM 视角 banner at the top of the page', async () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-profile-years')).toHaveTextContent(
-        '8 年',
-      );
+      expect(screen.getByTestId('pm-view-banner')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('pm-candidate-detail-profile-level')).toHaveTextContent(
-      'senior',
-    );
-    expect(screen.getByTestId('pm-candidate-detail-profile-skills')).toHaveTextContent(
-      'vue / react / typescript / 前端',
-    );
+    expect(screen.getByTestId('pm-view-banner')).toHaveTextContent('PM 视角');
+  });
+});
+
+// ============================================================================
+// CandidateProfileCard (S5 left column)
+// ============================================================================
+
+describe('CandidateDetailPage — CandidateProfileCard', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedListProjects.mockReset();
+    mockedListPositions.mockReset();
+    mockedListMatches.mockReset();
+    mockedNotesGet.mockReset();
   });
 
-  it('falls back to 匿名候选人 + placeholders for an unknown candidate id', async () => {
+  it('renders the demo candidate profile data inside pm-candidate-profile', async () => {
+    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+    renderPage('cand-1');
+    await waitFor(() => {
+      const card = screen.getByTestId('pm-candidate-profile');
+      expect(card).toHaveTextContent('张*三');
+      expect(card).toHaveTextContent('高级前端工程师');
+      expect(card).toHaveTextContent('某互联网大厂');
+      expect(card).toHaveTextContent('内推');
+    });
+  });
+
+  it('renders the disabled 解锁联系方式 button', async () => {
+    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+    renderPage('cand-1');
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /解锁联系方式/ }),
+      ).toBeDisabled();
+    });
+  });
+
+  it('falls back to 匿名候选人 for an unknown candidate id', async () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-unknown');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-profile-name')).toHaveTextContent(
-        '匿名候选人',
-      );
+      expect(screen.getByTestId('pm-candidate-profile')).toHaveTextContent('匿名候选人');
     });
-    // ——— placeholders
-    expect(screen.getByTestId('pm-candidate-detail-profile-years')).toHaveTextContent('——');
-    expect(screen.getByTestId('pm-candidate-detail-profile-level')).toHaveTextContent('——');
+  });
+});
+
+// ============================================================================
+// CandidateRadar + TierBadgeRow (S5 right column top)
+// ============================================================================
+
+describe('CandidateDetailPage — radar + tier badges', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedListProjects.mockReset();
+    mockedListPositions.mockReset();
+    mockedListMatches.mockReset();
+    mockedNotesGet.mockReset();
   });
 
-  it('renders an SVG radar inside the radar card', async () => {
+  it('renders the SVG radar inside the right column', async () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
-      const card = screen.getByTestId('pm-candidate-detail-radar-card');
+      const card = screen.getByTestId('pm-candidate-radar');
       expect(card.querySelector('svg.cp-radar')).not.toBeNull();
+    });
+  });
+
+  it('renders 5 tier badges (one per capability dimension)', async () => {
+    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+    renderPage('cand-1');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('pm-tier-badge')).toHaveLength(5);
     });
   });
 });
 
 // ============================================================================
-// Matched jobs list
+// MatchTableRow (S5 right column middle)
 // ============================================================================
 
-describe('CandidateDetailPage — matched jobs list', () => {
+describe('CandidateDetailPage — match table rows', () => {
   beforeEach(() => {
     cleanup();
     navigateSpy.mockClear();
@@ -412,18 +442,13 @@ describe('CandidateDetailPage — matched jobs list', () => {
 
     renderPage('cand-1');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-matches-list')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-s5-match-table')).toBeInTheDocument();
     });
-    const list = screen.getByTestId('pm-candidate-detail-matches-list');
-    const rows = within(list).getAllByTestId(/^pm-candidate-detail-match-\d+$/);
+    const rows = screen.getAllByTestId('pm-s5-match-row');
     // Two rows for cand-1: match_id 21 (score 90) and 11 (score 60).
     expect(rows).toHaveLength(2);
-    expect(rows[0]).toHaveAttribute('data-match-id', '21');
-    expect(rows[0]).toHaveAttribute('data-score', '90');
-    expect(rows[0]).toHaveAttribute('data-band', 'excellent');
-    expect(rows[1]).toHaveAttribute('data-match-id', '11');
-    expect(rows[1]).toHaveAttribute('data-score', '60');
-    expect(rows[1]).toHaveAttribute('data-band', 'fair');
+    expect(within(rows[0]).getByText('90')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('60')).toBeInTheDocument();
   });
 
   it('updates the matches-count to reflect only the route candidate\'s matches', async () => {
@@ -482,49 +507,18 @@ describe('CandidateDetailPage — matched jobs list', () => {
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-matches-list')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-s5-match-table')).toBeInTheDocument();
     });
-    const rows = within(screen.getByTestId('pm-candidate-detail-matches-list')).getAllByTestId(
-      /^pm-candidate-detail-match-\d+$/,
-    );
-    expect(rows.map((r) => r.getAttribute('data-match-id'))).toEqual(['11', '22', '33']);
-  });
-});
-
-// ============================================================================
-// Matched-jobs row click-through (placeholder navigation)
-// ============================================================================
-
-describe('CandidateDetailPage — match row click-through', () => {
-  beforeEach(() => {
-    cleanup();
-    navigateSpy.mockClear();
-    mockedListProjects.mockReset();
-    mockedListPositions.mockReset();
-    mockedListMatches.mockReset();
-    mockedNotesGet.mockReset();
+    const rows = screen.getAllByTestId('pm-s5-match-row');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0]).getByText('80')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('80')).toBeInTheDocument();
+    expect(within(rows[2]).getByText('80')).toBeInTheDocument();
+    // Pos titles should reflect pos-1's title for all three rows.
+    expect(within(rows[0]).getByText('高级前端工程师')).toBeInTheDocument();
   });
 
-  it('navigates to /admin/pm/projects/:pId/positions/:id when a row title is clicked', async () => {
-    const project1 = makeProject({ id: 'proj-9', name: 'Project9' });
-    const pos1 = makePosition({ id: 'pos-77', project_id: 'proj-9' });
-    mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
-    mockedListPositions.mockResolvedValue({ positions: [pos1], total: 1 });
-    mockedListMatches.mockResolvedValue({
-      matches: [makeMatch({ match_id: 1, score: 88, position_id: 'pos-77' })],
-      total: 1,
-    });
-    mockedNotesGet.mockResolvedValue(makeNote());
-
-    renderPage('cand-1');
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-match-0-title')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByTestId('pm-candidate-detail-match-0-title'));
-    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-9/positions/pos-77');
-  });
-
-  it('renders the project name next to each row title', async () => {
+  it('renders the project name and position title in each row', async () => {
     const project1 = makeProject({ id: 'proj-1', name: 'ProjectA' });
     const pos1 = makePosition({ id: 'pos-1' });
     mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
@@ -536,75 +530,27 @@ describe('CandidateDetailPage — match row click-through', () => {
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-match-0-project')).toHaveTextContent(
-        '@ProjectA',
-      );
+      const row = screen.getByTestId('pm-s5-match-row');
+      expect(within(row).getByText('ProjectA')).toBeInTheDocument();
+      expect(within(row).getByText('高级前端工程师')).toBeInTheDocument();
     });
   });
-});
 
-// ============================================================================
-// Reasons preview
-// ============================================================================
-
-describe('CandidateDetailPage — reasons preview', () => {
-  beforeEach(() => {
-    cleanup();
-    navigateSpy.mockClear();
-    mockedListProjects.mockReset();
-    mockedListPositions.mockReset();
-    mockedListMatches.mockReset();
-    mockedNotesGet.mockReset();
-  });
-
-  it('renders up to 2 reasons with an ellipsis when more are present', async () => {
+  it('renders the 推荐 button in the action cell', async () => {
     const project1 = makeProject({ id: 'proj-1' });
     const pos1 = makePosition({ id: 'pos-1' });
     mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
     mockedListPositions.mockResolvedValue({ positions: [pos1], total: 1 });
     mockedListMatches.mockResolvedValue({
-      matches: [
-        makeMatch({
-          match_id: 1,
-          score: 80,
-          reasons: ['技能匹配', '职级匹配', '城市匹配', '期望薪资合适'],
-        }),
-      ],
+      matches: [makeMatch({ match_id: 1, score: 80 })],
       total: 1,
     });
     mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-s5-row-recommend')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-s5-row-caution')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toHaveTextContent(
-      '技能匹配 · 职级匹配…',
-    );
-  });
-
-  it('renders all reasons without an ellipsis when at most 2 are present', async () => {
-    const project1 = makeProject({ id: 'proj-1' });
-    const pos1 = makePosition({ id: 'pos-1' });
-    mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
-    mockedListPositions.mockResolvedValue({ positions: [pos1], total: 1 });
-    mockedListMatches.mockResolvedValue({
-      matches: [
-        makeMatch({
-          match_id: 1,
-          score: 80,
-          reasons: ['技能匹配', '职级匹配'],
-        }),
-      ],
-      total: 1,
-    });
-    mockedNotesGet.mockResolvedValue(makeNote());
-    renderPage('cand-1');
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toHaveTextContent(
-      '技能匹配 · 职级匹配',
-    );
   });
 });
 
@@ -654,7 +600,7 @@ describe('CandidateDetailPage — PM private note integration', () => {
 });
 
 // -------------------------------------------------------------------------
-// Task 7 — inline candidate picker in the S5 header
+// Task 7 — inline candidate picker
 // -------------------------------------------------------------------------
 
 describe('CandidateDetailPage — Task 7 candidate picker', () => {

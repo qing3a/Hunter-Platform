@@ -10,28 +10,31 @@ import {
   type ProjectSummary,
   type TitleLevel,
 } from '../../api/pm-portal';
-import { CandidateRadar } from '../../components/pm-portal/CandidateRadar';
+import { CandidateRadar, computeCandidateCapabilities } from '../../components/pm-portal/CandidateRadar';
+import { CandidateProfileCard, type CandidateProfile } from '../../components/pm-portal/CandidateProfileCard';
+import { MatchTableRow } from '../../components/pm-portal/MatchTableRow';
+import { PMViewBanner } from '../../components/pm-portal/PMViewBanner';
 import { PrivateNoteCard } from '../../components/pm-portal/PrivateNoteCard';
-import { ScoreBadge, scoreBand } from '../../components/pm-portal/ScoreBadge';
+import { TierBadgeRow } from '../../components/pm-portal/TierBadgeRow';
+import { useToast } from '../../lib/toast';
 
 // ============================================================================
-// CandidateDetailPage (S5 / Task 13)
+// CandidateDetailPage (S5 / Task 10 + Task 13)
 // ============================================================================
 //
-// PM-side candidate detail page. Three sections:
+// PM-side candidate detail page (S5 visual fidelity pass).
 //
-//   1. Header       — anonymized display name + headline metadata
-//                     (title, experience, skills).
-//   2. Top row      — basic info card on the left; 5-dim capability
-//                     radar (CandidateRadar) on the right.
-//   3. Matched jobs — every position this candidate has been scored
-//                     against, sorted by score DESC. For each match
-//                     we show: position title, project name, score
-//                     band badge, reasons preview, click-through
-//                     to the position detail (Task 17 will wire the
-//                     full route; for now it's a placeholder).
-//   4. PM notes     — `<PrivateNoteCard>` editor (UI stub; Task 16
-//                     replaces the namespace with real handlers).
+// Layout (280px + 1fr grid):
+//
+//   ┌──────────────────────────────────────────────────────┐
+//   │ <back> 候选人详情       [picker]                      │  <- header
+//   │ PMViewBanner (PM 视角 disclaimer)                    │  <- full width
+//   ├────────────────┬─────────────────────────────────────┤
+//   │ CandidateProfile│ CandidateRadar (svg)                │
+//   │ Card (280px)   │  TierBadgeRow (5 dim A/B/C/D)       │
+//   │                │  MatchTable (one row per match)     │
+//   │                │  PrivateNoteCard                    │
+//   └────────────────┴─────────────────────────────────────┘
 //
 // Important: this page does NOT have a dedicated "GET /v1/pm/candidates/
 // :userId" endpoint yet. To render the matched-jobs list we
@@ -82,6 +85,12 @@ export interface CandidateSummary {
   skills: string[];
   /** Optional title level band. */
   title_level: TitleLevel | null;
+  /** Company blurb shown next to the title (Task 10). */
+  company: string | null;
+  /** Source channel (e.g. "内推" / "主动投递" / "猎头推荐"). */
+  source: string | null;
+  /** Free-form resume / bio paragraph (Task 10). */
+  resume: string | null;
 }
 
 // ============================================================================
@@ -91,8 +100,8 @@ export interface CandidateSummary {
 // Real candidate detail (skills, years_experience, title_level) does
 // NOT exist on the wire yet — see plan lines 374–380. The page
 // gracefully degrades: when the lookup returns no row, the radar
-// still renders an all-zero pentagon and the metadata rows render
-// placeholders.
+// still renders an all-zero pentagon and the profile card falls
+// back to a 匿名候选人 placeholder.
 //
 // The lookup table is intentionally hard-coded so the UI tests can
 // assert against deterministic candidate data without needing a
@@ -106,6 +115,9 @@ const DEMO_CANDIDATE_TABLE: Record<string, CandidateSummary> = {
     years_experience: 8,
     skills: ['vue', 'react', 'typescript', '前端'],
     title_level: 'senior',
+    company: '某互联网大厂',
+    source: '内推',
+    resume: '8年前端经验,Vue/React 专家,带过 5 人小组',
   },
   'cand-2': {
     user_id: 'cand-2',
@@ -114,11 +126,40 @@ const DEMO_CANDIDATE_TABLE: Record<string, CandidateSummary> = {
     years_experience: 6,
     skills: ['node.js', 'java', 'postgres', '后端'],
     title_level: 'senior',
+    company: '某跨境电商',
+    source: '猎头推荐',
+    resume: '6年全栈,熟悉 Node/Java,主导过 3 个 0→1 项目',
   },
 };
 
 function lookupCandidate(userId: string): CandidateSummary | null {
   return DEMO_CANDIDATE_TABLE[userId] ?? null;
+}
+
+/**
+ * Convert a CandidateSummary into the CandidateProfile shape the
+ * left-column card expects. Pure helper — the demo lookup may
+ * return null, in which case we build a placeholder profile.
+ */
+function buildProfile(candidate: CandidateSummary | null): CandidateProfile {
+  if (!candidate) {
+    return {
+      displayName: '匿名候选人',
+      title: '——',
+      company: '——',
+      source: '——',
+      resume: '候选人人选概要即将上线',
+      tags: [],
+    };
+  }
+  return {
+    displayName: candidate.display_name,
+    title: candidate.headline_title ?? '——',
+    company: candidate.company ?? '——',
+    source: candidate.source ?? '——',
+    resume: candidate.resume ?? '——（候选人简历即将上线）',
+    tags: candidate.skills,
+  };
 }
 
 // ============================================================================
@@ -136,10 +177,7 @@ const MATCHES_PER_POSITION = 100;
 export function CandidateDetailPage() {
   const { userId: candidateUserId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-
-  // ---- Local UI state ----
-  // (None yet — the reasons preview is always capped at 2 entries,
-  // matching the Task-11 CandidateMatchesPage pattern.)
+  const toast = useToast();
 
   // ---- Network: projects ----
   const projectsQuery = useQuery({
@@ -186,6 +224,7 @@ export function CandidateDetailPage() {
 
   // ---- Derived: candidate rows + lookup ----
   const candidate = candidateUserId ? lookupCandidate(candidateUserId) : null;
+  const profile = buildProfile(candidate);
 
   const matchedJobs: MatchedJobRow[] = useMemo(() => {
     if (!candidateUserId) return [];
@@ -244,14 +283,40 @@ export function CandidateDetailPage() {
     );
   }, [matchesQueries]);
 
+  // ---- Derived: 5-dim radar scores (re-used by TierBadgeRow) ----
+  // We compute the same scores the radar chart uses so the A/B/C/D
+  // badges underneath always agree with the polygon.
+  const tierDims = useMemo(() => {
+    const scores = computeCandidateCapabilities({
+      skills: candidate?.skills ?? [],
+      title_level: candidate?.title_level ?? null,
+    });
+    return [
+      { label: '前端', value: scores.frontend },
+      { label: '后端', value: scores.backend },
+      { label: '移动端', value: scores.mobile },
+      { label: '数据', value: scores.data },
+      { label: '设计', value: scores.design },
+    ];
+  }, [candidate]);
+
   // ---- Handlers ----
   const handleBack = () => {
     navigate(-1);
   };
 
-  const handleViewPosition = (row: MatchedJobRow) => {
-    // Placeholder until Task 17 wires the real route.
-    navigate(`/admin/pm/projects/${row.project.id}/positions/${row.position.id}`);
+  const handleRecommend = (row: MatchedJobRow) => {
+    toast.push({
+      type: 'success',
+      message: `已推荐 ${candidate?.display_name ?? '候选人'} → ${row.position.title}`,
+    });
+  };
+
+  const handleCaution = (row: MatchedJobRow) => {
+    toast.push({
+      type: 'info',
+      message: `已标记谨慎 ${row.position.title}`,
+    });
   };
 
   // ---- Render guards ----
@@ -293,14 +358,6 @@ export function CandidateDetailPage() {
         >
           候选人详情
         </h1>
-        {candidate && (
-          <span
-            className="pm-candidate-detail-name"
-            data-testid="pm-candidate-detail-name"
-          >
-            {candidate.display_name}
-          </span>
-        )}
         {/*
           Inline candidate picker (Task 7). Lists every candidate the
           PM is currently aware of (deduped across all projects /
@@ -336,67 +393,21 @@ export function CandidateDetailPage() {
         )}
       </header>
 
+      <PMViewBanner />
+
       {isInitialLoading ? (
         <div className="pm-candidate-detail-loading" data-testid="pm-candidate-detail-loading">
           加载中…
         </div>
       ) : (
-        <>
-          {/* ----- Top row: profile + radar ----- */}
-          <section
-            className="pm-candidate-detail-top"
-            data-testid="pm-candidate-detail-top"
-            aria-label="基本信息"
-          >
-            <article className="pm-candidate-detail-profile" data-testid="pm-candidate-detail-profile">
-              <h2
-                className="pm-candidate-detail-profile-name"
-                data-testid="pm-candidate-detail-profile-name"
-              >
-                {candidate ? candidate.display_name : '匿名候选人'}
-              </h2>
-              <p
-                className="pm-candidate-detail-profile-headline"
-                data-testid="pm-candidate-detail-profile-headline"
-              >
-                {candidate?.headline_title ?? '——（候选人人选概要即将上线）'}
-              </p>
-              <dl className="pm-candidate-detail-profile-meta">
-                <div className="pm-candidate-detail-profile-row">
-                  <dt>经验</dt>
-                  <dd data-testid="pm-candidate-detail-profile-years">
-                    {candidate?.years_experience != null
-                      ? `${candidate.years_experience} 年`
-                      : '——'}
-                  </dd>
-                </div>
-                <div className="pm-candidate-detail-profile-row">
-                  <dt>职级</dt>
-                  <dd data-testid="pm-candidate-detail-profile-level">
-                    {candidate?.title_level ?? '——'}
-                  </dd>
-                </div>
-                <div className="pm-candidate-detail-profile-row pm-candidate-detail-profile-row-skills">
-                  <dt>技能</dt>
-                  <dd data-testid="pm-candidate-detail-profile-skills">
-                    {candidate?.skills && candidate.skills.length > 0
-                      ? candidate.skills.join(' / ')
-                      : '——'}
-                  </dd>
-                </div>
-                <div className="pm-candidate-detail-profile-row">
-                  <dt>候选 ID</dt>
-                  <dd
-                    className="pm-candidate-detail-profile-userid"
-                    data-testid="pm-candidate-detail-profile-userid"
-                    data-candidate-user-id={candidateUserId ?? ''}
-                  >
-                    {candidateUserId ?? '——'}
-                  </dd>
-                </div>
-              </dl>
-            </article>
+        <div className="pm-s5-grid" data-testid="pm-s5-grid">
+          {/* ----- Left column: profile card ----- */}
+          <aside className="pm-s5-grid-left" data-testid="pm-s5-grid-left">
+            <CandidateProfileCard profile={profile} />
+          </aside>
 
+          {/* ----- Right column: radar + tier badges + match table + notes ----- */}
+          <section className="pm-s5-grid-right" data-testid="pm-s5-grid-right">
             <article
               className="pm-candidate-detail-radar"
               data-testid="pm-candidate-detail-radar-card"
@@ -409,96 +420,80 @@ export function CandidateDetailPage() {
                   title_level: candidate?.title_level ?? null,
                 }}
               />
+              <TierBadgeRow dims={tierDims} />
             </article>
-          </section>
 
-          {/* ----- Matched jobs ----- */}
-          <section className="pm-candidate-detail-matches" aria-label="匹配工作">
-            <header className="pm-candidate-detail-matches-header">
-              <h2 className="pm-candidate-detail-matches-title">匹配工作</h2>
-              <span
-                className="pm-candidate-detail-matches-count"
-                data-testid="pm-candidate-detail-matches-count"
-                data-count={matchedJobs.length}
-              >
-                {isLoadingMatches
-                  ? '加载中…'
-                  : `共 ${matchedJobs.length} 个匹配`}
-              </span>
-            </header>
+            {/* ----- Matched jobs ----- */}
+            <section className="pm-candidate-detail-matches" aria-label="匹配工作">
+              <header className="pm-candidate-detail-matches-header">
+                <h2 className="pm-candidate-detail-matches-title">匹配工作</h2>
+                <span
+                  className="pm-candidate-detail-matches-count"
+                  data-testid="pm-candidate-detail-matches-count"
+                  data-count={matchedJobs.length}
+                >
+                  {isLoadingMatches
+                    ? '加载中…'
+                    : `共 ${matchedJobs.length} 个匹配`}
+                </span>
+              </header>
 
-            {isLoadingMatches && matchedJobs.length === 0 ? (
-              <div
-                className="pm-candidate-detail-matches-loading"
-                data-testid="pm-candidate-detail-matches-loading"
-              >
-                加载匹配中…
-              </div>
-            ) : matchedJobs.length === 0 ? (
-              <p
-                className="pm-candidate-detail-matches-empty"
-                data-testid="pm-candidate-detail-matches-empty"
-              >
-                该候选人暂无匹配岗位
-              </p>
-            ) : (
-              <ul
-                className="pm-candidate-detail-matches-list"
-                data-testid="pm-candidate-detail-matches-list"
-              >
-                {matchedJobs.map((row, idx) => (
-                  <li
-                    key={row.match.match_id}
-                    className="pm-candidate-detail-matches-item"
-                    data-testid={`pm-candidate-detail-match-${idx}`}
-                    data-match-id={row.match.match_id}
-                    data-score={row.match.score}
-                    data-band={scoreBand(row.match.score)}
-                  >
-                    <ScoreBadge
-                      score={row.match.score}
-                      size="sm"
-                      testId={`pm-candidate-detail-match-${idx}-score`}
-                    />
-                    <div className="pm-candidate-detail-matches-body">
-                      <button
-                        type="button"
-                        className="pm-candidate-detail-matches-title-link"
-                        data-testid={`pm-candidate-detail-match-${idx}-title`}
-                        onClick={() => handleViewPosition(row)}
-                      >
-                        {row.position.title}
-                      </button>
-                      <span
-                        className="pm-candidate-detail-matches-project"
-                        data-testid={`pm-candidate-detail-match-${idx}-project`}
-                      >
-                        @{row.project.name}
-                      </span>
-                      {row.match.reasons.length > 0 && (
-                        <p
-                          className="pm-candidate-detail-matches-reasons"
-                          data-testid={`pm-candidate-detail-match-${idx}-reasons`}
-                        >
-                          {row.match.reasons.slice(0, 2).join(' · ')}
-                          {row.match.reasons.length > 2 && '…'}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              {isLoadingMatches && matchedJobs.length === 0 ? (
+                <div
+                  className="pm-candidate-detail-matches-loading"
+                  data-testid="pm-candidate-detail-matches-loading"
+                >
+                  加载匹配中…
+                </div>
+              ) : matchedJobs.length === 0 ? (
+                <p
+                  className="pm-candidate-detail-matches-empty"
+                  data-testid="pm-candidate-detail-matches-empty"
+                >
+                  该候选人暂无匹配岗位
+                </p>
+              ) : (
+                <table className="pm-s5-match-table" data-testid="pm-s5-match-table">
+                  <thead>
+                    <tr>
+                      <th>岗位</th>
+                      <th>项目</th>
+                      <th>级别</th>
+                      <th>分数</th>
+                      <th>理由 / 差距</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matchedJobs.map((row) => (
+                      <MatchTableRow
+                        key={row.match.match_id}
+                        match={{
+                          position: row.position.title,
+                          project: row.project.name,
+                          level: row.position.title_level ?? '——',
+                          score: row.match.score,
+                          reasons: row.match.reasons.slice(0, 2).join(' / '),
+                          gaps: row.match.gaps.slice(0, 2).join(' / '),
+                        }}
+                        onRecommend={() => handleRecommend(row)}
+                        onCaution={() => handleCaution(row)}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+
+            {/* ----- PM private notes ----- */}
+            {candidateUserId && (
+              <PrivateNoteCard
+                candidateUserId={candidateUserId}
+                candidateLabel={candidate?.display_name}
+              />
             )}
           </section>
-
-          {/* ----- PM private notes ----- */}
-          {candidateUserId && (
-            <PrivateNoteCard
-              candidateUserId={candidateUserId}
-              candidateLabel={candidate?.display_name}
-            />
-          )}
-        </>
+        </div>
       )}
     </div>
   );

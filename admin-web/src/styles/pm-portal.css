@@ -3214,3 +3214,90 @@
   display: flex;
   justify-content: flex-end;
 }
+
+/* ============================================================================
+ * S5 Candidate Detail — Profile Card + Tier Badges + Match Table
+ * ============================================================================
+ * Task 10 / Task 13 visual-fidelity pass for the S5 candidate detail page.
+ *
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │ PMViewBanner (top, full width)                       │
+ *   ├────────────────┬─────────────────────────────────────┤
+ *   │ CandidateProfile│ CandidateRadar (svg)               │
+ *   │ (280px)        │  TierBadgeRow (A/B/C/D per dim)     │
+ *   │                │  MatchTable (position/project/score)│
+ *   │                │  PrivateNoteCard                    │
+ *   └────────────────┴─────────────────────────────────────┘
+ *
+ * Grid uses a fixed 280px left column so the profile card stays
+ * compact and the radar + table can stretch to the right.
+ */
+
+.pm-s5-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--sp-3);
+  align-items: start;
+}
+
+.pm-candidate-profile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+}
+
+.pm-candidate-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: var(--sp-3);
+  overflow: hidden;
+}
+.pm-candidate-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.pm-candidate-title { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--sp-2); }
+.pm-candidate-resume { font-size: 12px; line-height: 1.5; margin: var(--sp-3) 0; }
+.pm-candidate-tags { list-style: none; padding: 0; margin: 0 0 var(--sp-3); display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.pm-candidate-tags li {
+  font-size: 11px;
+  background: var(--bg);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.pm-tier-badge-row { list-style: none; padding: 0; margin: var(--sp-2) 0 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.pm-tier-badge {
+  display: grid;
+  grid-template-columns: 24px 80px 40px 1fr;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+}
+.pm-tier-letter { font-size: 16px; font-weight: 700; }
+.pm-tier-bar { display: block; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.pm-tier-bar > span { display: block; height: 100%; }
+
+.pm-s5-match-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pm-s5-match-table th,
+.pm-s5-match-table td { padding: var(--sp-2); border-bottom: 1px solid var(--border); }
+.pm-s5-match-table th { text-align: left; font-weight: 600; color: var(--text-muted); background: var(--bg); }
+.pm-s5-match-table td > button + button { margin-left: var(--sp-1); }
+
+.pm-view-banner {
+  background: var(--b-stage-candidate);
+  color: #92400e;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  margin-bottom: var(--sp-3);
+}
