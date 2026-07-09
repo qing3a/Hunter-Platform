@@ -118,6 +118,26 @@ export interface Recommendation {
   status: RecStatus;
   commission_split_json: string | null;
   referrer_headhunter_id: string | null;
+  /**
+   * v027 hunter workspace: kanban stage. One of submitted | screen_passed |
+   * interview | offer | onboarded | rejected. Defaults to 'submitted'.
+   */
+  pipeline_stage?: string;
+  /**
+   * v027 hunter workspace: ordering within a kanban column. NULL = append.
+   */
+  kanban_position?: number | null;
+  /**
+   * v030 PM Sandbox: link to the PM-owned project_position this
+   * recommendation is being funnelled into. NULL for hunter-side legacy
+   * recommendations that don't know about PM positions.
+   */
+  position_id?: string | null;
+  /**
+   * v030 PM Sandbox: unix-ms timestamp at which the recommendation entered
+   * its current `pipeline_stage`. Used to compute stuck_* risk flags.
+   */
+  stage_entered_at?: number | null;
   created_at: string;
   updated_at: string;
 }

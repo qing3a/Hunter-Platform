@@ -39,6 +39,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 20, description: 'Hunter workspace (tasks + kanban)', file: 'migrations/v027_hunter_workspace.sql' },
   { version: 21, description: 'PM Workbench (projects, positions, plans, decompositions, matches, notes)', file: 'migrations/v028_pm_workbench.sql' },
   { version: 22, description: 'Extend users.user_type CHECK to allow pm (PM Workbench /pm/* portal)', file: 'migrations/v029_add_pm_user_type.sql' },
+  { version: 23, description: 'PM Sandbox: link recommendations to project_positions + stage_entered_at', file: 'migrations/v030_pm_sandbox.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {

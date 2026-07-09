@@ -569,3 +569,102 @@ export const pmMatches = {
       method: 'POST', body: JSON.stringify({ reason }),
     }),
 };
+
+// ============================================================================
+// Sandbox (Task 9 / S3) — 5 阶段漏斗
+// ============================================================================
+//
+// Mirrors the backend handler at /v1/pm/positions/:id/sandbox. The
+// response aggregates every recommendation linked to the position
+// (hunters' kanban-stage entries) into a 6-stage funnel with a
+// per-stage count, a risk-flag summary, and an expandable candidate
+// list.
+//
+// Stage ordering on the wire is the canonical pipeline order
+// (submitted → screen_passed → interview → offer → onboarded, with
+// `rejected` as a terminal trailing bucket). The frontend renders
+// them in the same order via SANDBOX_STAGE_ORDER below.
+
+// ----- Wire types -----
+
+export type SandboxStage =
+  | 'submitted' | 'screen_passed' | 'interview' | 'offer' | 'onboarded' | 'rejected';
+
+/** Display labels mirror the hunter kanban so the funnel feels native. */
+export const SANDBOX_STAGE_LABELS: Record<SandboxStage, string> = {
+  submitted: '投递',
+  screen_passed: '简历过',
+  interview: '面试',
+  offer: 'Offer',
+  onboarded: '到岗',
+  rejected: '已拒绝',
+};
+
+/**
+ * Render order: the 5 active funnel stages first (left-to-right), with
+ * `rejected` as a trailing terminal bucket. Matches the backend
+ * PIPELINE_STAGES + 'rejected' ordering.
+ */
+export const SANDBOX_STAGE_ORDER: SandboxStage[] = [
+  'submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected',
+];
+
+/** Per-stage CSS accent key — keeps the funnel cards visually distinct. */
+export const SANDBOX_STAGE_ACCENTS: Record<SandboxStage, 'blue' | 'purple' | 'pink' | 'amber' | 'green' | 'gray'> = {
+  submitted: 'blue',
+  screen_passed: 'purple',
+  interview: 'pink',
+  offer: 'amber',
+  onboarded: 'green',
+  rejected: 'gray',
+};
+
+export interface SandboxCandidate {
+  recommendation_id: string;
+  candidate_user_id: string;
+  /** Masked display name (at most 4 chars + '***'). */
+  candidate_display_name: string;
+  /** unix ms — when the candidate entered the current pipeline_stage. */
+  stage_entered_at: number;
+  /** Risk flag identifiers. Empty array = no flags. */
+  risk_flags: string[];
+}
+
+export interface SandboxStageRiskCount {
+  stuck_long: number;
+  stuck_very_long: number;
+}
+
+export interface SandboxStageBucket {
+  stage: SandboxStage;
+  count: number;
+  risk_count: SandboxStageRiskCount;
+  /** Up to 20 candidates (oldest stage_entered_at first). */
+  candidates: SandboxCandidate[];
+}
+
+export interface SandboxSummary {
+  position: {
+    id: string;
+    title: string;
+    total_headcount_planned: number;
+    total_headcount_filled: number;
+  };
+  stages: SandboxStageBucket[];
+  total: number;
+}
+
+// ----- API namespace -----
+
+export const pmSandbox = {
+  /**
+   * GET /v1/pm/positions/:id/sandbox
+   *
+   * Returns the 6-stage funnel for a single project_position. Each
+   * stage carries a count + risk_count + a paginated candidate list
+   * (max 20 per stage — the UI shows "查看全部" placeholder for the
+   * rest, which is out-of-scope for v1).
+   */
+  get: (positionId: string) =>
+    request<SandboxSummary>(BASE, `/positions/${positionId}/sandbox`),
+};

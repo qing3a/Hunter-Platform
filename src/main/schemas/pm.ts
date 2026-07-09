@@ -516,6 +516,77 @@ export const PlanSelectResponseSchema = z.object({
   data: PlanRowSchema,
 }).strict();
 
+// ===== Sandbox (Task 9) =====
+//
+// The PM Sandbox page aggregates hunter-side `recommendations` for a
+// single project_position, grouped by the 6 pipeline stages (submitted →
+// screen_passed → interview → offer → onboarded + rejected). Each stage
+// carries its candidate count, a per-stage risk-flag summary, and (for
+// the expanded view) the candidate list with display name + stage
+// entry timestamp + per-candidate risk flags.
+//
+// Risk flags:
+//   - stuck_long       — in current stage > 30 days
+//   - stuck_very_long  — in current stage > 60 days
+//   (Future flags can be added without schema changes — see Zod z.array(z.string()).)
+//
+// The pipeline_stage enum mirrors the one in src/main/lib/hunter-pipeline.ts
+// so a `stage` value here is exactly what the hunter kanban uses.
+
+/** Mirrors `PipelineStage` from src/main/lib/hunter-pipeline.ts. */
+const SandboxStageEnum = z.enum([
+  'submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected',
+]);
+
+/** Single candidate row inside a sandbox stage (anonymized display). */
+export const SandboxCandidateSchema = z.object({
+  recommendation_id: z.string(),
+  candidate_user_id: z.string(),
+  /** Anonymized via maskName() — at most 4 chars + '***' exposed. */
+  candidate_display_name: z.string(),
+  /** unix ms — when the candidate entered the current pipeline_stage. */
+  stage_entered_at: z.number().int(),
+  /** Risk flag identifiers. Empty array = no flags. */
+  risk_flags: z.array(z.string()),
+}).strict();
+
+/** Risk-flag summary for a single stage. Counts the candidates carrying each flag. */
+export const SandboxStageRiskCountSchema = z.object({
+  stuck_long: z.number().int().nonnegative(),
+  stuck_very_long: z.number().int().nonnegative(),
+}).strict();
+
+/** Single pipeline-stage bucket in the sandbox response. */
+export const SandboxStageSchema = z.object({
+  stage: SandboxStageEnum,
+  count: z.number().int().nonnegative(),
+  /** Per-stage risk-flag counts (denormalised from `candidates`). */
+  risk_count: SandboxStageRiskCountSchema,
+  /** Up to 20 candidates in this stage (sorted oldest stage_entered_at first). */
+  candidates: z.array(SandboxCandidateSchema),
+}).strict();
+
+/** Full sandbox response for a single position. */
+export const SandboxResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    position: z.object({
+      id: z.string(),
+      title: z.string(),
+      total_headcount_planned: z.number().int().nonnegative(),
+      total_headcount_filled: z.number().int().nonnegative(),
+    }).strict(),
+    stages: z.array(SandboxStageSchema),
+    /** Sum of all per-stage counts (= total candidates in funnel). */
+    total: z.number().int().nonnegative(),
+  }),
+}).strict();
+
+export type SandboxStage = z.infer<typeof SandboxStageSchema>;
+export type SandboxCandidate = z.infer<typeof SandboxCandidateSchema>;
+export type SandboxStageRiskCount = z.infer<typeof SandboxStageRiskCountSchema>;
+export type SandboxResponse = z.infer<typeof SandboxResponseSchema>;
+
 export type CreatePlanInput = z.infer<typeof CreatePlanSchema>;
 export type UpdatePlanInput = z.infer<typeof UpdatePlanSchema>;
 export type ListPlansQuery = z.infer<typeof ListPlansQuerySchema>;

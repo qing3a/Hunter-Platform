@@ -935,3 +935,289 @@
   width: 100%;
 }
 
+/* ===========================================================================
+ * Pipeline Sandbox (Task 9 / S3) — 5 阶段漏斗
+ * ===========================================================================
+ * Cards are rendered in a 6-column grid (5 active stages + 1 rejected
+ * terminal bucket). Each card has a coloured left border keyed by stage
+ * so the funnel reads left-to-right at a glance. Clicking a card expands
+ * the candidate list below the funnel grid.
+ */
+
+.pm-sandbox {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-sandbox-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+.pm-sandbox-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-sandbox-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.pm-sandbox-back:hover { color: var(--text); text-decoration: underline; }
+.pm-sandbox-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.pm-sandbox-meta {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.pm-sandbox-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+.pm-sandbox-meta-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pm-sandbox-meta-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.pm-sandbox-loading,
+.pm-sandbox-error {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.pm-sandbox-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+  margin-bottom: var(--sp-3);
+}
+
+/* ---- Funnel grid ---- */
+.pm-sandbox-funnel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+@media (min-width: 640px) {
+  .pm-sandbox-funnel { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+  .pm-sandbox-funnel { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ---- Single funnel card ---- */
+.pm-sandbox-funnel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: var(--sp-4);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+.pm-sandbox-funnel-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.pm-sandbox-funnel-card:focus-visible {
+  outline: 2px solid var(--b-project);
+  outline-offset: 2px;
+}
+.pm-sandbox-funnel-card.is-expanded {
+  border-color: var(--c-project);
+  box-shadow: 0 0 0 2px var(--b-project);
+}
+.pm-sandbox-funnel-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.pm-sandbox-funnel-card-count {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+.pm-sandbox-funnel-card-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #fca5a5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  align-self: flex-start;
+}
+.pm-sandbox-funnel-card-risk-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+.pm-sandbox-funnel-card-risk-text { font-weight: 600; }
+.pm-sandbox-funnel-card-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: auto;
+}
+.pm-sandbox-funnel-card.has-risk { border-left-color: #ef4444; }
+.pm-sandbox-funnel-card.is-expanded.has-risk { border-left-color: #ef4444; }
+
+/* Accent left-border per stage */
+.pm-sandbox-funnel-card-blue   { border-left-color: #3b82f6; }
+.pm-sandbox-funnel-card-purple { border-left-color: #8b5cf6; }
+.pm-sandbox-funnel-card-pink   { border-left-color: #ec4899; }
+.pm-sandbox-funnel-card-amber  { border-left-color: #f59e0b; }
+.pm-sandbox-funnel-card-green  { border-left-color: #10b981; }
+.pm-sandbox-funnel-card-gray   { border-left-color: #6b7280; }
+
+/* ---- Expanded panel ---- */
+.pm-sandbox-expanded {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.pm-sandbox-expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.pm-sandbox-expanded-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.pm-sandbox-expanded-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- Candidate list ---- */
+.pm-sandbox-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-sandbox-candidate-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.pm-sandbox-candidate-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+.pm-sandbox-candidate-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-all;
+}
+.pm-sandbox-candidate-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+.pm-sandbox-candidate-entered {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pm-sandbox-candidate-flags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pm-sandbox-candidate-flag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pm-sandbox-candidate-flag-warn {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.pm-sandbox-candidate-flag-severe {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.pm-sandbox-candidate-flag-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.pm-sandbox-candidate-detail {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.pm-sandbox-candidate-detail:not(:disabled) {
+  cursor: pointer;
+  color: var(--text);
+}
+.pm-sandbox-candidate-detail:not(:disabled):hover {
+  background: var(--surface);
+  border-color: var(--c-project);
+}
+
+.pm-sandbox-empty {
+  padding: var(--sp-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+

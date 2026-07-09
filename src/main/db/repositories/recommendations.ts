@@ -116,5 +116,78 @@ export function createRecommendationsRepo(db: DB) {
         'SELECT * FROM recommendations WHERE anonymized_candidate_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
       ).all(anonymizedCandidateId, limit, offset) as unknown as Recommendation[];
     },
+
+    /**
+     * PM Workbench / Task 9 — aggregate counts grouped by pipeline_stage
+     * for a single project_position. Returns the per-stage totals plus the
+     * un-paginated grand total. Only recommendations with a non-null
+     * `position_id` are counted (hunter-side legacy rows are excluded).
+     *
+     * The aggregation is done in SQL so the handler doesn't have to fetch
+     * the whole recommendations table just to count it.
+     */
+    aggregateByPositionStage(positionId: string): {
+      submitted: number;
+      screen_passed: number;
+      interview: number;
+      offer: number;
+      onboarded: number;
+      rejected: number;
+      total: number;
+    } {
+      const row = db.prepare(`
+        SELECT
+          SUM(CASE WHEN pipeline_stage = 'submitted'     THEN 1 ELSE 0 END) AS submitted,
+          SUM(CASE WHEN pipeline_stage = 'screen_passed' THEN 1 ELSE 0 END) AS screen_passed,
+          SUM(CASE WHEN pipeline_stage = 'interview'     THEN 1 ELSE 0 END) AS interview,
+          SUM(CASE WHEN pipeline_stage = 'offer'         THEN 1 ELSE 0 END) AS offer,
+          SUM(CASE WHEN pipeline_stage = 'onboarded'     THEN 1 ELSE 0 END) AS onboarded,
+          SUM(CASE WHEN pipeline_stage = 'rejected'      THEN 1 ELSE 0 END) AS rejected,
+          COUNT(*) AS total
+        FROM recommendations
+        WHERE position_id = ?
+      `).get(positionId) as {
+        submitted: number | null;
+        screen_passed: number | null;
+        interview: number | null;
+        offer: number | null;
+        onboarded: number | null;
+        rejected: number | null;
+        total: number | null;
+      };
+      return {
+        submitted: row.submitted ?? 0,
+        screen_passed: row.screen_passed ?? 0,
+        interview: row.interview ?? 0,
+        offer: row.offer ?? 0,
+        onboarded: row.onboarded ?? 0,
+        rejected: row.rejected ?? 0,
+        total: row.total ?? 0,
+      };
+    },
+
+    /**
+     * PM Workbench / Task 9 — list the recommendations in a single
+     * pipeline_stage for a project_position. Ordered by stage_entered_at
+     * ASC (oldest first — sticky candidates float to the top of the
+     * expanded list, which is the desired UX for "风险告警").
+     *
+     * Pagination: limit defaults to 20, offset to 0. The handler can cap
+     * limit higher if needed — there's no upper bound enforced here.
+     */
+    findByPositionAndStage(
+      positionId: string,
+      stage: 'submitted' | 'screen_passed' | 'interview' | 'offer' | 'onboarded' | 'rejected',
+      opts: { limit?: number; offset?: number } = {},
+    ): Recommendation[] {
+      const limit = Math.max(opts.limit ?? 20, 1);
+      const offset = Math.max(opts.offset ?? 0, 0);
+      return db.prepare(
+        `SELECT * FROM recommendations
+         WHERE position_id = ? AND pipeline_stage = ?
+         ORDER BY stage_entered_at ASC, id ASC
+         LIMIT ? OFFSET ?`
+      ).all(positionId, stage, limit, offset) as unknown as Recommendation[];
+    },
   };
 }

@@ -41,6 +41,7 @@ import { createProjectsHandler } from '../modules/pm/projects.js';
 import { createPositionsHandler } from '../modules/pm/positions.js';
 import { createDecomposeHandler } from '../modules/pm/decompose.js';
 import { createPlansHandler } from '../modules/pm/plans.js';
+import { createSandboxHandler } from '../modules/pm/sandbox.js';
 import {
   CreateProjectSchema, UpdateProjectSchema, ListProjectsQuerySchema,
   CreatePositionSchema, UpdatePositionSchema, ListPositionsQuerySchema,
@@ -59,6 +60,7 @@ import {
   PlanDeleteResponseSchema, PlanSelectResponseSchema,
   DecomposeResponseSchema, CommitDecompositionResponseSchema,
   ListDecompositionsResponseSchema,
+  SandboxResponseSchema,
 } from '../schemas/pm.js';
 
 export function createPmRouter(db: DB): Router {
@@ -69,6 +71,7 @@ export function createPmRouter(db: DB): Router {
   const positions = createPositionsHandler(db);
   const decompose = createDecomposeHandler(db);
   const plans = createPlansHandler(db);
+  const sandbox = createSandboxHandler(db);
 
   // ===== Projects =====
 
@@ -339,6 +342,17 @@ export function createPmRouter(db: DB): Router {
       const user = (req as Request & { user?: User }).user!;
       const plan = plans.setSelectedPlan(user, String(req.params.id));
       respond(res, PlanSelectResponseSchema, { ok: true, data: plan });
+    } catch (e) { next(e); }
+  });
+
+  // ===== Sandbox (Task 9) =====
+
+  // GET /v1/pm/positions/:id/sandbox
+  router.get('/positions/:id/sandbox', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = sandbox.getSandbox(user, String(req.params.id));
+      respond(res, SandboxResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 
