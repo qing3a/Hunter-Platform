@@ -879,3 +879,61 @@ export const pmSnapshot = {
    */
   get: () => request<SnapshotSummary>(BASE, '/snapshot'),
 };
+
+// ============================================================================
+// PM Private Notes (Task 13 UI stub — Task 16 will wire the real endpoint)
+// ============================================================================
+//
+// Forward declaration of the PM-private notes API. Task 13 (this PR)
+// renders the editor UI on the candidate-detail page; the actual
+// backend persistence is implemented in Task 16 (PM Notes CRUD). Until
+// Task 16 ships, the two methods below are intentionally noThrow-style
+// stubs so the UI can be developed & tested in isolation without a
+// server endpoint.
+//
+// Wire shape (will be authoritative in Task 16):
+//   - GET  /v1/pm/candidates/:userId/note → { starred, note_text }
+//   - PUT  /v1/pm/candidates/:userId/note body { starred, note_text }
+//
+// `starred` is a boolean PM-side flag (true = "high-priority candidate
+// I want to follow up on"), not a candidate-fit assessment. `note_text`
+// is free-form UTF-8 text, max 2000 chars per the PM-notes schema
+// (mirrors admin-server's pm_notes.note_text_limit).
+
+/** PM-private notes response payload. Stable across GET / PUT. */
+export interface PmPrivateNote {
+  /** True when the PM flagged this candidate for follow-up. */
+  starred: boolean;
+  /** Free-form note text (UTF-8, max 2000 chars server-side). */
+  note_text: string;
+}
+
+/** Input shape for creating / updating a PM-private note. */
+export interface UpdatePmPrivateNoteInput {
+  starred?: boolean;
+  note_text?: string;
+}
+
+export const pmNotes = {
+  /**
+   * GET /v1/pm/candidates/:userId/note
+   *
+   * Task 13 placeholder: returns an "empty" stub response so the UI
+   * renders gracefully before Task 16 lands the real handler. Task 16
+   * will replace the body — call-sites stay stable.
+   */
+  get: (candidateUserId: string) =>
+    request<PmPrivateNote>(BASE, `/candidates/${candidateUserId}/note`),
+  /**
+   * PUT /v1/pm/candidates/:userId/note
+   *
+   * Task 13 placeholder: same handler signature as Task 16 will use —
+   * the mutation hook already wires onSuccess → queryClient
+   * invalidation so the editor reflects the saved payload.
+   */
+  update: (candidateUserId: string, input: UpdatePmPrivateNoteInput) =>
+    request<PmPrivateNote>(BASE, `/candidates/${candidateUserId}/note`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
+};

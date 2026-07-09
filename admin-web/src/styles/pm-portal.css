@@ -1799,3 +1799,468 @@
   color: var(--text-muted);
 }
 
+/* ============================================================================
+ * Candidate Detail Page (S5 / Task 13)
+ * ============================================================================
+ *
+ * Visual layout: header strip + 2-column top row (profile · radar) +
+ * matched-jobs list + sticky PM-notes card.
+ *
+ * Design notes:
+ *   - Section anchors are separated by `--sp-5` so the page breathes
+ *     when the PM scrolls between sections (matches can grow tall).
+ *   - The profile card uses `.pm-candidate-detail-profile-*` so the
+ *     left/top row in the candidate page differs from the PM-plan card
+ *     meta layout (which uses `.pm-plan-card-meta-row`).
+ *   - The matches list reuses `.pm-score-badge` rules from Task 11 so
+ *     the colour-banding is consistent with the rest of the workbench.
+ *   - Notes card lives in its own `.pm-private-note-*` namespace so
+ *     Task 16 can later extend it (multi-note history view) without
+ *     colliding with candidate-detail layout primitives.
+ */
+
+.pm-candidate-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.pm-candidate-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.pm-candidate-detail-back {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-candidate-detail-back:hover { color: var(--text); text-decoration: underline; }
+
+.pm-candidate-detail-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-candidate-detail-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-loading,
+.pm-candidate-detail-error {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.pm-candidate-detail-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* ---- Top row (profile card + radar) ---- */
+
+.pm-candidate-detail-top {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 768px) {
+  .pm-candidate-detail-top { grid-template-columns: minmax(0, 1fr) 280px; }
+}
+
+.pm-candidate-detail-profile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-profile-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-candidate-detail-profile-headline {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-profile-meta {
+  margin: var(--sp-3) 0 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+
+.pm-candidate-detail-profile-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: var(--sp-2);
+  font-size: 13px;
+  align-items: baseline;
+}
+.pm-candidate-detail-profile-row-skills {
+  grid-column: 1 / -1;
+}
+
+.pm-candidate-detail-profile-row dt {
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-candidate-detail-profile-row dd {
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-candidate-detail-profile-userid {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-radar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-radar-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  align-self: flex-start;
+}
+
+.pm-candidate-radar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ---- Matched jobs section ---- */
+
+.pm-candidate-detail-matches {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-matches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-2);
+}
+
+.pm-candidate-detail-matches-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-candidate-detail-matches-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-candidate-detail-matches-loading,
+.pm-candidate-detail-matches-empty {
+  padding: var(--sp-4);
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-matches-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pm-candidate-detail-matches-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pm-candidate-detail-matches-item:hover {
+  border-color: var(--c-project);
+}
+
+.pm-candidate-detail-matches-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pm-candidate-detail-matches-title-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-project);
+  cursor: pointer;
+  font-family: inherit;
+  word-break: break-all;
+}
+.pm-candidate-detail-matches-title-link:hover { text-decoration: underline; }
+
+.pm-candidate-detail-matches-project {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-matches-reasons {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #15803d;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* ============================================================================
+ * PM Private Note Card (Task 13, namespace .pm-private-note-*)
+ * ============================================================================
+ *
+ * Self-contained card for a PM-side private note bound to one
+ * candidate. Lives at the bottom of the candidate detail page; Task 16
+ * will add a cross-candidate history view that reuses this card.
+ *
+ * Two modes (controlled by local state, no router):
+ *   - read mode : ⭐ button + 显示文案 + "编辑" button
+ *   - edit mode : ⭐ button + textarea + 字符计数器 + "取消 / 保存"
+ *
+ * Star button is sticky (always interactive), independent of edit
+ * mode — toggling the star fires a PUT with `{ starred: !current }`.
+ */
+
+.pm-private-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-private-note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pm-private-note-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-private-note-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.pm-private-note-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-private-note-star:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+.pm-private-note-star:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.pm-private-note-star[aria-pressed="true"] {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.pm-private-note-star-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pm-private-note-edit {
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-edit:hover { background: var(--b-project); }
+
+.pm-private-note-display {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 24px;
+}
+
+.pm-private-note-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pm-private-note-empty {
+  margin: 0;
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.pm-private-note-loading,
+.pm-private-note-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pm-private-note-error { color: #b91c1c; }
+
+.pm-private-note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pm-private-note-textarea {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 96px;
+}
+.pm-private-note-textarea:focus {
+  outline: 2px solid var(--b-project);
+  outline-offset: 1px;
+  border-color: var(--c-project);
+}
+
+.pm-private-note-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pm-private-note-counter {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-private-note-buttons {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.pm-private-note-cancel {
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pm-private-note-save {
+  padding: 6px 14px;
+  background: var(--c-project);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
