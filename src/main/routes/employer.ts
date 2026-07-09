@@ -15,6 +15,8 @@ import {
   BrowseTalentResponseSchema, ExpressInterestResponseSchema,
   UnlockContactResponseSchema, PendingClaimsResponseSchema,
   ClaimJobResponseSchema, RejectJobResponseSchema,
+  GetJobResponseSchema, UpdateJobRequestSchema, UpdateJobResponseSchema,
+  JobActionResponseSchema,
 } from '../schemas/employer.js';
 import type { User } from '../../shared/types.js';
 
@@ -28,6 +30,8 @@ const CreateJobSchema = z.object({
   deadline: z.string().optional(),
   industry: z.string().max(100).optional(),
 });
+
+const JobIdParamSchema = z.object({ id: z.string().min(1).max(64) });
 
 const ExpressInterestSchema = z.object({
   recommendation_id: z.string().min(1),
@@ -170,6 +174,70 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
         { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
       );
       respond(res, RejectJobResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // -------------------------------------------------------------------------
+  // Task 5 backend gap fill: GET / PATCH / pause / resume / close
+  // -------------------------------------------------------------------------
+
+  // GET /v1/employer/jobs/:id — single-job detail. Owner-only.
+  router.get('/jobs/:id', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const job = handler.getJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, GetJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // PATCH /v1/employer/jobs/:id — partial edit. Owner-only.
+  router.patch('/jobs/:id', (req, res, next) => {
+    try {
+      const idParsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!idParsed.success) throw Errors.invalidParams('Invalid job id');
+      const bodyParsed = UpdateJobRequestSchema.safeParse(req.body ?? {});
+      if (!bodyParsed.success) throw Errors.invalidParams('Invalid request body', { issues: bodyParsed.error.issues });
+      // Reject empty bodies — there's nothing to apply; surfacing as 400 is
+      // louder than a silent no-op and lines up with the spec's "any subset".
+      if (Object.keys(bodyParsed.data).length === 0) {
+        throw Errors.invalidParams('No fields to update');
+      }
+      const job = handler.updateJob(
+        (req as typeof req & { user?: User }).user!,
+        { id: idParsed.data.id, fields: bodyParsed.data },
+      );
+      respond(res, UpdateJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/pause — flip open → paused. Owner-only.
+  router.post('/jobs/:id/pause', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.pauseJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/resume — flip paused → open. Owner-only.
+  router.post('/jobs/:id/resume', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.resumeJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/close — hard-close from open or paused. Owner-only.
+  router.post('/jobs/:id/close', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.closeJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 
