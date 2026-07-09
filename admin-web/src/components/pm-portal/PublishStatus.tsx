@@ -42,7 +42,7 @@ export function PublishStatus({ status, publishedAt, failureReason, onPublish, o
       {(status === 'unpublished' || status === 'failed') && (
         <button
           className="pm-btn-secondary pm-publish-btn"
-          onClick={isPublished ? onRepublish : onPublish}
+          onClick={status === 'failed' ? onRepublish : onPublish}
         >
           {status === 'unpublished' ? '📤 发布' : '🔄 重发'}
         </button>

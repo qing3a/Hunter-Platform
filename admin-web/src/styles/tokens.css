@@ -18,6 +18,10 @@
   --b-stage-match: #faf5ff;
   --b-stage-hunter: rgba(16, 185, 129, 0.10);
 
+  /* Status / semantic tokens (publish chip etc.) */
+  --ok: #16a34a;
+  --danger: #dc2626;
+
   /* 间距 */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px;
   --sp-4: 16px; --sp-6: 24px; --sp-8: 32px;
