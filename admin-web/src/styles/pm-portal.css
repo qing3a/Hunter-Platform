@@ -1384,6 +1384,67 @@
   font-size: 13px;
 }
 
+/* ---- Inline candidate list (Task 8 — always rendered, no collapse) ---- */
+.pm-funnel-candidates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-funnel-candidates li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+.pm-funnel-candidates li .pm-funnel-candidate-name {
+  color: var(--text);
+  font-weight: 500;
+}
+.pm-funnel-candidates li .pm-funnel-candidate-meta {
+  display: inline-flex;
+  gap: var(--sp-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.pm-funnel-candidates-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- On-track / amber remediation alert (Task 8) ---- */
+.pm-ontrack { padding: var(--sp-3); border-radius: var(--r-sm); font-size: 12px; }
+.pm-ontrack--ok { background: rgba(16,185,129,.10); color: var(--ok, #16a34a); }
+.pm-ontrack--warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+
+/* ---- Top action bar (Task 8 — 导出报告 button) ---- */
+.pm-sandbox-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-left: auto;
+}
+.pm-sandbox-export-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.pm-sandbox-export-btn:hover { border-color: var(--c-project); }
+.pm-sandbox-export-btn:focus-visible {
+  outline: 2px solid var(--b-project);
+  outline-offset: 2px;
+}
+
 /* ============================================================================
  * Candidate Matches Page (Task 11 / S6)
  * ============================================================================

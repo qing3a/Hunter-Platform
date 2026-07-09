@@ -1,37 +1,39 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   pmPositions,
   pmSandbox,
-  SANDBOX_STAGE_LABELS,
   SANDBOX_STAGE_ORDER,
   type SandboxStage,
 } from '../../api/pm-portal';
-import {
-  SandboxFunnelCard,
-  SandboxCandidateRow,
-} from '../../components/pm-portal/SandboxFunnelCard';
+import { SandboxFunnelCard } from '../../components/pm-portal/SandboxFunnelCard';
+import { OnTrackAlert } from '../../components/pm-portal/OnTrackAlert';
 import { PositionPicker } from '../../components/pm-portal/PositionPicker';
+import { useToast } from '../../lib/toast';
 
 // ============================================================================
-// PipelineSandboxPage (Task 9 / S3)
+// PipelineSandboxPage (Task 8 / S3)
 // ============================================================================
 //
-// The PM Sandbox is a 5-stage funnel that visualises the candidate
+// The PM Sandbox is a 6-stage funnel that visualises the candidate
 // pipeline for a single project_position. Each stage card shows:
 //   - count                       total candidates in this stage
 //   - risk indicator              red dot when any candidate is stuck
-//   - expandable candidate list   per-candidate row with masked name,
-//                                  relative stage-entry time, and risk chips
+//   - inline candidate list       always visible (Task 8 — no click-to-expand)
+//
+// Footer
+//   - <OnTrackAlert>              green or amber banner comparing
+//                                  {offer + onboarded} vs headcount_planned
+// Top-right
+//   - 📋 导出报告 button          toast on click (v1 placeholder)
 //
 // Layout
 // ------
-//   1. Header    — position title + "返回项目详情" link
-//   2. Meta strip — headcount planned/filled + total candidates in funnel
-//   3. Funnel    — 6 SandboxFunnelCards in canonical pipeline order
-//   4. Expand    — when a stage is clicked, its candidate list renders
-//                  below the funnel in a scrollable panel
+//   1. Header    — back link, position title, inline PositionPicker,
+//                  导出报告 button, headcount meta strip
+//   2. Funnel    — 6 SandboxFunnelCards in canonical pipeline order
+//   3. Alert     — OnTrackAlert at the very bottom of the page
 //
 // Network
 // -------
@@ -46,11 +48,7 @@ import { PositionPicker } from '../../components/pm-portal/PositionPicker';
 export function PipelineSandboxPage() {
   const { id: positionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  // At most one stage is expanded at a time. Tapping a different stage
-  // switches the panel; tapping the same stage collapses it. null =
-  // nothing expanded (initial state).
-  const [expandedStage, setExpandedStage] = useState<SandboxStage | null>(null);
+  const toast = useToast();
 
   // ---- Network: position header ----
   const positionQuery = useQuery({
@@ -91,20 +89,35 @@ export function PipelineSandboxPage() {
     return map;
   }, [sandboxQuery.data]);
 
-  const expandedBucket = expandedStage ? stageByStage.get(expandedStage) : undefined;
+  // ---- OnTrackAlert metrics (Task 8) ----
+  // Total of candidates currently holding an `offer` or having reached
+  // `onboarded`. Compare against the position's planned headcount.
+  const offerOnboardedCount = useMemo(() => {
+    if (!sandboxQuery.data) return 0;
+    const offerBucket = stageByStage.get('offer');
+    const onboardedBucket = stageByStage.get('onboarded');
+    return (offerBucket?.count ?? 0) + (onboardedBucket?.count ?? 0);
+  }, [sandboxQuery.data, stageByStage]);
+
+  const target = positionQuery.data?.position.headcount_planned ?? 0;
 
   // ---- Handlers ----
-  const handleToggle = (stage: SandboxStage) => {
-    setExpandedStage((prev) => (prev === stage ? null : stage));
-  };
-
   const handleBack = () => {
-    const projectId = positionQuery.data?.position.project_id;
-    if (projectId) {
-      navigate(`/admin/pm/projects/${projectId}`);
+    const projId = positionQuery.data?.position.project_id;
+    if (projId) {
+      navigate(`/admin/pm/projects/${projId}`);
     } else {
       navigate('/admin/pm/projects');
     }
+  };
+
+  const handleExport = () => {
+    // v1 placeholder: real export (PDF / CSV) is out-of-scope. We surface
+    // a toast so the PM knows the button is wired up.
+    toast.push({
+      type: 'info',
+      message: '导出报告功能即将上线',
+    });
   };
 
   // ---- Render ----
@@ -190,6 +203,20 @@ export function PipelineSandboxPage() {
               }}
             />
           )}
+          {/*
+            Top-right action bar (Task 8). Sits inside the same flex row
+            as the title so we don't need a second header line.
+          */}
+          <div className="pm-sandbox-actions">
+            <button
+              type="button"
+              className="pm-sandbox-export-btn"
+              onClick={handleExport}
+              data-testid="pm-sandbox-export-btn"
+            >
+              📋 导出报告
+            </button>
+          </div>
         </div>
         {position && (
           <div className="pm-sandbox-meta" data-testid="pm-sandbox-meta">
@@ -218,7 +245,7 @@ export function PipelineSandboxPage() {
           <section
             className="pm-sandbox-funnel"
             data-testid="pm-sandbox-funnel"
-            aria-label="5 阶段招聘漏斗"
+            aria-label="6 阶段招聘漏斗"
           >
             {SANDBOX_STAGE_ORDER.map((stage) => {
               const bucket = stageByStage.get(stage);
@@ -227,46 +254,22 @@ export function PipelineSandboxPage() {
                 <SandboxFunnelCard
                   key={stage}
                   bucket={bucket}
-                  isExpanded={expandedStage === stage}
-                  onToggle={handleToggle}
                 />
               );
             })}
           </section>
 
-          {expandedStage && (
-            <section
-              className="pm-sandbox-expanded"
-              data-testid="pm-sandbox-expanded"
-              data-stage={expandedStage}
-            >
-              <header className="pm-sandbox-expanded-header">
-                <h2 className="pm-sandbox-expanded-title">
-                  {SANDBOX_STAGE_LABELS[expandedStage]} 阶段候选人
-                </h2>
-                <span className="pm-sandbox-expanded-count">
-                  共 {expandedBucket?.count ?? 0} 人
-                  {expandedBucket && expandedBucket.candidates.length < expandedBucket.count
-                    ? ` (显示前 ${expandedBucket.candidates.length})`
-                    : ''}
-                </span>
-              </header>
-              {expandedBucket && expandedBucket.candidates.length > 0 ? (
-                <div className="pm-sandbox-candidate-list">
-                  {expandedBucket.candidates.map((c) => (
-                    <SandboxCandidateRow
-                      key={c.recommendation_id}
-                      candidate={c}
-                      stage={expandedStage}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="pm-sandbox-empty" data-testid="pm-sandbox-expanded-empty">
-                  此阶段暂无候选人
-                </div>
-              )}
-            </section>
+          {/*
+            Task 8 — bottom-of-page on-track alert. Renders once the
+            position header has loaded (so we have a target). It is
+            independent of the sandbox query so it surfaces even when
+            the funnel is still loading.
+          */}
+          {position && (
+            <OnTrackAlert
+              offerOnboarded={offerOnboardedCount}
+              target={target}
+            />
           )}
         </>
       )}

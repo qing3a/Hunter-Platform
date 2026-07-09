@@ -1,9 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import {
-  SandboxFunnelCard,
-  SandboxCandidateRow,
-} from '../SandboxFunnelCard';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { SandboxFunnelCard } from '../SandboxFunnelCard';
 import type {
   SandboxStageBucket,
   SandboxCandidate,
@@ -34,6 +31,13 @@ function makeCandidate(overrides: Partial<SandboxCandidate> = {}): SandboxCandid
 }
 
 // ---- Tests ----------------------------------------------------------------
+//
+// Task 8 — SandboxFunnelCard refactor:
+//   - props simplified to just `{ bucket }` (no more isExpanded/onToggle)
+//   - the candidate list is ALWAYS rendered inline (no click-to-expand)
+//
+// Tests below cover both the basic funnel-card rendering AND the new
+// always-inline candidate list behaviour.
 
 describe('SandboxFunnelCard', () => {
   beforeEach(() => {
@@ -44,8 +48,6 @@ describe('SandboxFunnelCard', () => {
     render(
       <SandboxFunnelCard
         bucket={makeBucket('submitted', { count: 7 })}
-        isExpanded={false}
-        onToggle={() => {}}
       />,
     );
     const card = screen.getByTestId('pm-sandbox-funnel-submitted');
@@ -54,45 +56,24 @@ describe('SandboxFunnelCard', () => {
     expect(card).toHaveTextContent('7');
     expect(card).toHaveAttribute('data-count', '7');
     expect(card).toHaveAttribute('data-stage', 'submitted');
-    expect(card).toHaveAttribute('data-expanded', 'false');
   });
 
-  it('fires onToggle with the stage on click', () => {
-    const onToggle = vi.fn();
+  it('does NOT expose the click-to-expand interaction (Task 8 — always inline)', () => {
     render(
       <SandboxFunnelCard
         bucket={makeBucket('interview', { count: 3 })}
-        isExpanded={false}
-        onToggle={onToggle}
       />,
     );
-    fireEvent.click(screen.getByTestId('pm-sandbox-funnel-interview'));
-    expect(onToggle).toHaveBeenCalledWith('interview');
-  });
-
-  it('fires onToggle on Enter / Space keyboard activation', () => {
-    const onToggle = vi.fn();
-    render(
-      <SandboxFunnelCard
-        bucket={makeBucket('offer', { count: 1 })}
-        isExpanded={false}
-        onToggle={onToggle}
-      />,
-    );
-    const card = screen.getByTestId('pm-sandbox-funnel-offer');
-    fireEvent.keyDown(card, { key: 'Enter' });
-    fireEvent.keyDown(card, { key: ' ' });
-    expect(onToggle).toHaveBeenCalledTimes(2);
-    expect(onToggle).toHaveBeenNthCalledWith(1, 'offer');
-    expect(onToggle).toHaveBeenNthCalledWith(2, 'offer');
+    const card = screen.getByTestId('pm-sandbox-funnel-interview');
+    expect(card).not.toHaveAttribute('role', 'button');
+    expect(card).not.toHaveAttribute('aria-expanded');
+    expect(card).not.toHaveAttribute('data-expanded');
   });
 
   it('does NOT show a risk indicator when both stuck_* counts are 0', () => {
     render(
       <SandboxFunnelCard
         bucket={makeBucket('submitted', { count: 2, risk_count: { stuck_long: 0, stuck_very_long: 0 } })}
-        isExpanded={false}
-        onToggle={() => {}}
       />,
     );
     expect(screen.queryByTestId('pm-sandbox-funnel-risk-submitted')).toBeNull();
@@ -106,8 +87,6 @@ describe('SandboxFunnelCard', () => {
           count: 5,
           risk_count: { stuck_long: 2, stuck_very_long: 0 },
         })}
-        isExpanded={false}
-        onToggle={() => {}}
       />,
     );
     const card = screen.getByTestId('pm-sandbox-funnel-interview');
@@ -124,49 +103,19 @@ describe('SandboxFunnelCard', () => {
           count: 4,
           risk_count: { stuck_long: 1, stuck_very_long: 2 },
         })}
-        isExpanded={false}
-        onToggle={() => {}}
       />,
     );
     expect(screen.getByTestId('pm-sandbox-funnel-screen_passed')).toHaveAttribute('data-risk-count', '3');
     expect(screen.getByTestId('pm-sandbox-funnel-risk-screen_passed')).toHaveTextContent('3 风险');
   });
 
-  it('marks the card as expanded when isExpanded=true', () => {
-    render(
-      <SandboxFunnelCard
-        bucket={makeBucket('onboarded', { count: 1 })}
-        isExpanded={true}
-        onToggle={() => {}}
-      />,
-    );
-    const card = screen.getByTestId('pm-sandbox-funnel-onboarded');
-    expect(card).toHaveClass('is-expanded');
-    expect(card).toHaveAttribute('data-expanded', 'true');
-    expect(card).toHaveAttribute('aria-expanded', 'true');
-    expect(card).toHaveTextContent('收起');
-  });
-
-  it('renders the empty hint when count is 0', () => {
-    render(
-      <SandboxFunnelCard
-        bucket={makeBucket('rejected', { count: 0 })}
-        isExpanded={false}
-        onToggle={() => {}}
-      />,
-    );
-    expect(screen.getByTestId('pm-sandbox-funnel-rejected')).toHaveTextContent('空');
-  });
-
-  it('renders each of the 6 stages correctly via the same component', () => {
+  it('renders all 6 stages correctly via the same component', () => {
     const stages: SandboxStage[] = ['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'];
     for (const stage of stages) {
       cleanup();
       render(
         <SandboxFunnelCard
           bucket={makeBucket(stage, { count: 1 })}
-          isExpanded={false}
-          onToggle={() => {}}
         />,
       );
       expect(screen.getByTestId(`pm-sandbox-funnel-${stage}`)).toBeInTheDocument();
@@ -174,81 +123,80 @@ describe('SandboxFunnelCard', () => {
   });
 });
 
-describe('SandboxCandidateRow', () => {
+// -------------------------------------------------------------------------
+// Task 8 — inline candidate list (no longer behind a click)
+// -------------------------------------------------------------------------
+
+describe('SandboxFunnelCard — inline candidate list', () => {
   beforeEach(() => {
     cleanup();
   });
 
-  it('renders the masked candidate name', () => {
+  it('renders <ul className="pm-funnel-candidates"> by default (no click needed)', () => {
     render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({ candidate_display_name: 'A***ce' })}
-        stage="submitted"
+      <SandboxFunnelCard
+        bucket={makeBucket('screen_passed', {
+          count: 2,
+          candidates: [
+            makeCandidate({ recommendation_id: 'rec_a', candidate_display_name: 'A***ce', stage_entered_at: Date.now() - 5 * 86_400_000 }),
+            makeCandidate({ recommendation_id: 'rec_b', candidate_display_name: 'B***ob', stage_entered_at: Date.now() - 35 * 86_400_000, risk_flags: ['stuck_long'] }),
+          ],
+        })}
+      />,
+    );
+    const list = screen.getByTestId('pm-sandbox-funnel-candidates-screen_passed');
+    expect(list).toBeInTheDocument();
+    expect(list.tagName).toBe('UL');
+    expect(list).toHaveClass('pm-funnel-candidates');
+  });
+
+  it('renders each candidate with masked name + relative stage-entry time', () => {
+    render(
+      <SandboxFunnelCard
+        bucket={makeBucket('interview', {
+          count: 1,
+          candidates: [
+            makeCandidate({
+              recommendation_id: 'rec_x',
+              candidate_display_name: 'A***ce',
+              stage_entered_at: Date.now() - 2 * 86_400_000,
+            }),
+          ],
+        })}
       />,
     );
     expect(screen.getByText('A***ce')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('pm-sandbox-funnel-candidate-entered-interview-rec_x'),
+    ).toHaveTextContent('2 天前进入');
   });
 
-  it('renders "无风险" when the candidate has no flags', () => {
+  it('renders risk-flag chips inline per candidate', () => {
     render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({ risk_flags: [] })}
-        stage="submitted"
-      />,
-    );
-    expect(screen.getByText('无风险')).toBeInTheDocument();
-  });
-
-  it('renders a stuck_long flag chip when present', () => {
-    render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({
-          risk_flags: ['stuck_long'],
-          recommendation_id: 'rec_x',
+      <SandboxFunnelCard
+        bucket={makeBucket('offer', {
+          count: 1,
+          candidates: [
+            makeCandidate({
+              recommendation_id: 'rec_y',
+              risk_flags: ['stuck_very_long'],
+            }),
+          ],
         })}
-        stage="screen_passed"
       />,
     );
-    expect(screen.getByTestId('pm-sandbox-candidate-flag-rec_x-stuck_long')).toHaveTextContent(
-      '停留 > 30 天',
-    );
-  });
-
-  it('renders a stuck_very_long flag chip with the severe style', () => {
-    render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({
-          risk_flags: ['stuck_very_long'],
-          recommendation_id: 'rec_y',
-        })}
-        stage="offer"
-      />,
-    );
-    const chip = screen.getByTestId('pm-sandbox-candidate-flag-rec_y-stuck_very_long');
+    const chip = screen.getByTestId('pm-sandbox-funnel-candidate-flag-rec_y-stuck_very_long');
     expect(chip).toHaveTextContent('停留 > 60 天');
-    expect(chip).toHaveClass('pm-sandbox-candidate-flag-severe');
   });
 
-  it('disables the detail button (placeholder)', () => {
+  it('renders the empty placeholder when no candidates are present', () => {
     render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({ recommendation_id: 'rec_z' })}
-        stage="submitted"
+      <SandboxFunnelCard
+        bucket={makeBucket('rejected', { count: 0, candidates: [] })}
       />,
     );
-    const btn = screen.getByTestId('pm-sandbox-candidate-detail-rec_z');
-    expect(btn).toBeDisabled();
-  });
-
-  it('formats the stage_entered_at timestamp as a relative Chinese string', () => {
-    render(
-      <SandboxCandidateRow
-        candidate={makeCandidate({
-          stage_entered_at: Date.now() - 2 * 86_400_000,
-        })}
-        stage="submitted"
-      />,
-    );
-    expect(screen.getByText(/2 天前/)).toBeInTheDocument();
+    expect(
+      screen.getByTestId('pm-sandbox-funnel-candidates-empty-rejected'),
+    ).toHaveTextContent('—');
   });
 });

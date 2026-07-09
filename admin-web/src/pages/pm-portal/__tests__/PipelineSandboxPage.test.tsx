@@ -292,7 +292,7 @@ describe('PipelineSandboxPage — funnel cards', () => {
   });
 });
 
-describe('PipelineSandboxPage — expand / collapse', () => {
+describe('PipelineSandboxPage — Task 8 inline candidate list + on-track alert + export', () => {
   beforeEach(() => {
     cleanup();
     navigateSpy.mockClear();
@@ -302,127 +302,120 @@ describe('PipelineSandboxPage — expand / collapse', () => {
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
-  it('expands a stage when its card is clicked', async () => {
-    const summary = makeSummary({
-      stages: (['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'] as SandboxStage[])
-        .map((s, i) => makeBucket(s, {
-          count: i === 1 ? 2 : 0,
-          candidates: i === 1 ? [
-            { recommendation_id: 'rec_a', candidate_user_id: 'u_a', candidate_display_name: 'A***ce', stage_entered_at: Date.now() - 5 * 86_400_000, risk_flags: [] },
-            { recommendation_id: 'rec_b', candidate_user_id: 'u_b', candidate_display_name: 'B***ob', stage_entered_at: Date.now() - 35 * 86_400_000, risk_flags: ['stuck_long'] },
-          ] : [],
-        })),
-    });
+  it('renders the <ul className="pm-funnel-candidates"> inline by default (no click needed)', async () => {
     mockedGetPosition.mockResolvedValue({
       position: makePosition(),
       stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
     });
-    mockedGetSandbox.mockResolvedValue(summary);
+    mockedGetSandbox.mockResolvedValue(
+      makeSummary({
+        stages: (['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'] as SandboxStage[])
+          .map((s, i) => makeBucket(s, {
+            count: i === 1 ? 2 : 0,
+            candidates: i === 1 ? [
+              { recommendation_id: 'rec_a', candidate_user_id: 'u_a', candidate_display_name: 'A***ce', stage_entered_at: Date.now() - 5 * 86_400_000, risk_flags: [] },
+              { recommendation_id: 'rec_b', candidate_user_id: 'u_b', candidate_display_name: 'B***ob', stage_entered_at: Date.now() - 35 * 86_400_000, risk_flags: ['stuck_long'] },
+            ] : [],
+          })),
+      }),
+    );
     renderPage();
-    // Wait for the funnel to hydrate.
     await waitFor(() => {
       expect(screen.getByTestId('pm-sandbox-funnel-screen_passed')).toBeInTheDocument();
     });
-
-    // Initially nothing expanded
-    expect(screen.queryByTestId('pm-sandbox-expanded')).toBeNull();
-
-    // Click '简历过' card → expand
-    fireEvent.click(screen.getByTestId('pm-sandbox-funnel-screen_passed'));
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-expanded')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('pm-sandbox-expanded')).toHaveAttribute('data-stage', 'screen_passed');
-    expect(screen.getByTestId('pm-sandbox-candidate-rec_a')).toBeInTheDocument();
-    expect(screen.getByTestId('pm-sandbox-candidate-rec_b')).toBeInTheDocument();
-    expect(screen.getByTestId('pm-sandbox-candidate-flag-rec_b-stuck_long')).toHaveTextContent('停留 > 30 天');
+    // The candidate list is rendered WITHOUT any click.
+    const list = screen.getByTestId('pm-sandbox-funnel-candidates-screen_passed');
+    expect(list).toBeInTheDocument();
+    expect(list.tagName).toBe('UL');
+    expect(list).toHaveClass('pm-funnel-candidates');
+    // And it contains the rows we seeded.
+    expect(screen.getByTestId('pm-sandbox-funnel-candidate-screen_passed-rec_a')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-sandbox-funnel-candidate-screen_passed-rec_b')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-sandbox-funnel-candidate-flag-rec_b-stuck_long')).toHaveTextContent(
+      '停留 > 30 天',
+    );
   });
 
-  it('collapses a stage when its card is clicked again', async () => {
+  it('renders the empty placeholder for stages with 0 candidates', async () => {
     mockedGetPosition.mockResolvedValue({
       position: makePosition(),
       stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
     });
+    mockedGetSandbox.mockResolvedValue(makeSummary());
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-sandbox-funnel-rejected')).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId('pm-sandbox-funnel-candidates-empty-rejected'),
+    ).toHaveTextContent('—');
+  });
+
+  it('renders the 📋 导出报告 button in the top action bar', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedGetSandbox.mockResolvedValue(makeSummary());
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-sandbox-export-btn')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('pm-sandbox-export-btn')).toHaveTextContent('导出报告');
+  });
+
+  it('fires a toast when the export button is clicked', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedGetSandbox.mockResolvedValue(makeSummary());
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-sandbox-export-btn')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('pm-sandbox-export-btn'));
+    await waitFor(() => {
+      // ToastProvider renders individual .toast items with the message text.
+      expect(screen.getAllByText(/导出报告/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it('renders <OnTrackAlert ok=true when offer+onboarded >= headcount_planned', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition({ headcount_planned: 5, headcount_filled: 5 }),
+      stats: { headcount_planned: 5, headcount_filled: 5, is_complete: true },
+    });
+    // offer=3 + onboarded=3 = 6 >= 5 → on-track
     mockedGetSandbox.mockResolvedValue(
       makeSummary({
         stages: (['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'] as SandboxStage[])
           .map((s, i) => makeBucket(s, {
-            count: i === 0 ? 1 : 0,
-            candidates: i === 0 ? [
-              { recommendation_id: 'rec_only', candidate_user_id: 'u_only', candidate_display_name: 'C***la', stage_entered_at: Date.now(), risk_flags: [] },
-            ] : [],
+            count: i === 3 ? 3 : i === 4 ? 3 : 0,
           })),
       }),
     );
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-funnel-submitted')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-ontrack-ok')).toBeInTheDocument();
     });
-    const submitted = screen.getByTestId('pm-sandbox-funnel-submitted');
-    fireEvent.click(submitted);
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-expanded')).toBeInTheDocument();
-    });
-    fireEvent.click(submitted);
-    await waitFor(() => {
-      expect(screen.queryByTestId('pm-sandbox-expanded')).toBeNull();
-    });
+    expect(screen.getByTestId('pm-ontrack-ok')).toHaveTextContent('✓ 节奏正常');
   });
 
-  it('switches the expanded stage when a different card is clicked', async () => {
+  it('renders <OnTrackAlert warn when offer+onboarded < headcount_planned', async () => {
     mockedGetPosition.mockResolvedValue({
-      position: makePosition(),
+      position: makePosition({ headcount_planned: 5, headcount_filled: 1 }),
       stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
     });
-    mockedGetSandbox.mockResolvedValue(
-      makeSummary({
-        stages: (['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'] as SandboxStage[])
-          .map((s, i) => makeBucket(s, {
-            count: i === 0 || i === 2 ? 1 : 0,
-            candidates: i === 0 ? [
-              { recommendation_id: 'rec_sub', candidate_user_id: 'u_sub', candidate_display_name: 'A***ce', stage_entered_at: Date.now(), risk_flags: [] },
-            ] : i === 2 ? [
-              { recommendation_id: 'rec_iv', candidate_user_id: 'u_iv', candidate_display_name: 'B***ob', stage_entered_at: Date.now(), risk_flags: [] },
-            ] : [],
-          })),
-      }),
-    );
+    // offer=0 + onboarded=0 = 0 < 5 → amber remediation
+    mockedGetSandbox.mockResolvedValue(makeSummary());
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-funnel-submitted')).toBeInTheDocument();
+      expect(screen.getByTestId('pm-ontrack-warn')).toBeInTheDocument();
     });
-
-    fireEvent.click(screen.getByTestId('pm-sandbox-funnel-submitted'));
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-expanded')).toHaveAttribute('data-stage', 'submitted');
-    });
-
-    fireEvent.click(screen.getByTestId('pm-sandbox-funnel-interview'));
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-expanded')).toHaveAttribute('data-stage', 'interview');
-    });
-  });
-
-  it('shows the "此阶段暂无候选人" empty state when the expanded stage has 0 candidates', async () => {
-    mockedGetPosition.mockResolvedValue({
-      position: makePosition(),
-      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
-    });
-    mockedGetSandbox.mockResolvedValue(
-      makeSummary({
-        stages: (['submitted', 'screen_passed', 'interview', 'offer', 'onboarded', 'rejected'] as SandboxStage[])
-          .map((s) => makeBucket(s, { count: 0 })),
-      }),
-    );
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-funnel-onboarded')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByTestId('pm-sandbox-funnel-onboarded'));
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-sandbox-expanded-empty')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('pm-sandbox-expanded-empty')).toHaveTextContent('此阶段暂无候选人');
+    expect(screen.getByTestId('pm-ontrack-warn')).toHaveTextContent('还差 5 个');
+    expect(screen.getByTestId('pm-ontrack-warn')).toHaveTextContent('已 0');
+    expect(screen.getByTestId('pm-ontrack-warn')).toHaveTextContent('目标 5');
   });
 });
 
