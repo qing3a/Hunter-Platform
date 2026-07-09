@@ -5,9 +5,11 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   // Sub-G fix: server.ts mounts admin SPA at '/admin/*' via express.static.
-  // base: '/admin/' tells Vite to emit asset paths with this prefix so
-  // <script src="/admin/assets/..."> resolves correctly in the served HTML.
-  base: '/admin/',
+  // base: '/admin' (no trailing slash) so both '/admin' and '/admin/...' are
+  // served as the SPA — Vite's default behaviour is to show a "did you mean
+  // /admin/?" tip when the request URL equals the base URL minus the trailing
+  // slash, which broke the dev-server flow.
+  base: '/admin',
   build: {
     outDir: path.resolve(__dirname, '../out/admin'),
     emptyOutDir: true,
