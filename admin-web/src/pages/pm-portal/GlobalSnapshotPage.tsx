@@ -1,32 +1,29 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { pmSnapshot } from '../../api/pm-portal';
-import { SnapshotFunnel } from '../../components/pm-portal/SnapshotFunnel';
+import { useNavigate } from 'react-router-dom';
+import { pmSnapshot, type SnapshotSummary } from '../../api/pm-portal';
+import { TopFilterBar } from '../../components/pm-portal/TopFilterBar';
+import { DrillFunnelCard } from '../../components/pm-portal/DrillFunnelCard';
 import { ActivityFeed } from '../../components/pm-portal/ActivityFeed';
+import type { Stage } from '../../components/pm-portal/stage-tokens';
 
 // ============================================================================
-// GlobalSnapshotPage (Task 12 / S1)
+// GlobalSnapshotPage (Task 3 / S1 redesign)
 // ============================================================================
 //
-// The PM Workbench home page. Renders the 4-stage funnel (projects →
-// positions → candidates → matches) and the 24h HR activity feed.
+// The PM Workbench home page. Two-part layout:
+//   1. TopFilterBar — slim filter strip pinned to the top of the page
+//   2. Horizontal drill funnel — 4 DrillFunnelCards in canonical order
+//      (projects → positions → candidates → matches) separated by `→`
+//      arrows. Each card is clickable and drills into the relevant page.
+//   3. Activity feed — last 24h HR activity events (reused as-is from
+//      Task 12).
 //
-// Layout
-// ------
-//   1. Header
-//        - "全局快照" title
-//        - last-updated timestamp ("生成于 N 分钟前")
-//        - refresh button (manual refetch)
-//   2. Funnel  — 4 SnapshotFunnelCards in canonical funnel order
-//   3. Activity feed — up to 50 events from the last 24h
-//
-// Network
-// -------
-//   - pmSnapshot.get()   single-shot aggregation
-//   - The page does NOT auto-poll in v1 — the user clicks "刷新" to
-//     pull fresh data. A `pollIntervalMs` knob is reserved for a
-//     later task (the spec calls for 30s auto-refresh as a stretch
-//     goal).
+// Drill-through destinations (per the S1 prototype):
+//   projects    → /admin/pm/projects
+//   positions   → /admin/pm/snapshot  (placeholder — future positions list)
+//   candidates  → /admin/pm/library
+//   matches     → /admin/pm/snapshot  (placeholder)
 //
 // Routing
 // -------
@@ -34,42 +31,95 @@ import { ActivityFeed } from '../../components/pm-portal/ActivityFeed';
 // route. For now the test file mounts the page directly via
 // MemoryRouter.
 
+const STAGES: Stage[] = ['projects', 'positions', 'candidates', 'matches'];
+const ORDINALS = ['①', '②', '③', '④'] as const;
+
+const STATUS_LABEL: Record<string, string> = {
+  planning: '规划中',
+  active: '招聘中',
+  paused: '已暂停',
+  completed: '已完成',
+  cancelled: '已取消',
+  open: '开放',
+  paused_position: '暂停中',
+  filled: '已招满',
+};
+
 export function GlobalSnapshotPage() {
+  // ---- Local UI state ----
+  // The 3 filter values live in local state until the backend exposes
+  // the `?range=&status=&project_id=` query params on `/v1/pm/snapshot`
+  // (post-Task 14). At that point these can be hoisted into the URL.
+  const [project, setProject] = useState('全部');
+  const [status, setStatus] = useState('进行中');
+  const [range, setRange] = useState('近 90 天');
+
   // ---- Network: snapshot ----
-  // We rely on `refetch` to drive the manual refresh button. The query
-  // is NOT polled (refetchInterval: false) — the page emits a "刷新"
-  // button that calls refetch() on click.
-  const snapshotQuery = useQuery({
+  // Auto-refresh is OFF in v1 (the user clicks "刷新" to pull fresh
+  // data). The `refetchInterval` knob is reserved for the stretch goal
+  // described in the plan.
+  const snapshotQuery = useQuery<SnapshotSummary>({
     queryKey: ['pm', 'snapshot'],
     queryFn: () => pmSnapshot.get(),
     refetchInterval: false,
     refetchOnWindowFocus: false,
   });
 
-  // ---- Local state ----
-  // The refresh button shows a spinner-style "刷新中…" while the
-  // refetch is in flight.
-  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+  // ---- Navigation ----
+  // The page uses `useNavigate()` (not `window.location.href`) so the
+  // react-router lifecycle stays in control — same convention Task 2
+  // adopted for the sidebar pill.
+  const navigate = useNavigate();
 
   // ---- Handlers ----
-  const handleRefresh = async () => {
-    setIsManualRefreshing(true);
-    try {
-      await snapshotQuery.refetch();
-    } finally {
-      setIsManualRefreshing(false);
+  const handleRefresh = () => {
+    snapshotQuery.refetch();
+  };
+
+  const handleExport = () => {
+    // v2 of the snapshot will support CSV / Excel export. Until then
+    // show a friendly placeholder so the user knows the action exists.
+    window.alert('导出 v2 即将上线');
+  };
+
+  const handleCreate = () => {
+    navigate('/admin/pm/projects?new=1');
+  };
+
+  const drillTo = (stage: Stage) => {
+    switch (stage) {
+      case 'projects':
+        navigate('/admin/pm/projects');
+        break;
+      case 'candidates':
+        navigate('/admin/pm/library');
+        break;
+      case 'positions':
+      case 'matches':
+      default:
+        // Placeholder — the dedicated positions / matches pages are
+        // post-Task 3 work. Stay on the snapshot so the click feels
+        // honest.
+        navigate('/admin/pm/snapshot');
+        break;
     }
   };
 
-  // ---- Derived state ----
-  const data = snapshotQuery.data;
+  // ---- Render: loading ----
+  if (snapshotQuery.isLoading) {
+    return (
+      <div className="pm-page pm-snapshot" data-testid="pm-snapshot-loading">
+        加载中…
+      </div>
+    );
+  }
 
   // ---- Render: error ----
   if (snapshotQuery.isError) {
     return (
-      <div className="pm-snapshot" data-testid="pm-snapshot-error-root">
+      <div className="pm-page pm-snapshot" data-testid="pm-snapshot-error-root">
         <header className="pm-snapshot-header">
-          <h1 className="pm-snapshot-title">全局快照</h1>
+          <h1 className="pm-snapshot-title">📊 全局快照 · 跨项目鸟瞰</h1>
         </header>
         <div className="pm-snapshot-error" data-testid="pm-snapshot-error">
           加载失败:{String((snapshotQuery.error as Error)?.message ?? '未知错误')}
@@ -79,79 +129,91 @@ export function GlobalSnapshotPage() {
   }
 
   // ---- Render: success ----
+  const data = snapshotQuery.data;
+  if (!data) {
+    return (
+      <div className="pm-page pm-snapshot" data-testid="pm-snapshot-loading">
+        加载中…
+      </div>
+    );
+  }
+
+  const f = data.funnel;
+  const counts: Record<Stage, number> = {
+    projects: f.projects.total,
+    positions: f.positions.total,
+    candidates: f.candidates.total,
+    matches: f.matches.total,
+  };
+
+  const subItems = (s: Stage): Array<{ label: string; value: number }> => {
+    if (s === 'projects') {
+      return Object.entries(f.projects.by_status).map(([k, v]) => ({
+        label: STATUS_LABEL[k] ?? k,
+        value: v,
+      }));
+    }
+    if (s === 'positions') {
+      return Object.entries(f.positions.by_status).map(([k, v]) => ({
+        label: STATUS_LABEL[k] ?? k,
+        value: v,
+      }));
+    }
+    if (s === 'candidates') {
+      return [{ label: '已脱敏', value: f.candidates.distinct }];
+    }
+    // matches
+    return [{ label: '平均分', value: f.matches.avg_score }];
+  };
+
   return (
-    <div className="pm-snapshot" data-testid="pm-snapshot-root">
-      <header className="pm-snapshot-header">
-        <div className="pm-snapshot-header-left">
-          <h1 className="pm-snapshot-title" data-testid="pm-snapshot-title">全局快照</h1>
-          {data && (
-            <span
-              className="pm-snapshot-generated-at"
-              data-testid="pm-snapshot-generated-at"
-              data-generated-at={data.generated_at}
-            >
-              生成于 {formatGeneratedAt(data.generated_at)}
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          className="pm-snapshot-refresh"
-          onClick={handleRefresh}
-          disabled={snapshotQuery.isFetching}
-          data-testid="pm-snapshot-refresh"
-          aria-label="刷新快照"
-        >
-          {snapshotQuery.isFetching ? '刷新中…' : '刷新'}
-        </button>
-      </header>
+    <div className="pm-page pm-snapshot" data-testid="pm-snapshot-root">
+      <TopFilterBar
+        project={project}
+        status={status}
+        range={range}
+        onProjectChange={setProject}
+        onStatusChange={setStatus}
+        onRangeChange={setRange}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+        onCreate={handleCreate}
+      />
 
-      {snapshotQuery.isLoading || !data ? (
-        <div className="pm-snapshot-loading" data-testid="pm-snapshot-loading">
-          加载中…
-        </div>
-      ) : (
-        <>
-          <section
-            className="pm-snapshot-section"
-            data-testid="pm-snapshot-funnel-section"
-            aria-label="全局漏斗"
-          >
-            <h2 className="pm-snapshot-section-title">数据概览</h2>
-            <SnapshotFunnel funnel={data.funnel} />
-          </section>
+      <h2 className="pm-snapshot-title" data-testid="pm-snapshot-title">
+        📊 全局快照 · 跨项目鸟瞰
+      </h2>
+      <p className="pm-snapshot-hint">日常请用 📁 项目详情</p>
 
-          <section
-            className="pm-snapshot-section"
-            data-testid="pm-snapshot-activity-section"
-            aria-label="近 24 小时活动"
-          >
-            <h2 className="pm-snapshot-section-title">近 24 小时活动</h2>
-            <ActivityFeed events={data.activity} />
-          </section>
-        </>
-      )}
+      <div className="pm-funnel-pipeline" data-testid="pm-funnel-pipeline">
+        {STAGES.map((s, i) => (
+          <span key={s} style={{ display: 'contents' }}>
+            <DrillFunnelCard
+              stage={s}
+              ordinal={ORDINALS[i]}
+              count={counts[s]}
+              subItems={subItems(s)}
+              onClick={() => drillTo(s)}
+            />
+            {i < STAGES.length - 1 && (
+              <span className="pm-funnel-arrow" aria-hidden="true">→</span>
+            )}
+          </span>
+        ))}
+      </div>
 
-      {isManualRefreshing && (
-        <span className="pm-snapshot-sr-only" aria-live="polite">
-          正在刷新…
-        </span>
-      )}
+      <div className="pm-snapshot-tip" data-testid="pm-snapshot-tip">
+        💡 点击任一阶段卡片下钻查看详情 · 当前画布：项目级
+      </div>
+
+      <section
+        className="pm-snapshot-section"
+        data-testid="pm-snapshot-activity-section"
+        aria-label="近 24 小时活动"
+      >
+        <h3 className="pm-snapshot-section-title">近 24 小时活动</h3>
+        <ActivityFeed events={data.activity} />
+      </section>
     </div>
   );
-}
-
-// ---- Helpers ----
-
-/**
- * "生成于 N 分钟前" formatter — caps at "刚刚" / "X 分钟前" / "X 小时前".
- * The page header uses this so the user can see how stale the snapshot
- * is at a glance.
- */
-function formatGeneratedAt(unixMs: number): string {
-  const delta = Date.now() - unixMs;
-  if (delta < 60_000) return '刚刚';
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)} 分钟前`;
-  if (delta < 86_400_000) return `${Math.floor(delta / 3_600_000)} 小时前`;
-  return '昨天';
 }

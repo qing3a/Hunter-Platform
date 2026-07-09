@@ -2903,3 +2903,100 @@
   margin: 0;
   word-break: break-all;
 }
+
+/* ============================================================================
+ * S1 redesign (Task 3) — Top filter strip + horizontal drill funnel
+ * ============================================================================
+ *
+ * Replaces the original `pm-snapshot-funnel*` grid with a more S1-style
+ * layout: a slim filter strip pinned to the top of the page, followed by
+ * a horizontal 4-stage funnel pipeline with `→` arrows between cards.
+ * The strip / pipeline primitives live below; the legacy `pm-snapshot-funnel`
+ * grid is retained so other Tasks (11 / 14) that still import the
+ * SnapshotFunnel component continue to render unchanged.
+ */
+
+.pm-topfilter {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+.pm-topfilter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pm-topfilter select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.pm-funnel-pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: var(--sp-3);
+  flex-wrap: nowrap;
+}
+.pm-funnel-stage {
+  flex: 1;
+  border: 2px solid;
+  border-radius: var(--r-md, 8px);
+  padding: var(--sp-4);
+  min-height: 220px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+}
+.pm-funnel-stage:hover { transform: translateY(-2px); }
+.pm-funnel-stage:focus-visible {
+  outline: 2px solid var(--b-stage-project);
+  outline-offset: 2px;
+}
+.pm-funnel-stage-ordinal { font-size: 24px; font-weight: 600; opacity: 0.6; }
+.pm-funnel-stage-label { font-size: 14px; font-weight: 600; margin-top: 4px; }
+.pm-funnel-stage-count { font-size: 32px; font-weight: 700; margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+.pm-funnel-stage-subs {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-2) 0 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-funnel-arrow {
+  align-self: center;
+  color: #94a3b8;
+  font-size: 20px;
+  padding: 0 var(--sp-2);
+  flex-shrink: 0;
+}
+
+.pm-snapshot-hint {
+  margin: 0 0 var(--sp-3) 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pm-snapshot-tip {
+  margin: 0 0 var(--sp-4) 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
