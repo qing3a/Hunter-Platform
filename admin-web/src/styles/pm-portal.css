@@ -3000,3 +3000,36 @@
   border-radius: 6px;
   padding: 8px 12px;
 }
+
+/* ---- Project detail (S2) — two-column grid + sticky match sidebar (Task 4) ---- */
+.pm-s2-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--sp-3);
+  align-items: start;
+}
+.pm-s2-match-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.pm-s2-match-title { font-size: 14px; margin: 0 0 var(--sp-2) 0; }
+.pm-s2-match-subtitle { font-size: 11px; color: var(--text-muted); margin-bottom: var(--sp-3); }
+.pm-s2-match-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.pm-s2-match-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2); border-radius: var(--r-sm);
+  background: var(--b-stage-match);
+}
+.pm-s2-match-score { font-size: 24px; font-weight: 700; min-width: 40px; text-align: center; }
+.pm-s2-match-title-row { font-size: 12px; font-weight: 600; }
+.pm-s2-match-project { font-size: 11px; color: var(--text-muted); }
+.pm-s2-match-viewall {
+  display: block; text-align: center; margin-top: var(--sp-3);
+  padding: var(--sp-2); font-size: 11px; color: var(--accent);
+}

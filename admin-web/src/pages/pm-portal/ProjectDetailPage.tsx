@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   pmProjects,
   pmPositions,
+  pmMatches,
   PROJECT_STATUS_LABELS,
   type ProjectStatus,
 } from '../../api/pm-portal';
@@ -11,45 +12,38 @@ import { formatBudgetYuan } from '../../components/pm-portal/ProjectCard';
 import { PositionTable } from '../../components/pm-portal/PositionTable';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
 import { AIDecomposeModal } from '../../components/pm-portal/AIDecomposeModal';
+import { MatchSidebar, type SidebarMatch } from '../../components/pm-portal/MatchSidebar';
 
 // ============================================================================
-// ProjectDetailPage (S2 / Task 5 + Task 6)
+// ProjectDetailPage (S2 / Task 4)
 // ============================================================================
 //
 // Per-project detail surface for the PM Workbench. Renders the project
-// header (name / target / budget / dates / team / status) plus four
-// tabs:
-//   - 概览 (Overview)   project-level KPI tiles + recent positions
-//   - 岗位 (Positions)  full PositionTable + "智能拆岗位" CTA → AIDecomposeModal
-//   - 计划 (Plans)      placeholder (Task 7)
-//   - 匹配 (Matches)    placeholder (Task 10)
+// header (name / target / budget / dates / team / status) plus an S2
+// two-column layout:
 //
-// Tab state is local (useState) — the URL doesn't carry a tab param yet
-// because the page isn't mounted via App.tsx (Task 17 territory). When
-// routing lands, the same component can be lifted to a URL-driven tab
-// by replacing `activeTab` with `useSearchParams` and dropping the
-// state hook — no other changes required.
+//   ┌─────────────────────────────┬──────────────────┐
+//   │  PositionTable              │  MatchSidebar    │
+//   │  (left, 1fr)                │  (right, 320px)  │
+//   └─────────────────────────────┴──────────────────┘
+//
+// A top action bar exposes 3 cross-cutting flows:
+//   - 📋 项目元数据  → opens the metadata edit modal (Task 6 wires the modal)
+//   - ⚖️ 方案对比     → navigates to /admin/pm/projects/:id/compare
+//   - 📊 沙盘         → navigates to the first position's sandbox page
+//                       (falls back to /admin/pm/snapshot when the project
+//                       has no positions yet)
+//
+// The tab-based 概览/岗位/计划/匹配 layout (Task 5+6) was retired in
+// favour of the S2 single-pane view so the candidate-match sidebar can
+// stay sticky on the right at all times.
 //
 // Network calls:
-//   - pmProjects.get(id)       fetches the project + its positions / plans
-//   - pmPositions.stats(id)    aggregate counts for the Overview tile row
-//   - pmPositions.list(id)     lazy — only fires when the Positions tab
-//                              is opened (avoids loading the full list
-//                              for PMs who only want to read the Overview)
-//
-// Task 6 surface: the "智能拆岗位" button mounts AIDecomposeModal, which
-// runs the heuristic, lets the PM edit suggestions inline, and on commit
-// bulk-creates real project_positions. We invalidate the positions /
-// project queries on commit so the Overview + Positions tabs refresh.
-
-type TabKey = 'overview' | 'positions' | 'plans' | 'matches';
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'overview', label: '概览' },
-  { key: 'positions', label: '岗位' },
-  { key: 'plans', label: '计划' },
-  { key: 'matches', label: '匹配' },
-];
+//   - pmProjects.get(id)     fetches the project + its positions / plans
+//   - pmPositions.stats(id)  aggregate counts for the overview tile row
+//   - pmPositions.list(id)   always-on (no longer gated by tab visibility)
+//   - pmMatches.list(pos)    top-N matches for the first position, used
+//                            by the right-column MatchSidebar
 
 const STATUS_COLORS: Record<ProjectStatus, string> = {
   planning: '#6b7280',
@@ -58,6 +52,8 @@ const STATUS_COLORS: Record<ProjectStatus, string> = {
   completed: '#2563eb',
   cancelled: '#ef4444',
 };
+
+const SIDEBAR_MATCH_LIMIT = 4;
 
 function StatusBadge({ status }: { status: ProjectStatus }) {
   const color = STATUS_COLORS[status];
@@ -101,14 +97,13 @@ export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [showAiModal, setShowAiModal] = useState(false);
 
   /**
    * Called by AIDecomposeModal after a successful commit. Invalidates
    * the three queries that reflect project_positions state so the
-   * Overview + Positions tabs update immediately. No extra GET round
-   * trips — react-query just refetches the cached queries.
+   * Positions table + MatchSidebar update immediately. No extra GET
+   * round trips — react-query just refetches the cached queries.
    */
   function onDecomposeCommitted() {
     if (!id) return;
@@ -117,30 +112,48 @@ export function ProjectDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['pm', 'projects', 'get', id] });
   }
 
-  // The project detail fetch. This is unconditional because every tab
-  // (Overview / Positions / Plans / Matches) needs the project header.
+  // The project detail fetch. This is unconditional because every
+  // section (header / PositionTable / MatchSidebar) needs the project
+  // header and the positions list.
   const projectQuery = useQuery({
     queryKey: ['pm', 'projects', 'get', id],
     queryFn: () => pmProjects.get(id!),
     enabled: Boolean(id),
   });
 
-  // The Overview tab also shows position stats (separate from the
-  // project-level `stats.total_positions` so the UI can show distinct
-  // open/paused/filled tiles). Fires on first Overview render.
+  // Position stats for the overview tile row. Always-on in the S2
+  // layout (the overview no longer hides behind a tab).
   const statsQuery = useQuery({
     queryKey: ['pm', 'positions', 'stats', id],
     queryFn: () => pmPositions.stats(id!),
-    enabled: Boolean(id) && activeTab === 'overview',
+    enabled: Boolean(id),
   });
 
-  // The Positions tab lists every position. Lazy: doesn't fire until
-  // the tab is opened (avoids a network call for PMs who only need the
-  // Overview).
+  // Position list for PositionTable. Always-on too — the table is the
+  // primary content of the left column.
   const positionsQuery = useQuery({
     queryKey: ['pm', 'positions', 'list', id],
     queryFn: () => pmPositions.list(id!),
-    enabled: Boolean(id) && activeTab === 'positions',
+    enabled: Boolean(id),
+  });
+
+  // Match sidebar is driven by the first position's top matches. This
+  // keeps the v1 surface simple — Task 10 will let the PM switch
+  // sidebar position context. The query is gated on the project
+  // detail being available so we don't churn the server with
+  // empty-position 404s. We resolve the position id from the cached
+  // project detail (no extra round-trip).
+  const sidebarPositionId = projectQuery.data?.positions?.[0]?.id ?? null;
+
+  // Top matches for the right-column MatchSidebar. Backed by a
+  // react-query that only fires once a position is available. The
+  // hook must run unconditionally (Rules of Hooks) so we always
+  // invoke it, even when the project detail is still loading.
+  const sidebarMatchesQuery = useQuery({
+    queryKey: ['pm', 'matches', 'sidebar', sidebarPositionId],
+    queryFn: () =>
+      pmMatches.list(sidebarPositionId!, { limit: SIDEBAR_MATCH_LIMIT }),
+    enabled: Boolean(sidebarPositionId),
   });
 
   if (projectQuery.isLoading) {
@@ -168,6 +181,41 @@ export function ProjectDetailPage() {
   const team = summarizeTeam(project.current_team);
   const positionStats = statsQuery.data;
   const recentPositions = positions.slice(0, 5);
+  const sidebarPosition = positions[0] ?? null;
+
+  // Adapt MatchListItem → SidebarMatch. The match wire shape doesn't
+  // carry a position title (the caller already knows it from the URL),
+  // so we hydrate positionTitle from the parent project positions
+  // list and projectName from the project itself. The display name
+  // surface ("this position / project") is what the SidebarMatch
+  // contract expects from the S2 visual mock.
+  const sidebarMatches: SidebarMatch[] = (sidebarMatchesQuery.data?.matches ?? []).map((m) => ({
+    positionId: m.position_id,
+    positionTitle: sidebarPosition?.title ?? '该岗位',
+    projectName: project.name,
+    score: m.score,
+  }));
+
+  function handleMetadataClick() {
+    // Task 6 wires the actual MetadataEditModal here. For Task 4 the
+    // button is presentational so the visual fidelity ships first.
+  }
+
+  function handleCompareClick() {
+    if (!id) return;
+    navigate(`/admin/pm/projects/${id}/compare`);
+  }
+
+  function handleSandboxClick() {
+    if (!id) return;
+    if (sidebarPositionId) {
+      navigate(`/admin/pm/projects/${id}/positions/${sidebarPositionId}/sandbox`);
+    } else {
+      // No positions yet — fall back to the global snapshot so the
+      // PM still lands on a meaningful surface.
+      navigate('/admin/pm/snapshot');
+    }
+  }
 
   return (
     <div className="pm-detail" data-testid="pm-detail">
@@ -212,89 +260,94 @@ export function ProjectDetailPage() {
         </dl>
       </header>
 
-      <nav className="pm-detail-tabs" role="tablist" aria-label="项目详情" data-testid="pm-detail-tabs">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.key}
-            data-testid={`pm-detail-tab-${tab.key}`}
-            className={`pm-detail-tab${activeTab === tab.key ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <nav className="pm-detail-actionbar" data-testid="pm-detail-actionbar" aria-label="项目操作">
+        <button
+          type="button"
+          className="pm-btn-secondary"
+          data-testid="pm-detail-action-metadata"
+          onClick={handleMetadataClick}
+        >
+          📋 项目元数据
+        </button>
+        <button
+          type="button"
+          className="pm-btn-secondary"
+          data-testid="pm-detail-action-compare"
+          onClick={handleCompareClick}
+        >
+          ⚖️ 方案对比
+        </button>
+        <button
+          type="button"
+          className="pm-btn-secondary"
+          data-testid="pm-detail-action-sandbox"
+          onClick={handleSandboxClick}
+        >
+          📊 沙盘
+        </button>
       </nav>
 
-      {activeTab === 'overview' && (
-        <section
-          className="pm-detail-pane"
-          role="tabpanel"
-          data-testid="pm-detail-overview"
-        >
-          <div className="pm-kpi-grid" data-testid="pm-detail-overview-kpi">
-            <ProjectKPICard
-              label="岗位总数"
-              value={positionStats?.total ?? stats.total_positions}
-              accent="blue"
-              testId="pm-detail-stat-total"
-            />
-            <ProjectKPICard
-              label="招聘中"
-              value={positionStats?.open ?? 0}
-              accent="green"
-              testId="pm-detail-stat-open"
-            />
-            <ProjectKPICard
-              label="已招满"
-              value={positionStats?.filled ?? 0}
-              accent="purple"
-              testId="pm-detail-stat-filled"
-            />
-            <ProjectKPICard
-              label="HC 进度"
-              value={`${positionStats?.headcount_filled_total ?? 0} / ${positionStats?.headcount_planned_total ?? 0}`}
-              accent="amber"
-              testId="pm-detail-stat-headcount"
-            />
-            <ProjectKPICard
-              label="计划数"
-              value={stats.total_plans}
-              accent="blue"
-              testId="pm-detail-stat-plans"
-            />
-          </div>
+      <section className="pm-detail-overview" data-testid="pm-detail-overview">
+        <div className="pm-kpi-grid" data-testid="pm-detail-overview-kpi">
+          <ProjectKPICard
+            label="岗位总数"
+            value={positionStats?.total ?? stats.total_positions}
+            accent="blue"
+            testId="pm-detail-stat-total"
+          />
+          <ProjectKPICard
+            label="招聘中"
+            value={positionStats?.open ?? 0}
+            accent="green"
+            testId="pm-detail-stat-open"
+          />
+          <ProjectKPICard
+            label="已招满"
+            value={positionStats?.filled ?? 0}
+            accent="purple"
+            testId="pm-detail-stat-filled"
+          />
+          <ProjectKPICard
+            label="HC 进度"
+            value={`${positionStats?.headcount_filled_total ?? 0} / ${positionStats?.headcount_planned_total ?? 0}`}
+            accent="amber"
+            testId="pm-detail-stat-headcount"
+          />
+          <ProjectKPICard
+            label="计划数"
+            value={stats.total_plans}
+            accent="blue"
+            testId="pm-detail-stat-plans"
+          />
+        </div>
 
-          <section className="pm-detail-recent" data-testid="pm-detail-recent">
-            <h2 className="pm-detail-section-title">最近岗位</h2>
-            {recentPositions.length === 0 ? (
-              <p className="pm-detail-recent-empty" data-testid="pm-detail-recent-empty">
-                暂无岗位
-              </p>
-            ) : (
-              <ul className="pm-detail-recent-list">
-                {recentPositions.map((p) => (
-                  <li key={p.id} className="pm-detail-recent-item" data-testid="pm-detail-recent-item">
-                    <span className="pm-detail-recent-title">{p.title}</span>
-                    <span className="pm-detail-recent-meta">
-                      {p.headcount_filled} / {p.headcount_planned} HC
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+        <section className="pm-detail-recent" data-testid="pm-detail-recent">
+          <h2 className="pm-detail-section-title">最近岗位</h2>
+          {recentPositions.length === 0 ? (
+            <p className="pm-detail-recent-empty" data-testid="pm-detail-recent-empty">
+              暂无岗位
+            </p>
+          ) : (
+            <ul className="pm-detail-recent-list">
+              {recentPositions.map((p) => (
+                <li key={p.id} className="pm-detail-recent-item" data-testid="pm-detail-recent-item">
+                  <span className="pm-detail-recent-title">{p.title}</span>
+                  <span className="pm-detail-recent-meta">
+                    {p.headcount_filled} / {p.headcount_planned} HC
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-      )}
 
-      {activeTab === 'positions' && (
-        <section
-          className="pm-detail-pane"
-          role="tabpanel"
-          data-testid="pm-detail-positions"
-        >
+        <p className="pm-detail-overview-footnote" data-testid="pm-detail-overview-footnote">
+          当前计划数:{stats.total_plans} 条(从 project detail 响应中读取,共 {plans.length} 条计划)。
+        </p>
+      </section>
+
+      <div className="pm-s2-grid" data-testid="pm-s2-grid">
+        <div className="pm-s2-main" data-testid="pm-s2-main">
           <div className="pm-detail-pane-toolbar">
             <button
               type="button"
@@ -309,37 +362,12 @@ export function ProjectDetailPage() {
             positions={positionsQuery.data?.positions ?? []}
             loading={positionsQuery.isLoading}
           />
-        </section>
-      )}
-
-      {activeTab === 'plans' && (
-        <section
-          className="pm-detail-pane"
-          role="tabpanel"
-          data-testid="pm-detail-plans-placeholder"
-        >
-          <h2>Plans — coming in Task 7</h2>
-          <p>
-            这里会展示项目的招聘计划列表和详情。当前的计划数:{stats.total_plans}。
-            计划详情页会在 Task 7 中实现,届时会列出每个阶段的里程碑和任务。
-          </p>
-          <p>当前计划数:{plans.length} 条(从 project detail 响应中读取)。</p>
-        </section>
-      )}
-
-      {activeTab === 'matches' && (
-        <section
-          className="pm-detail-pane"
-          role="tabpanel"
-          data-testid="pm-detail-matches-placeholder"
-        >
-          <h2>Matches — coming in Task 10</h2>
-          <p>
-            这里会展示系统为该项目推荐的人选匹配。匹配引擎在 Task 10 中实现,届时 PM
-            可以浏览 / 接受 / 拒绝 AI 推荐的候选人,并为每个岗位生成 match queue。
-          </p>
-        </section>
-      )}
+        </div>
+        <MatchSidebar
+          positionId={sidebarPositionId ?? ''}
+          matches={sidebarMatches}
+        />
+      </div>
 
       {showAiModal && id && (
         <AIDecomposeModal

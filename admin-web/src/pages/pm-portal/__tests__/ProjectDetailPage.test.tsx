@@ -3,12 +3,13 @@ import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ProjectDetailPage } from '../ProjectDetailPage';
-import { pmProjects, pmPositions } from '../../../api/pm-portal';
+import { pmProjects, pmPositions, pmMatches } from '../../../api/pm-portal';
 import {
   PROJECT_STATUS_LABELS,
   type ProjectSummary,
   type Position,
   type PositionStats,
+  type MatchListItem,
 } from '../../../api/pm-portal';
 
 // ---- Mocks ----------------------------------------------------------------
@@ -47,6 +48,12 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
       bulkCreate: vi.fn(),
       stats: vi.fn(),
     },
+    pmMatches: {
+      list: vi.fn(),
+      recompute: vi.fn(),
+      accept: vi.fn(),
+      reject: vi.fn(),
+    },
     pmDecompose: {
       decompose: vi.fn(),
       commit: vi.fn(),
@@ -59,6 +66,7 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
 const mockedGetProject = vi.mocked(pmProjects.get);
 const mockedListPositions = vi.mocked(pmPositions.list);
 const mockedStatsPositions = vi.mocked(pmPositions.stats);
+const mockedListMatches = vi.mocked(pmMatches.list);
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -115,6 +123,21 @@ function makeStats(overrides: Partial<PositionStats> = {}): PositionStats {
   };
 }
 
+function makeMatch(overrides: Partial<MatchListItem> = {}): MatchListItem {
+  return {
+    match_id: 1,
+    position_id: 'pos-1',
+    candidate_user_id: 'cand-1',
+    score: 92,
+    reasons: ['React', '5y exp'],
+    gaps: [],
+    created_at: 1_700_000_000_000,
+    candidate_display_name: '张*三',
+    headline: null,
+    ...overrides,
+  };
+}
+
 function renderPage(projectId = 'proj-1') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -139,6 +162,7 @@ describe('ProjectDetailPage', () => {
     mockedGetProject.mockReset();
     mockedListPositions.mockReset();
     mockedStatsPositions.mockReset();
+    mockedListMatches.mockReset();
   });
 
   it('shows a loading state while the project request is in flight', () => {
@@ -185,7 +209,7 @@ describe('ProjectDetailPage', () => {
     expect(within(header).getByTestId('pm-detail-team')).toHaveTextContent('Engineer × 3');
   });
 
-  it('renders four tabs: 概览 / 岗位 / 计划 / 匹配', async () => {
+  it('renders the S2 action bar with three buttons (metadata / compare / sandbox)', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -196,32 +220,15 @@ describe('ProjectDetailPage', () => {
     mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
 
     renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
+    await waitFor(() => screen.getByTestId('pm-detail-actionbar'));
 
-    const tabs = within(screen.getByTestId('pm-detail-tabs')).getAllByRole('tab');
-    expect(tabs.map((t) => t.textContent)).toEqual(['概览', '岗位', '计划', '匹配']);
+    const actionbar = screen.getByTestId('pm-detail-actionbar');
+    expect(within(actionbar).getByTestId('pm-detail-action-metadata')).toHaveTextContent('项目元数据');
+    expect(within(actionbar).getByTestId('pm-detail-action-compare')).toHaveTextContent('方案对比');
+    expect(within(actionbar).getByTestId('pm-detail-action-sandbox')).toHaveTextContent('沙盘');
   });
 
-  it('starts on the Overview tab by default', async () => {
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [],
-      plans: [],
-      stats: { total_positions: 0, filled_positions: 0, total_plans: 1, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
-    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
-
-    const overviewTab = within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '概览' });
-    expect(overviewTab.getAttribute('aria-selected')).toBe('true');
-    // Overview content (stats cards) is visible.
-    expect(screen.getByTestId('pm-detail-overview')).toBeInTheDocument();
-  });
-
-  it('switches to the Positions tab and shows the PositionTable', async () => {
+  it('renders the S2 grid layout (1fr + 320px) with PositionTable in the left column', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [makePosition()],
@@ -233,20 +240,150 @@ describe('ProjectDetailPage', () => {
       positions: [makePosition()],
       total: 1,
     });
+    mockedListMatches.mockResolvedValueOnce({ matches: [], total: 0 });
 
     renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
+    await waitFor(() => screen.getByTestId('pm-s2-grid'));
 
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
-    // The lazy pmPositions.list query is now enabled; wait for the
-    // rendered table rather than relying on a fixed flush().
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-positions-table')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('pm-position-row')).toBeInTheDocument();
+    const grid = screen.getByTestId('pm-s2-grid');
+    // PositionTable is in the left (s2-main) column.
+    expect(within(grid).getByTestId('pm-s2-main')).toBeInTheDocument();
+    expect(within(within(grid).getByTestId('pm-s2-main')).getByTestId('pm-positions-table')).toBeInTheDocument();
+    // MatchSidebar is in the right column.
+    expect(within(grid).getByTestId('pm-s2-match-sidebar')).toBeInTheDocument();
   });
 
-  it('Overview tab shows position stats + plan count + recent positions', async () => {
+  it('renders the MatchSidebar with current position matches (top 4)', async () => {
+    const position = makePosition({ id: 'pos-99', title: 'Tech Lead' });
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [position],
+      plans: [],
+      stats: { total_positions: 1, filled_positions: 0, total_plans: 1, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats());
+    mockedListPositions.mockResolvedValueOnce({ positions: [position], total: 1 });
+    mockedListMatches.mockResolvedValueOnce({
+      matches: [
+        makeMatch({ match_id: 1, position_id: 'pos-99', score: 92 }),
+        makeMatch({ match_id: 2, position_id: 'pos-99', score: 85 }),
+        makeMatch({ match_id: 3, position_id: 'pos-99', score: 70 }),
+        makeMatch({ match_id: 4, position_id: 'pos-99', score: 60 }),
+      ],
+      total: 4,
+    });
+
+    renderPage();
+    // Wait for the lazy pmMatches.list query to resolve and at least
+    // one row to render. The sidebar mounts before the matches load
+    // (it shows the empty state during the loading window). In the
+    // real-world v1 case every match is scoped to the same position
+    // so all rows share the same data-testid suffix — use
+    // getAllByTestId to count them.
+    await waitFor(() => screen.getAllByTestId('pm-s2-match-row-pos-99'));
+
+    const sidebar = screen.getByTestId('pm-s2-match-sidebar');
+    const rows = within(sidebar).getAllByTestId('pm-s2-match-row-pos-99');
+    expect(rows).toHaveLength(4);
+    // The highest-scoring row surfaces the position title and project
+    // name (server returns matches sorted by score DESC).
+    expect(rows[0]).toHaveTextContent('92');
+    expect(rows[0]).toHaveTextContent('Tech Lead');
+    expect(rows[0]).toHaveTextContent('AI Engineering Expansion');
+    // The empty state is no longer present.
+    expect(within(sidebar).queryByTestId('pm-s2-match-empty')).toBeNull();
+  });
+
+  it('MatchSidebar shows empty state when no matches exist', async () => {
+    const position = makePosition({ id: 'pos-99' });
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [position],
+      plans: [],
+      stats: { total_positions: 1, filled_positions: 0, total_plans: 1, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats());
+    mockedListPositions.mockResolvedValueOnce({ positions: [position], total: 1 });
+    mockedListMatches.mockResolvedValueOnce({ matches: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-s2-match-empty'));
+
+    expect(screen.getByTestId('pm-s2-match-empty')).toHaveTextContent('暂无匹配');
+  });
+
+  it('navigates to the plan-comparison page when 方案对比 is clicked', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-compare'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-compare'));
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-1/compare');
+  });
+
+  it('navigates to the first position sandbox when 沙盘 is clicked', async () => {
+    const first = makePosition({ id: 'pos-first' });
+    const second = makePosition({ id: 'pos-second' });
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [first, second],
+      plans: [],
+      stats: { total_positions: 2, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats());
+    mockedListPositions.mockResolvedValueOnce({ positions: [first, second], total: 2 });
+    mockedListMatches.mockResolvedValueOnce({ matches: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-sandbox'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-sandbox'));
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-1/positions/pos-first/sandbox');
+  });
+
+  it('falls back to /admin/pm/snapshot for 沙盘 when the project has no positions', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-sandbox'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-sandbox'));
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/snapshot');
+  });
+
+  it('navigates back to /admin/pm/projects when the back button is clicked', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-back'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-back'));
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
+  });
+
+  it('overview section shows position stats + plan count + recent positions', async () => {
     const recent = makePosition({
       id: 'p-new',
       title: 'Tech Lead',
@@ -284,7 +421,7 @@ describe('ProjectDetailPage', () => {
     expect(within(overview).getByTestId('pm-detail-stat-plans')).toHaveTextContent('2');
   });
 
-  it('switches to the Plans tab and shows a placeholder', async () => {
+  it('renders the 智能拆岗位 button in the left column', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -295,50 +432,14 @@ describe('ProjectDetailPage', () => {
     mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
 
     renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
+    await waitFor(() => screen.getByTestId('pm-s2-main'));
 
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '计划' }));
-    expect(screen.getByTestId('pm-detail-plans-placeholder')).toBeInTheDocument();
-    expect(screen.getByText(/Plans — coming in Task 7/)).toBeInTheDocument();
+    const aiButton = screen.getByTestId('pm-detail-ai-decompose');
+    expect(aiButton).toBeInTheDocument();
+    expect(aiButton).toHaveTextContent('智能拆岗位');
   });
 
-  it('switches to the Matches tab and shows a placeholder', async () => {
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [],
-      plans: [],
-      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
-    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
-
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '匹配' }));
-    expect(screen.getByTestId('pm-detail-matches-placeholder')).toBeInTheDocument();
-    expect(screen.getByText(/Matches — coming in Task 10/)).toBeInTheDocument();
-  });
-
-  it('renders the "智能拆岗位" button on the Positions tab', async () => {
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [],
-      plans: [],
-      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
-    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
-
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
-    expect(screen.getByTestId('pm-detail-ai-decompose')).toBeInTheDocument();
-    expect(screen.getByTestId('pm-detail-ai-decompose')).toHaveTextContent('智能拆岗位');
-  });
-
-  it('opens the AI decompose modal (Task 6) when the "智能拆岗位" button is clicked', async () => {
+  it('opens the AI decompose modal when the 智能拆岗位 button is clicked', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -353,16 +454,13 @@ describe('ProjectDetailPage', () => {
     vi.mocked(mockedPmDecompose.decompose).mockReturnValue(new Promise(() => {}));
 
     renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
+    await waitFor(() => screen.getByTestId('pm-detail-ai-decompose'));
 
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
     fireEvent.click(screen.getByTestId('pm-detail-ai-decompose'));
 
     // Loading state of AIDecomposeModal is the visible contract.
     expect(screen.getByTestId('pm-decompose-modal')).toBeInTheDocument();
     expect(screen.getByTestId('pm-decompose-loading')).toBeInTheDocument();
-    // Old placeholder test-id should no longer exist.
-    expect(screen.queryByText(/AI 拆岗 — coming in Task 6/)).toBeNull();
   });
 
   it('closes the AI decompose modal when the × button is clicked', async () => {
@@ -401,9 +499,8 @@ describe('ProjectDetailPage', () => {
     });
 
     renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
+    await waitFor(() => screen.getByTestId('pm-detail-ai-decompose'));
 
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
     fireEvent.click(screen.getByTestId('pm-detail-ai-decompose'));
     // Wait for the preview to render so the close × button is mounted.
     await waitFor(() => screen.getByTestId('pm-decompose-modal-close'));
@@ -411,81 +508,6 @@ describe('ProjectDetailPage', () => {
     fireEvent.click(screen.getByTestId('pm-decompose-modal-close'));
     await waitFor(() => {
       expect(screen.queryByTestId('pm-decompose-modal')).toBeNull();
-    });
-  });
-
-  it('PositionTable row click logs the position id (placeholder for detail navigation)', async () => {
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [makePosition({ id: 'pos-x' })],
-      plans: [],
-      stats: { total_positions: 1, filled_positions: 0, total_plans: 0, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats());
-    mockedListPositions.mockResolvedValueOnce({
-      positions: [makePosition({ id: 'pos-x' })],
-      total: 1,
-    });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-tabs'));
-
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
-    await waitFor(() => {
-      expect(screen.getByTestId('pm-positions-table')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByTestId('pm-position-row'));
-    // The onRowClick callback in ProjectDetailPage is a no-op (placeholder
-    // for the position detail page in a later task). We assert the table
-    // is still visible after the click so the user doesn't get booted.
-    expect(screen.getByTestId('pm-positions-table')).toBeInTheDocument();
-  });
-
-  it('navigates back to /admin/pm/projects when the back button is clicked', async () => {
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [],
-      plans: [],
-      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
-    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-back'));
-
-    fireEvent.click(screen.getByTestId('pm-detail-back'));
-    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
-  });
-
-  it('only fetches positions / stats when the Positions or Overview tab is active', async () => {
-    // pmPositions.list is gated by tab visibility to avoid hitting the
-    // network for tabs the PM isn't looking at. Asserting here by checking
-    // mocked call counts.
-    mockedGetProject.mockResolvedValueOnce({
-      project: makeProject(),
-      positions: [],
-      plans: [],
-      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
-    });
-    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
-    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
-
-    renderPage();
-    await waitFor(() => screen.getByTestId('pm-detail-overview'));
-
-    // The Overview tab always shows position stats, so the stats call
-    // runs at least once on mount.
-    expect(mockedStatsPositions).toHaveBeenCalled();
-    // The Positions tab is NOT yet active, so the list call shouldn't
-    // have fired yet (it's lazy on tab activation).
-    expect(mockedListPositions).not.toHaveBeenCalled();
-
-    // Switch to the Positions tab and assert the list call fires.
-    fireEvent.click(within(screen.getByTestId('pm-detail-tabs')).getByRole('tab', { name: '岗位' }));
-    await waitFor(() => {
-      expect(mockedListPositions).toHaveBeenCalled();
     });
   });
 });
