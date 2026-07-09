@@ -101,9 +101,9 @@ function renderPage(positionId = 'pos-1') {
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={[`/pm/positions/${positionId}/sandbox`]}>
+        <MemoryRouter initialEntries={[`/admin/pm/positions/${positionId}/sandbox`]}>
           <Routes>
-            <Route path="/pm/positions/:id/sandbox" element={<PipelineSandboxPage />} />
+            <Route path="/admin/pm/positions/:id/sandbox" element={<PipelineSandboxPage />} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -204,7 +204,7 @@ describe('PipelineSandboxPage — header + meta', () => {
       expect(screen.getByTestId('pm-sandbox-funnel')).toBeInTheDocument();
     });
     fireEvent.click(screen.getByTestId('pm-sandbox-back'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects/proj-99');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-99');
   });
 });
 

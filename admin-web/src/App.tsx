@@ -124,13 +124,13 @@ export default function App() {
         <Route path="/hunter/settings" element={<RequireHunterAuth><HunterSettingsPage /></RequireHunterAuth>} />
         <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
 
-        {/* PM Workbench — Task 17 wires the full /pm/* tree behind
+        {/* PM Workbench — Task 17 wires the full /admin/pm/* tree behind
             RequirePMAuth. The login page stays public; everything else is
             nested under a layout-route that renders `<PMMobileLayout />`
             (topbar + sidebar on desktop / tab bar on mobile + <Outlet />).
-            Unknown /pm/* paths bounce to /pm/projects. */}
-        <Route path="/pm/login" element={<PMLoginPage />} />
-        <Route path="/pm" element={<Navigate to="/pm/snapshot" replace />} />
+            Unknown /admin/pm/* paths bounce to /admin/pm/projects. */}
+        <Route path="/admin/pm/login" element={<PMLoginPage />} />
+        <Route path="/admin/pm" element={<Navigate to="/admin/pm/snapshot" replace />} />
         <Route
           element={
             <RequirePMAuth>
@@ -138,22 +138,22 @@ export default function App() {
             </RequirePMAuth>
           }
         >
-          <Route path="/pm/snapshot" element={<GlobalSnapshotPage />} />
-          <Route path="/pm/projects" element={<ProjectsLibraryPage />} />
-          <Route path="/pm/projects/:id" element={<ProjectDetailPage />} />
-          <Route path="/pm/projects/:id/compare" element={<PlanComparisonPage />} />
+          <Route path="/admin/pm/snapshot" element={<GlobalSnapshotPage />} />
+          <Route path="/admin/pm/projects" element={<ProjectsLibraryPage />} />
+          <Route path="/admin/pm/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/admin/pm/projects/:id/compare" element={<PlanComparisonPage />} />
           <Route
-            path="/pm/projects/:id/positions/:positionId/sandbox"
+            path="/admin/pm/projects/:id/positions/:positionId/sandbox"
             element={<PipelineSandboxPage />}
           />
           <Route
-            path="/pm/projects/:id/positions/:positionId/matches"
+            path="/admin/pm/projects/:id/positions/:positionId/matches"
             element={<CandidateMatchesPage />}
           />
-          <Route path="/pm/library" element={<CandidateLibraryPage />} />
-          <Route path="/pm/candidates/:userId" element={<PMCandidateDetailPage />} />
-          <Route path="/pm/settings" element={<PMSettingsPage />} />
-          <Route path="/pm/*" element={<Navigate to="/pm/projects" replace />} />
+          <Route path="/admin/pm/library" element={<CandidateLibraryPage />} />
+          <Route path="/admin/pm/candidates/:userId" element={<PMCandidateDetailPage />} />
+          <Route path="/admin/pm/settings" element={<PMSettingsPage />} />
+          <Route path="/admin/pm/*" element={<Navigate to="/admin/pm/projects" replace />} />
         </Route>
 
         {/* Default: root and any unknown path → admin */}

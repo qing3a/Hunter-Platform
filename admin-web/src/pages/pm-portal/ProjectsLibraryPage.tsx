@@ -290,11 +290,11 @@ export function ProjectsLibraryPage() {
                 <td>{p.plan_count}</td>
                 <td>
                   <a
-                    href={`/pm/projects/${p.id}`}
+                    href={`/admin/pm/projects/${p.id}`}
                     data-testid="pm-library-view"
                     onClick={(e) => {
                       e.preventDefault();
-                      navigate(`/pm/projects/${p.id}`);
+                      navigate(`/admin/pm/projects/${p.id}`);
                     }}
                   >
                     查看详情
@@ -323,7 +323,7 @@ export function ProjectsLibraryPage() {
             // immediately start adding positions. The list query has
             // already been invalidated, so the row will be there on
             // back-navigation.
-            navigate(`/pm/projects/${project.id}`);
+            navigate(`/admin/pm/projects/${project.id}`);
           }}
         />
       )}

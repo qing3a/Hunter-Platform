@@ -11,7 +11,7 @@ import {
 // ---- Mocks ----------------------------------------------------------------
 
 // Capture the navigation target so we can assert on the
-// "查看详情" → /pm/projects/:id click without spinning up a real
+// "查看详情" → /admin/pm/projects/:id click without spinning up a real
 // router history (matches the PMLoginPage.test.tsx pattern).
 let lastNavigateTo: string | undefined;
 const navigateSpy = vi.fn((to: string) => {
@@ -48,7 +48,7 @@ function makeProject(overrides: Partial<ProjectSummary> = {}): ProjectSummary {
 
 function renderCard(project: ProjectSummary) {
   return render(
-    <MemoryRouter initialEntries={['/pm/projects']}>
+    <MemoryRouter initialEntries={['/admin/pm/projects']}>
       <ProjectCard project={project} />
     </MemoryRouter>,
   );
@@ -108,11 +108,11 @@ describe('ProjectCard', () => {
     expect(screen.getByTestId('pm-project-card-view')).toHaveTextContent('查看详情');
   });
 
-  it('navigates to /pm/projects/:id when "查看详情" is clicked', () => {
+  it('navigates to /admin/pm/projects/:id when "查看详情" is clicked', () => {
     renderCard(makeProject({ id: 'proj-xyz' }));
     fireEvent.click(screen.getByTestId('pm-project-card-view'));
-    expect(lastNavigateTo).toBe('/pm/projects/proj-xyz');
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects/proj-xyz');
+    expect(lastNavigateTo).toBe('/admin/pm/projects/proj-xyz');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-xyz');
   });
 });
 

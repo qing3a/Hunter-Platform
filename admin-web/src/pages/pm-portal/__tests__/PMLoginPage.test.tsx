@@ -41,7 +41,7 @@ const mockedAuth = vi.mocked(pmAuth);
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={['/pm/login']}>
+    <MemoryRouter initialEntries={['/admin/pm/login']}>
       <PMLoginPage />
     </MemoryRouter>,
   );
@@ -143,7 +143,7 @@ describe('PMLoginPage', () => {
     expect(mockedAuth.verifyOtp).toHaveBeenCalledWith('pm@example.com', '654321');
   });
 
-  it('writes role=pm to the session and navigates to /pm/projects on success', async () => {
+  it('writes role=pm to the session and navigates to /admin/pm/projects on success', async () => {
     mockedAuth.requestOtp.mockResolvedValueOnce({ expires_in: 300 });
     mockedAuth.verifyOtp.mockResolvedValueOnce({
       api_key: 'hp_live_pm_test_key',
@@ -166,10 +166,10 @@ describe('PMLoginPage', () => {
     fireEvent.click(screen.getByTestId('pm-verify-otp'));
 
     await waitFor(() => {
-      expect(lastNavigateTo).toBe('/pm/projects');
+      expect(lastNavigateTo).toBe('/admin/pm/projects');
     });
     // Sanity check: the spy saw the same target.
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
 
     // Session must carry role: 'pm' so RequirePMAuth accepts it.
     const session = getSession();

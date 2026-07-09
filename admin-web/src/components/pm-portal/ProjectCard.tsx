@@ -134,7 +134,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         type="button"
         className="pm-project-card-action"
         data-testid="pm-project-card-view"
-        onClick={() => navigate(`/pm/projects/${project.id}`)}
+        onClick={() => navigate(`/admin/pm/projects/${project.id}`)}
       >
         查看详情 →
       </button>

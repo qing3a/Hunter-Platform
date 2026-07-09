@@ -48,7 +48,7 @@ import { ScoreBadge, scoreBand } from '../../components/pm-portal/ScoreBadge';
 //
 // Routing
 // -------
-// /pm/candidates/:userId. Not yet registered in App.tsx — Task 17
+// /admin/pm/candidates/:userId. Not yet registered in App.tsx — Task 17
 // will mount it. Tests mount via MemoryRouter.
 
 // ============================================================================
@@ -217,7 +217,7 @@ export function CandidateDetailPage() {
 
   const handleViewPosition = (row: MatchedJobRow) => {
     // Placeholder until Task 17 wires the real route.
-    navigate(`/pm/projects/${row.project.id}/positions/${row.position.id}`);
+    navigate(`/admin/pm/projects/${row.project.id}/positions/${row.position.id}`);
   };
 
   // ---- Render guards ----
@@ -231,7 +231,7 @@ export function CandidateDetailPage() {
         <button
           type="button"
           className="pm-candidate-detail-back"
-          onClick={() => navigate('/pm/projects')}
+          onClick={() => navigate('/admin/pm/projects')}
           data-testid="pm-candidate-detail-back-fallback"
         >
           返回项目列表

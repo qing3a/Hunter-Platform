@@ -44,7 +44,7 @@ import { useToast } from '../../lib/toast';
 //
 // Routing
 // -------
-// /pm/library. Not yet registered in App.tsx — Task 17 will mount
+// /admin/pm/library. Not yet registered in App.tsx — Task 17 will mount
 // it behind RequirePMAuth. Tests mount via MemoryRouter.
 
 // ----- local constants ----------------------------------------------------
@@ -194,7 +194,7 @@ export function CandidateLibraryPage() {
     // Task 17 will register the route; we already pre-navigate to
     // keep the click-through responsive. If the route isn't mounted
     // yet the destination shows a router-404 — acceptable for v1.
-    navigate(`/pm/candidates/${row.candidate_user_id}`);
+    navigate(`/admin/pm/candidates/${row.candidate_user_id}`);
   };
 
   const handleToggleStar = (row: LibraryCandidate, next: boolean) => {

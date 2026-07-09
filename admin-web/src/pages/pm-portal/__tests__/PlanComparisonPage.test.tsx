@@ -124,9 +124,9 @@ function renderPage(projectId = 'proj-1') {
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={[`/pm/projects/${projectId}/compare`]}>
+        <MemoryRouter initialEntries={[`/admin/pm/projects/${projectId}/compare`]}>
           <Routes>
-            <Route path="/pm/projects/:id/compare" element={<PlanComparisonPage />} />
+            <Route path="/admin/pm/projects/:id/compare" element={<PlanComparisonPage />} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -338,7 +338,7 @@ describe('PlanComparisonPage — comparison grid', () => {
     }
   });
 
-  it('shows the back button that navigates to /pm/projects/:id', async () => {
+  it('shows the back button that navigates to /admin/pm/projects/:id', async () => {
     setupProjectDetail();
     mockedListPlans.mockResolvedValueOnce({
       plans: [makePlan({ id: 'p1' }), makePlan({ id: 'p2' })],
@@ -348,7 +348,7 @@ describe('PlanComparisonPage — comparison grid', () => {
     renderPage();
     await waitFor(() => screen.getByTestId('pm-compare-back'));
     fireEvent.click(screen.getByTestId('pm-compare-back'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects/proj-1');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-1');
   });
 });
 

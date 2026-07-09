@@ -174,7 +174,7 @@ export function ProjectDetailPage() {
       <button
         type="button"
         className="pm-btn-link pm-detail-back"
-        onClick={() => navigate('/pm/projects')}
+        onClick={() => navigate('/admin/pm/projects')}
         data-testid="pm-detail-back"
       >
         ← 返回项目库

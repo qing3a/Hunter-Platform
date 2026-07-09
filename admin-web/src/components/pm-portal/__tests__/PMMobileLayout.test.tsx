@@ -29,11 +29,11 @@ describe('PMMobileLayout', () => {
         <Routes>
           <Route element={<PMMobileLayout />}>
             <Route
-              path="/pm/projects"
+              path="/admin/pm/projects"
               element={<div data-testid="child-page">child page</div>}
             />
             <Route
-              path="/pm/snapshot"
+              path="/admin/pm/snapshot"
               element={<div data-testid="child-page">snapshot page</div>}
             />
           </Route>
@@ -43,53 +43,53 @@ describe('PMMobileLayout', () => {
   }
 
   it('renders the workbench brand in the topbar', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     expect(screen.getByTestId('pm-topbar')).toHaveTextContent('猎头平台 · PM 工作台');
   });
 
   it('renders the sidebar (desktop chrome) inside the page wrapper', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     const page = screen.getByTestId('pm-page');
     expect(within(page).getByTestId('pm-sidebar')).toBeInTheDocument();
   });
 
   it('renders the matched child route inside <main>', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     const main = screen.getByTestId('pm-main');
     expect(within(main).getByTestId('child-page')).toHaveTextContent('child page');
   });
 
   it('shows logout when a PM session is present', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     expect(screen.getByTestId('pm-logout')).toBeInTheDocument();
   });
 
   it('hides the logout button when no session is set', () => {
-    renderAt('/pm/projects', /* withSession */ false);
+    renderAt('/admin/pm/projects', /* withSession */ false);
     expect(screen.queryByTestId('pm-logout')).toBeNull();
   });
 
   it('renders all four mobile tab-bar links with correct href values', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     const tabbar = screen.getByTestId('pm-tabbar');
     // Tabbar link labels — "📊 总览 / 📁 项目 / 👥 人才库 / ⚙️ 我的"
-    expect(within(tabbar).getByText(/总览/).closest('a')).toHaveAttribute('href', '/pm/snapshot');
-    expect(within(tabbar).getByText(/项目/).closest('a')).toHaveAttribute('href', '/pm/projects');
-    expect(within(tabbar).getByText(/人才库/).closest('a')).toHaveAttribute('href', '/pm/library');
-    expect(within(tabbar).getByText(/我的/).closest('a')).toHaveAttribute('href', '/pm/settings');
+    expect(within(tabbar).getByText(/总览/).closest('a')).toHaveAttribute('href', '/admin/pm/snapshot');
+    expect(within(tabbar).getByText(/项目/).closest('a')).toHaveAttribute('href', '/admin/pm/projects');
+    expect(within(tabbar).getByText(/人才库/).closest('a')).toHaveAttribute('href', '/admin/pm/library');
+    expect(within(tabbar).getByText(/我的/).closest('a')).toHaveAttribute('href', '/admin/pm/settings');
   });
 
   it('hides the mobile tabbar when no session is set', () => {
-    renderAt('/pm/projects', /* withSession */ false);
+    renderAt('/admin/pm/projects', /* withSession */ false);
     expect(screen.queryByTestId('pm-tabbar')).toBeNull();
   });
 
   it('marks the active tab with .active (react-router default)', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     const tabbar = screen.getByTestId('pm-tabbar');
     const projectsTab = within(tabbar).getByText(/项目/).closest('a')!;
     // NavLink appends ' active' to the className when the link's `to`
-    // matches the current location. For /pm/projects we expect the active
+    // matches the current location. For /admin/pm/projects we expect the active
     // class on the 项目 tab, and NOT on the other tabs.
     expect(projectsTab.className).toContain('pm-tab');
     expect(projectsTab.className).toContain('active');
@@ -98,11 +98,11 @@ describe('PMMobileLayout', () => {
     expect(within(tabbar).getByText(/我的/).closest('a')!.className).not.toContain('active');
   });
 
-  it('clicking logout clears the session and bounces to /pm/login', () => {
-    renderAt('/pm/projects');
+  it('clicking logout clears the session and bounces to /admin/pm/login', () => {
+    renderAt('/admin/pm/projects');
     fireEvent.click(screen.getByTestId('pm-logout'));
     // After clearSession() localStorage is wiped. The router then navigates
-    // to /pm/login. We don't unmount (RequirePMAuth would catch the empty
+    // to /admin/pm/login. We don't unmount (RequirePMAuth would catch the empty
     // session and redirect in a real app) — here we just verify that the
     // navigation is triggered by observing session + that no error throws.
     const stored = localStorage.getItem('hp_candidate_session');
@@ -110,7 +110,7 @@ describe('PMMobileLayout', () => {
   });
 
   it('renders the topbar brand colour token via inline pm-brand class (no regressions)', () => {
-    renderAt('/pm/projects');
+    renderAt('/admin/pm/projects');
     // The brand text lives inside an element tagged .pm-brand.
     const brandEl = screen.getByText('猎头平台 · PM 工作台');
     expect(brandEl.className).toBe('pm-brand');

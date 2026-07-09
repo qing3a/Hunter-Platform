@@ -81,7 +81,7 @@ function renderPage() {
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={['/pm/library']}>
+        <MemoryRouter initialEntries={['/admin/pm/library']}>
           <CandidateLibraryPage />
         </MemoryRouter>
       </ToastProvider>
@@ -565,7 +565,7 @@ describe('CandidateLibraryPage — click-through', () => {
     localStorage.clear();
   });
 
-  it('navigates to /pm/candidates/:userId when 查看详情 is clicked', async () => {
+  it('navigates to /admin/pm/candidates/:userId when 查看详情 is clicked', async () => {
     mockedList.mockResolvedValueOnce({
       candidates: [makeCandidate({ candidate_user_id: 'cand-42' })],
       total: 1,
@@ -575,10 +575,10 @@ describe('CandidateLibraryPage — click-through', () => {
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
     fireEvent.click(screen.getByTestId('pm-library-row-0-detail'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/candidates/cand-42');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/candidates/cand-42');
   });
 
-  it('navigates to /pm/candidates/:userId from card view too', async () => {
+  it('navigates to /admin/pm/candidates/:userId from card view too', async () => {
     mockedList.mockResolvedValueOnce({
       candidates: [makeCandidate({ candidate_user_id: 'cand-7' })],
       total: 1,
@@ -590,6 +590,6 @@ describe('CandidateLibraryPage — click-through', () => {
     fireEvent.click(screen.getByTestId('pm-library-view-card'));
     await waitFor(() => screen.getByTestId('pm-library-cards'));
     fireEvent.click(screen.getByTestId('pm-library-row-0-detail'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/candidates/cand-7');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/candidates/cand-7');
   });
 });

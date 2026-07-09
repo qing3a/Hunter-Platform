@@ -28,16 +28,16 @@ describe('RequirePMAuth', () => {
     cleanup();
   });
 
-  it('redirects to /pm/login when there is no session', () => {
+  it('redirects to /admin/pm/login when there is no session', () => {
     render(
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <RequirePMAuth>
           <div data-testid="content">pm content</div>
         </RequirePMAuth>
       </MemoryRouter>,
     );
 
-    expect(lastNavigateTo).toBe('/pm/login');
+    expect(lastNavigateTo).toBe('/admin/pm/login');
     expect(screen.queryByTestId('content')).toBeNull();
   });
 
@@ -50,7 +50,7 @@ describe('RequirePMAuth', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <RequirePMAuth>
           <div data-testid="content">pm content</div>
         </RequirePMAuth>
@@ -70,7 +70,7 @@ describe('RequirePMAuth', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <RequirePMAuth>
           <div data-testid="content">pm content</div>
         </RequirePMAuth>
@@ -91,7 +91,7 @@ describe('RequirePMAuth', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <RequirePMAuth>
           <div data-testid="content">pm content</div>
         </RequirePMAuth>
@@ -112,7 +112,7 @@ describe('RequirePMAuth', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <RequirePMAuth>
           <div data-testid="content">pm content</div>
         </RequirePMAuth>

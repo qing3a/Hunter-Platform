@@ -12,7 +12,7 @@ import { OtpInput } from '../../components/candidate-portal/OtpInput';
  *    verify step auto-creates a `pm` user (see Task 1b, commit e6084f7);
  *  - writes a session with `role: 'pm'` so `RequirePMAuth` (and future
  *    portal-side guards) accept it;
- *  - redirects unconditionally to `/pm/projects` after a successful verify
+ *  - redirects unconditionally to `/admin/pm/projects` after a successful verify
  *    (mirrors the hunter portal's redirect to `/hunter/workspace` — there is
  *    no profile-completion onboarding gate on the PM side either).
  *
@@ -60,7 +60,7 @@ export function PMLoginPage() {
         email,
         role: 'pm',
       });
-      navigate('/pm/projects');
+      navigate('/admin/pm/projects');
     } catch (err: any) {
       setError(err.message || '验证码错误');
     } finally {

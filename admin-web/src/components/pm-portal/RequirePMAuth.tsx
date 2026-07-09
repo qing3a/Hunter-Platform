@@ -4,11 +4,11 @@ import { getSession, getRole } from '../../lib/candidate-session';
 /**
  * PM Workbench — route guard (Phase 1 / Task 3).
  *
- * Mirrors `RequireHunterAuth`: bounces to `/pm/login` when no session, and to
+ * Mirrors `RequireHunterAuth`: bounces to `/admin/pm/login` when no session, and to
  * `/candidate/login` (with `reason: 'wrong_portal'`) when the user is signed
  * in under a different role. The only role that passes through is `pm`.
  *
- * Task 17 mounts the full `/pm/*` route tree behind this guard.
+ * Task 17 mounts the full `/admin/pm/*` route tree behind this guard.
  */
 export function RequirePMAuth({ children }: { children: React.ReactNode }) {
   const session = getSession();
@@ -16,7 +16,7 @@ export function RequirePMAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   if (!session) {
-    return <Navigate to="/pm/login" state={{ from: location }} replace />;
+    return <Navigate to="/admin/pm/login" state={{ from: location }} replace />;
   }
 
   // A legacy candidate session (no role field) or any non-pm role — including

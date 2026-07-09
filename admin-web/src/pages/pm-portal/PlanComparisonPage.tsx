@@ -61,7 +61,7 @@ import { useToast } from '../../lib/toast';
 //
 // Routing
 // -------
-// The page reads `id` from the route param (`/pm/projects/:id/compare`).
+// The page reads `id` from the route param (`/admin/pm/projects/:id/compare`).
 // Task 17 is responsible for registering the route in App.tsx — for
 // now the test file mounts the page directly via MemoryRouter.
 
@@ -224,7 +224,7 @@ export function PlanComparisonPage() {
         <button
           type="button"
           className="pm-btn-link pm-compare-back"
-          onClick={() => navigate(`/pm/projects/${projectId}`)}
+          onClick={() => navigate(`/admin/pm/projects/${projectId}`)}
           data-testid="pm-compare-back"
         >
           ← 返回项目
@@ -247,7 +247,7 @@ export function PlanComparisonPage() {
         <button
           type="button"
           className="pm-btn-link pm-compare-back"
-          onClick={() => navigate(`/pm/projects/${projectId}`)}
+          onClick={() => navigate(`/admin/pm/projects/${projectId}`)}
           data-testid="pm-compare-back"
         >
           ← 返回项目
@@ -266,7 +266,7 @@ export function PlanComparisonPage() {
       <button
         type="button"
         className="pm-btn-link pm-compare-back"
-        onClick={() => navigate(`/pm/projects/${projectId}`)}
+        onClick={() => navigate(`/admin/pm/projects/${projectId}`)}
         data-testid="pm-compare-back"
       >
         ← 返回项目

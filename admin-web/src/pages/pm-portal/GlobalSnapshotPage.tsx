@@ -30,7 +30,7 @@ import { ActivityFeed } from '../../components/pm-portal/ActivityFeed';
 //
 // Routing
 // -------
-// /pm/snapshot. NOT registered in App.tsx yet — Task 17 wires the
+// /admin/pm/snapshot. NOT registered in App.tsx yet — Task 17 wires the
 // route. For now the test file mounts the page directly via
 // MemoryRouter.
 

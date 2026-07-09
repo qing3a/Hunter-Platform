@@ -65,9 +65,9 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pm/snapshot']}>
+      <MemoryRouter initialEntries={['/admin/pm/snapshot']}>
         <Routes>
-          <Route path="/pm/snapshot" element={<GlobalSnapshotPage />} />
+          <Route path="/admin/pm/snapshot" element={<GlobalSnapshotPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

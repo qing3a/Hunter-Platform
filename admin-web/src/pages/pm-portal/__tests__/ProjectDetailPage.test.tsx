@@ -121,9 +121,9 @@ function renderPage(projectId = 'proj-1') {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[`/pm/projects/${projectId}`]}>
+      <MemoryRouter initialEntries={[`/admin/pm/projects/${projectId}`]}>
         <Routes>
-          <Route path="/pm/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/admin/pm/projects/:id" element={<ProjectDetailPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -442,7 +442,7 @@ describe('ProjectDetailPage', () => {
     expect(screen.getByTestId('pm-positions-table')).toBeInTheDocument();
   });
 
-  it('navigates back to /pm/projects when the back button is clicked', async () => {
+  it('navigates back to /admin/pm/projects when the back button is clicked', async () => {
     mockedGetProject.mockResolvedValueOnce({
       project: makeProject(),
       positions: [],
@@ -456,7 +456,7 @@ describe('ProjectDetailPage', () => {
     await waitFor(() => screen.getByTestId('pm-detail-back'));
 
     fireEvent.click(screen.getByTestId('pm-detail-back'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
   });
 
   it('only fetches positions / stats when the Positions or Overview tab is active', async () => {

@@ -63,7 +63,7 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/pm/projects']}>
+      <MemoryRouter initialEntries={['/admin/pm/projects']}>
         <ProjectsLibraryPage />
       </MemoryRouter>
     </QueryClientProvider>,

@@ -12,7 +12,7 @@ import { PMSidebar } from './PMSidebar';
  *       <PMMobileLayout />
  *     </RequirePMAuth>
  *   }>
- *     <Route path="/pm/projects" element={<ProjectsLibraryPage />} />
+ *     <Route path="/admin/pm/projects" element={<ProjectsLibraryPage />} />
  *     ...
  *   </Route>
  *
@@ -25,7 +25,7 @@ import { PMSidebar } from './PMSidebar';
  *   - top bar reads "猎头平台 · PM 工作台"
  *   - accent uses `var(--c-project)` so the workbench feels native with
  *     the existing `.pm-` pages
- *   - logout button calls `clearSession()` and bounces back to `/pm/login`
+ *   - logout button calls `clearSession()` and bounces back to `/admin/pm/login`
  *     (same behaviour as the hunter portal)
  */
 export function PMMobileLayout() {
@@ -43,7 +43,7 @@ export function PMMobileLayout() {
             <button
               type="button"
               className="pm-logout"
-              onClick={() => { clearSession(); navigate('/pm/login'); }}
+              onClick={() => { clearSession(); navigate('/admin/pm/login'); }}
               data-testid="pm-logout"
             >
               退出
@@ -55,10 +55,10 @@ export function PMMobileLayout() {
         </main>
         {session && (
           <nav className="pm-tabbar" data-testid="pm-tabbar">
-            <NavLink to="/pm/snapshot" className="pm-tab">📊 总览</NavLink>
-            <NavLink to="/pm/projects" className="pm-tab">📁 项目</NavLink>
-            <NavLink to="/pm/library" className="pm-tab">👥 人才库</NavLink>
-            <NavLink to="/pm/settings" className="pm-tab">⚙️ 我的</NavLink>
+            <NavLink to="/admin/pm/snapshot" className="pm-tab">📊 总览</NavLink>
+            <NavLink to="/admin/pm/projects" className="pm-tab">📁 项目</NavLink>
+            <NavLink to="/admin/pm/library" className="pm-tab">👥 人才库</NavLink>
+            <NavLink to="/admin/pm/settings" className="pm-tab">⚙️ 我的</NavLink>
           </nav>
         )}
       </div>

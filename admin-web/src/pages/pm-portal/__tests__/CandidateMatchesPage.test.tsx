@@ -91,9 +91,9 @@ function renderPage(positionId = 'pos-1') {
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={[`/pm/positions/${positionId}/matches`]}>
+        <MemoryRouter initialEntries={[`/admin/pm/positions/${positionId}/matches`]}>
           <Routes>
-            <Route path="/pm/positions/:id/matches" element={<CandidateMatchesPage />} />
+            <Route path="/admin/pm/positions/:id/matches" element={<CandidateMatchesPage />} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -144,7 +144,7 @@ describe('CandidateMatchesPage — loading / error', () => {
     expect(screen.getByTestId('pm-matches-error')).toHaveTextContent('匹配服务异常');
   });
 
-  it('falls back to /pm/projects when the position is unloadable (error banner)', async () => {
+  it('falls back to /admin/pm/projects when the position is unloadable (error banner)', async () => {
     mockedGetPosition.mockRejectedValueOnce(new Error('boom'));
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
     renderPage();
@@ -152,7 +152,7 @@ describe('CandidateMatchesPage — loading / error', () => {
       expect(screen.getByTestId('pm-matches-position-error')).toBeInTheDocument();
     });
     fireEvent.click(screen.getByTestId('pm-matches-back-fallback'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
   });
 });
 
@@ -198,10 +198,10 @@ describe('CandidateMatchesPage — header + back nav', () => {
       );
     });
     fireEvent.click(screen.getByTestId('pm-matches-back'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects/proj-99');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-99');
   });
 
-  it('falls back to /pm/projects when the position header is not loaded', async () => {
+  it('falls back to /admin/pm/projects when the position header is not loaded', async () => {
     mockedGetPosition.mockReturnValue(new Promise(() => {}));
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
     renderPage();

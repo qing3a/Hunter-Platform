@@ -134,9 +134,9 @@ function renderPage(userId = 'cand-1') {
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter initialEntries={[`/pm/candidates/${userId}`]}>
+        <MemoryRouter initialEntries={[`/admin/pm/candidates/${userId}`]}>
           <Routes>
-            <Route path="/pm/candidates/:userId" element={<CandidateDetailPage />} />
+            <Route path="/admin/pm/candidates/:userId" element={<CandidateDetailPage />} />
           </Routes>
         </MemoryRouter>
       </ToastProvider>
@@ -179,7 +179,7 @@ describe('CandidateDetailPage — loading + error', () => {
     expect(screen.getByTestId('pm-candidate-detail-error')).toHaveTextContent('项目不可用');
   });
 
-  it('falls back to /pm/projects from the error banner', async () => {
+  it('falls back to /admin/pm/projects from the error banner', async () => {
     mockedListProjects.mockRejectedValueOnce(new Error('boom'));
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
@@ -189,7 +189,7 @@ describe('CandidateDetailPage — loading + error', () => {
       expect(screen.getByTestId('pm-candidate-detail-error')).toBeInTheDocument();
     });
     fireEvent.click(screen.getByTestId('pm-candidate-detail-back-fallback'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects');
   });
 });
 
@@ -505,7 +505,7 @@ describe('CandidateDetailPage — match row click-through', () => {
     mockedNotesGet.mockReset();
   });
 
-  it('navigates to /pm/projects/:pId/positions/:id when a row title is clicked', async () => {
+  it('navigates to /admin/pm/projects/:pId/positions/:id when a row title is clicked', async () => {
     const project1 = makeProject({ id: 'proj-9', name: 'Project9' });
     const pos1 = makePosition({ id: 'pos-77', project_id: 'proj-9' });
     mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
@@ -521,7 +521,7 @@ describe('CandidateDetailPage — match row click-through', () => {
       expect(screen.getByTestId('pm-candidate-detail-match-0-title')).toBeInTheDocument();
     });
     fireEvent.click(screen.getByTestId('pm-candidate-detail-match-0-title'));
-    expect(navigateSpy).toHaveBeenCalledWith('/pm/projects/proj-9/positions/pos-77');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-9/positions/pos-77');
   });
 
   it('renders the project name next to each row title', async () => {

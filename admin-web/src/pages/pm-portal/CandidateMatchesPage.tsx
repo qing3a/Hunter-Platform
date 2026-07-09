@@ -32,7 +32,7 @@ import { useToast } from '../../lib/toast';
 //
 // Routing
 // -------
-// /pm/positions/:id/matches. Registered by Task 17 (admin-web App.tsx).
+// /admin/pm/positions/:id/matches. Registered by Task 17 (admin-web App.tsx).
 // For now the test file mounts the page directly via MemoryRouter.
 //
 // Network
@@ -119,8 +119,8 @@ export function CandidateMatchesPage() {
   // ---- Handlers ----
   const handleBack = () => {
     const projectId = position?.project_id;
-    if (projectId) navigate(`/pm/projects/${projectId}`);
-    else navigate('/pm/projects');
+    if (projectId) navigate(`/admin/pm/projects/${projectId}`);
+    else navigate('/admin/pm/projects');
   };
 
   const handleRecompute = () => {
@@ -142,7 +142,7 @@ export function CandidateMatchesPage() {
         <button
           type="button"
           className="pm-matches-back"
-          onClick={() => navigate('/pm/projects')}
+          onClick={() => navigate('/admin/pm/projects')}
           data-testid="pm-matches-back-fallback"
         >
           返回项目列表

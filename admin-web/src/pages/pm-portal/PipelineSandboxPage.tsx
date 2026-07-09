@@ -39,7 +39,7 @@ import {
 //
 // Routing
 // -------
-// /pm/positions/:id/sandbox. Registered by Task 17 (admin-web App.tsx).
+// /admin/pm/positions/:id/sandbox. Registered by Task 17 (admin-web App.tsx).
 // For now the test file mounts the page directly via MemoryRouter.
 
 export function PipelineSandboxPage() {
@@ -86,9 +86,9 @@ export function PipelineSandboxPage() {
   const handleBack = () => {
     const projectId = positionQuery.data?.position.project_id;
     if (projectId) {
-      navigate(`/pm/projects/${projectId}`);
+      navigate(`/admin/pm/projects/${projectId}`);
     } else {
-      navigate('/pm/projects');
+      navigate('/admin/pm/projects');
     }
   };
 
@@ -100,7 +100,7 @@ export function PipelineSandboxPage() {
         <div className="pm-sandbox-error">
           加载岗位信息失败:{String((positionQuery.error as Error)?.message ?? '未知错误')}
         </div>
-        <button type="button" className="pm-sandbox-back" onClick={() => navigate('/pm/projects')}>
+        <button type="button" className="pm-sandbox-back" onClick={() => navigate('/admin/pm/projects')}>
           返回项目列表
         </button>
       </div>
