@@ -15,6 +15,8 @@ import {
   BrowseTalentResponseSchema, ExpressInterestResponseSchema,
   UnlockContactResponseSchema, PendingClaimsResponseSchema,
   ClaimJobResponseSchema, RejectJobResponseSchema,
+  GetJobResponseSchema, UpdateJobRequestSchema, UpdateJobResponseSchema,
+  JobActionResponseSchema,
 } from '../schemas/employer.js';
 import type { User } from '../../shared/types.js';
 
@@ -28,6 +30,8 @@ const CreateJobSchema = z.object({
   deadline: z.string().optional(),
   industry: z.string().max(100).optional(),
 });
+
+const JobIdParamSchema = z.object({ id: z.string().min(1).max(64) });
 
 const ExpressInterestSchema = z.object({
   recommendation_id: z.string().min(1),
@@ -151,7 +155,9 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
   });
 
   // v009: claim (spec §5.2)
-  router.post('/claim-jobs/:id', (req, res, next) => {
+  // Compatibility route for Task 8 / Employer Panel plan:
+  // POST /v1/employer/pending-claims/:id/claim.
+  router.post('/pending-claims/:id/claim', (req, res, next) => {
     try {
       const job_id = String(req.params.id);
       if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
@@ -161,6 +167,31 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
   });
 
   // v009: reject (spec §5.3)
+  // Compatibility route for Task 8 / Employer Panel plan:
+  // POST /v1/employer/pending-claims/:id/reject.
+  router.post('/pending-claims/:id/reject', (req, res, next) => {
+    try {
+      const parsed = RejectJobSchema.safeParse(req.body ?? {});
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const result = handler.rejectJob(
+        (req as typeof req & { user?: User }).user!,
+        { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
+      );
+      respond(res, RejectJobResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // v009: claim (legacy route retained for existing clients)
+  router.post('/claim-jobs/:id', (req, res, next) => {
+    try {
+      const job_id = String(req.params.id);
+      if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
+      const job = handler.claimJob((req as typeof req & { user?: User }).user!, { job_id });
+      respond(res, ClaimJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // v009: reject (legacy route retained for existing clients)
   router.post('/reject-jobs/:id', (req, res, next) => {
     try {
       const parsed = RejectJobSchema.safeParse(req.body ?? {});
@@ -170,6 +201,70 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
         { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
       );
       respond(res, RejectJobResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // -------------------------------------------------------------------------
+  // Task 5 backend gap fill: GET / PATCH / pause / resume / close
+  // -------------------------------------------------------------------------
+
+  // GET /v1/employer/jobs/:id — single-job detail. Owner-only.
+  router.get('/jobs/:id', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const job = handler.getJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, GetJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // PATCH /v1/employer/jobs/:id — partial edit. Owner-only.
+  router.patch('/jobs/:id', (req, res, next) => {
+    try {
+      const idParsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!idParsed.success) throw Errors.invalidParams('Invalid job id');
+      const bodyParsed = UpdateJobRequestSchema.safeParse(req.body ?? {});
+      if (!bodyParsed.success) throw Errors.invalidParams('Invalid request body', { issues: bodyParsed.error.issues });
+      // Reject empty bodies — there's nothing to apply; surfacing as 400 is
+      // louder than a silent no-op and lines up with the spec's "any subset".
+      if (Object.keys(bodyParsed.data).length === 0) {
+        throw Errors.invalidParams('No fields to update');
+      }
+      const job = handler.updateJob(
+        (req as typeof req & { user?: User }).user!,
+        { id: idParsed.data.id, fields: bodyParsed.data },
+      );
+      respond(res, UpdateJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/pause — flip open → paused. Owner-only.
+  router.post('/jobs/:id/pause', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.pauseJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/resume — flip paused → open. Owner-only.
+  router.post('/jobs/:id/resume', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.resumeJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/employer/jobs/:id/close — hard-close from open or paused. Owner-only.
+  router.post('/jobs/:id/close', (req, res, next) => {
+    try {
+      const parsed = JobIdParamSchema.safeParse({ id: req.params.id });
+      if (!parsed.success) throw Errors.invalidParams('Invalid job id');
+      const result = handler.closeJob((req as typeof req & { user?: User }).user!, parsed.data);
+      respond(res, JobActionResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 

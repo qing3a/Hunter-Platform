@@ -94,6 +94,63 @@ export function createJobsRepo(db: DB) {
     updateStatus(id: string, status: JobStatus): void {
       updateStatusStmt.run(status, new Date().toISOString(), id);
     },
+    /**
+     * Conditional status update that only flips the row when the current
+     * status matches one of `allowedFrom`. Returns the number of rows
+     * changed (0 = the row was missing, not owned, or in the wrong state).
+     *
+     * Used by pause / resume / close handlers to enforce the state machine
+     * atomically (no read-then-write race where two callers could both
+     * see 'open' and try to flip to 'paused').
+     */
+    updateStatusIfCurrent(id: string, employerId: string, allowedFrom: JobStatus[], nextStatus: JobStatus): number {
+      const placeholders = allowedFrom.map(() => '?').join(',');
+      const stmt = db.prepare(
+        `UPDATE jobs SET status = ?, updated_at = ?
+         WHERE id = ? AND employer_id = ? AND status IN (${placeholders})`
+      );
+      const result = stmt.run(nextStatus, new Date().toISOString(), id, employerId, ...allowedFrom);
+      return Number(result.changes);
+    },
+    /**
+     * Partial update of editable job fields. Only the keys present in
+     * `fields` are written; everything else is left untouched. Caller is
+     * responsible for stripping the immutable columns (status / ownership)
+     * — this method writes whatever fields object it's given.
+     *
+     * Returns the number of rows changed. The caller follows up with
+     * `findById` to load the post-update row (no RETURNING in node:sqlite).
+     */
+    updateFields(id: string, employerId: string, fields: Partial<Job>): number {
+      const allowedKeys: Array<keyof Job> = [
+        'title', 'description', 'salary_min', 'salary_max',
+        'priority', 'deadline', 'industry',
+      ];
+      const sets: string[] = [];
+      const params: unknown[] = [];
+      for (const key of allowedKeys) {
+        if (key in fields) {
+          // `required_skills` is special — it lives in the JSON column.
+          if (key === 'required_skills') continue;
+          sets.push(`${key} = ?`);
+          params.push((fields as Record<string, unknown>)[key as string] ?? null);
+        }
+      }
+      if ('required_skills' in fields) {
+        const skills = fields.required_skills;
+        sets.push('required_skills_json = ?');
+        params.push(JSON.stringify(skills ?? []));
+      }
+      if (sets.length === 0) return 0;
+      sets.push('updated_at = ?');
+      params.push(new Date().toISOString());
+      const stmt = db.prepare(
+        `UPDATE jobs SET ${sets.join(', ')}
+         WHERE id = ? AND employer_id = ?`
+      );
+      const result = stmt.run(...(params as import('node:sqlite').SQLInputValue[]), id, employerId);
+      return Number(result.changes);
+    },
     findPendingClaims(employerId: string): Job[] {
       const rows = db.prepare(
         `SELECT * FROM jobs

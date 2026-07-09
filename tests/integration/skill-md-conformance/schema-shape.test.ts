@@ -230,6 +230,12 @@ const COMPLEX_CAPS = new Set<string>([
   'admin.suspend_user',
   'admin.unsuspend_user',
   'admin.adjust_user_quota',
+  // candidate-portal pickup: requires a recommendation in 'pending_pickup'
+  // status, which is only created via POST /v1/candidate-portal/jobs/:id/apply
+  // (candidate self-apply). The shared beforeAll in this file creates a
+  // 'pending' recommendation via the headhunter API, not a 'pending_pickup'
+  // one, so pickup here would 404/409. Tested in a dedicated flow file.
+  'headhunter.recommendations.pickup',
 ]);
 
 // ---------------------------------------------------------------------------

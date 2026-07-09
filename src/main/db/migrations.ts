@@ -34,6 +34,12 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 15, description: 'admin_login_events (Sub-D1 audit login log)', file: 'migrations/v015_admin_login_events.sql' },
   { version: 16, description: 'in-site notifications (system messages) — 30d TTL, polling, dedup by (user_id, category, dedup_key)', file: 'migrations/v016_notifications.sql' },
   { version: 17, description: 'config table (DB-backed, replaces JSON file) — drops unused webhook_subscriptions', file: 'migrations/v024_webhook_subscriptions.sql' },
+  { version: 18, description: 'Candidate Portal Phase 1 (otp codes, messages, applications, recommendations.pickup_headhunter_id, candidates_anonymized.visibility)', file: 'migrations/v025_candidate_portal.sql' },
+  { version: 19, description: 'Recommendation flow: nullable headhunter_id + status extended with pending_pickup / considering_offer (candidate self-apply)', file: 'migrations/v026_recommendation_pending_pickup.sql' },
+  { version: 20, description: 'Hunter workspace (tasks + kanban)', file: 'migrations/v027_hunter_workspace.sql' },
+  { version: 21, description: 'PM Workbench (projects, positions, plans, decompositions, matches, notes)', file: 'migrations/v028_pm_workbench.sql' },
+  { version: 22, description: 'Extend users.user_type CHECK to allow pm (PM Workbench /pm/* portal)', file: 'migrations/v029_add_pm_user_type.sql' },
+  { version: 23, description: 'PM Sandbox: link recommendations to project_positions + stage_entered_at', file: 'migrations/v030_pm_sandbox.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {

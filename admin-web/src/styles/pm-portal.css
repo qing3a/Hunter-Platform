@@ -1,0 +1,3600 @@
+/* PM Workbench — Projects Library (Phase 3b / Task 4) styles.
+ *
+ * Sits alongside hunter-portal.css. Re-uses the same colour tokens
+ * (var(--c-*) / var(--b-*)) and spacing scale (var(--sp-*)) defined in
+ * tokens.css so the two portals feel like one product. New selectors
+ * are prefixed `.pm-` to avoid collision with the candidate / hunter
+ * classes.
+ */
+
+/* ---- Page shell (Task 4 ships a bare wrapper; Task 17 wraps it in
+   the full PM chrome with sidebar / topbar). ---- */
+.pm-library {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+  flex-wrap: wrap;
+}
+.pm-library-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ---- KPI grid (4 tiles) ---- */
+.pm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+@media (min-width: 768px) {
+  .pm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.pm-kpi-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.pm-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-all;
+}
+.pm-kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+}
+.pm-kpi-tile[data-accent="green"]  .pm-kpi-value { color: #16a34a; }
+.pm-kpi-tile[data-accent="blue"]   .pm-kpi-value { color: #2563eb; }
+.pm-kpi-tile[data-accent="amber"]  .pm-kpi-value { color: #d97706; }
+.pm-kpi-tile[data-accent="purple"] .pm-kpi-value { color: #9333ea; }
+
+/* ---- Filters (search + status + view toggle) ---- */
+.pm-filters {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.pm-input,
+.pm-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.pm-select { flex: 0 1 160px; }
+
+.pm-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.pm-view-toggle-btn {
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: none;
+  border-right: 1px solid var(--border);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-view-toggle-btn:last-child { border-right: none; }
+.pm-view-toggle-btn.active {
+  background: var(--c-project);
+  color: white;
+}
+
+/* ---- Primary / secondary buttons ---- */
+.pm-btn-primary {
+  padding: 8px 16px;
+  background: var(--c-project);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-btn-primary:hover { filter: brightness(1.05); }
+.pm-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pm-btn-secondary {
+  padding: 8px 16px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ---- Loading / error ---- */
+.pm-loading,
+.pm-error {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.pm-error {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+}
+
+/* ---- Table view ---- */
+.pm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 14px;
+}
+.pm-table th,
+.pm-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.pm-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg);
+}
+.pm-table tbody tr:last-child td { border-bottom: none; }
+.pm-table a {
+  color: var(--c-project);
+  text-decoration: none;
+}
+.pm-table a:hover { text-decoration: underline; }
+
+/* ---- Status badge (lifecycle: planning / active / paused / completed / cancelled) ---- */
+.pm-project-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* ---- Card view ---- */
+.pm-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px)  { .pm-card-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .pm-card-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.pm-project-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.pm-project-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+.pm-project-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-project-card-target {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pm-project-card-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pm-project-card-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}
+.pm-project-card-meta-row dt {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-project-card-meta-row dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-project-card-action {
+  align-self: flex-start;
+  background: none;
+  border: 1px solid var(--c-project);
+  color: var(--c-project);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-project-card-action:hover {
+  background: var(--b-project);
+}
+
+/* ---- Modal (placeholder for ProjectMetaModal in Task 15) ---- */
+.pm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--sp-4);
+}
+.pm-modal {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: var(--sp-6);
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-4);
+}
+.pm-modal h2 {
+  margin: 0 0 var(--sp-3);
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-modal p {
+  margin: 0 0 var(--sp-4);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ============================================================================
+ * Create Project Modal (Task 15)
+ * ============================================================================
+ *
+ * Visual structure:
+ *   1. Header strip (title + × close button)
+ *   2. Body — the form (ProjectMetaForm), scrollable if it overflows
+ *   3. Optional error banner above the footer
+ *   4. Footer with Cancel / Create buttons
+ *
+ * The modal is wider than the placeholder (.pm-modal default = 480px)
+ * because the form has two date columns, a textarea, and a team list.
+ * We use 640px to match .pm-decompose-modal so the two modals feel
+ * like siblings.
+ *
+ * The form's own styles live below the modal styles in the
+ * `.pm-project-form*` namespace. Re-uses `.pm-input` for the inputs
+ * so the visual language matches the rest of the workbench.
+ */
+
+.pm-create-project-modal {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.pm-create-project-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-create-project-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-create-project-modal-close {
+  font-size: 24px !important;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text-muted);
+}
+
+.pm-create-project-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-4) var(--sp-5);
+}
+
+.pm-create-project-error {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+}
+
+.pm-create-project-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ---- ProjectMetaForm ---- */
+
+.pm-project-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.pm-project-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-project-form-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.pm-project-form-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+.pm-project-form-hint {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.pm-project-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.pm-project-form-field-inline .pm-input { width: 100%; }
+
+.pm-project-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+@media (max-width: 480px) {
+  .pm-project-form-row { grid-template-columns: 1fr; }
+}
+.pm-project-form-field-half { min-width: 0; }
+
+.pm-project-form-error {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+  line-height: 1.4;
+}
+.pm-project-form .pm-input[aria-invalid="true"] {
+  border-color: #fca5a5;
+}
+
+/* ---- Team list ---- */
+
+.pm-project-form-team-list {
+  list-style: none;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-project-form-team-row {
+  display: grid;
+  grid-template-columns: 1fr 80px auto;
+  gap: var(--sp-2);
+  align-items: center;
+  padding: var(--sp-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+.pm-project-form-team-role { min-width: 0; }
+.pm-project-form-team-count { text-align: center; }
+.pm-project-form-team-remove {
+  color: #b91c1c !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+.pm-project-form-team-add {
+  align-self: flex-start;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+/* ============================================================================
+ * Project Detail Page (S2 / Task 5)
+ * ============================================================================
+ *
+ * The detail surface re-uses the `.pm-table` / `.pm-kpi-grid` / `.pm-modal`
+ * primitives above. The classes prefixed `.pm-detail-*` are exclusive to
+ * this page; layout follows a header + tabs + active-pane structure.
+ */
+
+.pm-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+.pm-detail-back {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  background: none;
+  border: none;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-detail-back:hover { text-decoration: underline; }
+
+.pm-detail-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+}
+.pm-detail-header-main {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+  flex-wrap: wrap;
+}
+.pm-detail-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.pm-detail-target {
+  margin: 0 0 var(--sp-3);
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.pm-detail-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--border);
+}
+@media (min-width: 768px) {
+  .pm-detail-meta { grid-template-columns: repeat(3, 1fr); }
+}
+.pm-detail-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-detail-meta-row dt {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-detail-meta-row dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.pm-detail-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-4);
+}
+.pm-detail-tab {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-detail-tab:hover { color: var(--text); }
+.pm-detail-tab.active {
+  color: var(--c-project);
+  border-bottom-color: var(--c-project);
+}
+
+.pm-detail-pane {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.pm-detail-pane-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--sp-3);
+}
+
+.pm-detail-recent { margin-top: var(--sp-5); }
+.pm-detail-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 var(--sp-3);
+  color: var(--text);
+}
+.pm-detail-recent-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0;
+}
+.pm-detail-recent-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-detail-recent-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.pm-detail-recent-title { color: var(--text); }
+.pm-detail-recent-meta { color: var(--text-muted); }
+
+/* ---- Positions tab: filters + status badge ---- */
+.pm-positions .pm-filters { margin-bottom: var(--sp-3); }
+.pm-position-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.pm-empty {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+}
+.pm-empty-hint {
+  font-size: 13px;
+  margin-top: var(--sp-2);
+}
+.pm-btn-link {
+  background: none;
+  border: none;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-btn-link:hover { text-decoration: underline; }
+
+/* ============================================================================
+ * AI Decompose Modal (S2 / Task 6)
+ * ============================================================================
+ *
+ * The decompose modal is wider than the placeholder modal (max-width 640px)
+ * because it renders an editable preview table with several form fields.
+ * Layout: vertical header → loading state OR source summary + editable
+ * list of suggested positions → footer with Cancel / Confirm buttons.
+ *
+ * The spinner is a simple CSS-only animated circle so we don't pull in any
+ * new dependency. The rationale box uses a soft yellow accent (--c-amber
+ * or fallback) so the PM sees the AI's reasoning without it dominating.
+ */
+.pm-decompose-modal {
+  max-width: 640px;
+  padding: 0;
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.pm-decompose-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-decompose-modal-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.pm-decompose-modal-close {
+  font-size: 24px !important;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text-muted);
+}
+
+/* ---- Loading state ---- */
+.pm-decompose-loading {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+}
+.pm-decompose-loading p { margin: var(--sp-2) 0; }
+.pm-decompose-loading-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-decompose-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto var(--sp-3);
+  border: 3px solid var(--border);
+  border-top-color: var(--c-project);
+  border-radius: 50%;
+  animation: pm-decompose-spin 1s linear infinite;
+}
+@keyframes pm-decompose-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Error + retry state ---- */
+.pm-decompose-error {
+  padding: var(--sp-5);
+  text-align: center;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+.pm-decompose-error p { margin: 0 0 var(--sp-3); }
+.pm-decompose-error .pm-btn-primary { background: #dc2626; }
+
+/* ---- Source summary (target text) ---- */
+.pm-decompose-source {
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.pm-decompose-source h3 {
+  margin: 0 0 var(--sp-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.pm-decompose-source-text {
+  margin: 0 0 var(--sp-2);
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  max-height: 60px;
+  overflow-y: auto;
+}
+.pm-decompose-source-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- Suggestion list ---- */
+.pm-decompose-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-5);
+}
+.pm-decompose-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--sp-5);
+}
+.pm-decompose-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: var(--sp-3);
+  background: var(--surface);
+}
+.pm-decompose-item-main {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--sp-2);
+  align-items: flex-end;
+}
+.pm-decompose-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-decompose-field span { font-size: 11px; }
+.pm-decompose-field .pm-input { width: 100%; }
+.pm-decompose-field-inline {
+  min-width: 90px;
+}
+.pm-decompose-field-full {
+  grid-column: 1 / -1;
+}
+.pm-decompose-headcount-input {
+  width: 60px;
+  text-align: center;
+}
+.pm-decompose-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  border-top: 1px dashed var(--border);
+  padding-top: var(--sp-2);
+}
+.pm-decompose-rationale {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.pm-decompose-remove {
+  color: #b91c1c !important;
+  font-size: 12px !important;
+}
+
+/* ---- Footer ---- */
+.pm-decompose-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.pm-decompose-error-msg {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-5);
+  font-size: 13px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-top: 1px solid #fecaca;
+}
+
+/* ============================================================================
+ * Plan Comparison Page (S4 / Task 8)
+ * ============================================================================
+ *
+ * Side-by-side plan comparison. Layout:
+ *   1. Header (title + back + new-plan CTA)
+ *   2. Plan-picker row (pill chips for the user to toggle inclusion)
+ *   3. Comparison grid (1/2/3 columns, responsive)
+ *
+ * Visual rules:
+ *   - Each plan card lives in a `.pm-plan-card`. The currently-active
+ *     plan (server-side is_selected=1) gets `.pm-plan-card-selected`
+ *     with a 2px coloured border + a "当前选中" ribbon so the eye lands
+ *     on it instantly.
+ *   - Risk tags are simple pill chips, colour-coded by tone
+ *     (red=over_budget, amber=under_staffed, blue=single_skill).
+ *   - The grid falls back to a single column on narrow viewports
+ *     (≤ 640px), two columns up to 1024px, and the full 3-up from there.
+ *   - The picker pills (`.pm-compare-pill`) re-use the hunter-portal
+ *     chip pattern — pill background, 1px border, active state swaps in
+ *     the project accent colour so the user can see which plans are
+ *     in the grid.
+ */
+
+.pm-compare {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-compare-back {
+  display: inline-block;
+  margin-bottom: var(--sp-3);
+  background: none;
+  border: none;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-compare-back:hover { text-decoration: underline; }
+
+.pm-compare-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+.pm-compare-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ---- Plan-picker row ---- */
+.pm-compare-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-4);
+  margin-bottom: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-compare-picker-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pm-compare-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.pm-compare-picker-count {
+  align-self: flex-end;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-compare-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-compare-pill:hover:not(:disabled) {
+  border-color: var(--c-project);
+}
+.pm-compare-pill.active {
+  background: var(--b-project);
+  color: var(--c-project);
+  border-color: var(--c-project);
+}
+.pm-compare-pill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Comparison grid ---- */
+.pm-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  align-items: stretch;
+}
+@media (min-width: 768px) {
+  .pm-compare-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1100px) {
+  .pm-compare-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---- Single plan card ---- */
+.pm-plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-plan-card-selected {
+  border-color: var(--c-project);
+  border-width: 2px;
+  box-shadow: 0 0 0 2px var(--b-project);
+}
+
+.pm-plan-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.pm-plan-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-plan-card-selected-ribbon {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--b-project);
+  color: var(--c-project);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pm-plan-card-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pm-plan-card-meta {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pm-plan-card-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-plan-card-meta-row dt {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-plan-card-meta-row dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pm-plan-card-radar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pm-plan-card-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+}
+.pm-plan-card-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pm-plan-card-tag-red {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+.pm-plan-card-tag-amber {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border-color: #fcd34d;
+}
+.pm-plan-card-tag-blue {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border-color: #93c5fd;
+}
+.pm-plan-card-tag-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.pm-plan-card-footer {
+  display: flex;
+  justify-content: stretch;
+  margin-top: auto;
+}
+.pm-plan-card-select {
+  width: 100%;
+}
+
+/* ---- S4 triangle radar + locked ribbon (Task 9) ---- */
+.pm-triangle-radar { display: block; margin: var(--sp-2) auto; }
+.pm-locked-ribbon {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--c-stage-project); color: white;
+  padding: 2px 8px; border-radius: var(--r-sm);
+  font-size: 10px; font-weight: 600;
+  z-index: 1;
+}
+
+/* ===========================================================================
+ * Pipeline Sandbox (Task 9 / S3) — 5 阶段漏斗
+ * ===========================================================================
+ * Cards are rendered in a 6-column grid (5 active stages + 1 rejected
+ * terminal bucket). Each card has a coloured left border keyed by stage
+ * so the funnel reads left-to-right at a glance. Clicking a card expands
+ * the candidate list below the funnel grid.
+ */
+
+.pm-sandbox {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-sandbox-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  flex-wrap: wrap;
+}
+.pm-sandbox-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-sandbox-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.pm-sandbox-back:hover { color: var(--text); text-decoration: underline; }
+.pm-sandbox-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.pm-sandbox-meta {
+  display: flex;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.pm-sandbox-meta-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+.pm-sandbox-meta-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pm-sandbox-meta-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.pm-sandbox-loading,
+.pm-sandbox-error {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.pm-sandbox-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+  margin-bottom: var(--sp-3);
+}
+
+/* ---- Funnel grid ---- */
+.pm-sandbox-funnel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+@media (min-width: 640px) {
+  .pm-sandbox-funnel { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1024px) {
+  .pm-sandbox-funnel { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ---- Single funnel card ---- */
+.pm-sandbox-funnel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: var(--sp-4);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+.pm-sandbox-funnel-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.pm-sandbox-funnel-card:focus-visible {
+  outline: 2px solid var(--b-project);
+  outline-offset: 2px;
+}
+.pm-sandbox-funnel-card.is-expanded {
+  border-color: var(--c-project);
+  box-shadow: 0 0 0 2px var(--b-project);
+}
+.pm-sandbox-funnel-card-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.pm-sandbox-funnel-card-count {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+.pm-sandbox-funnel-card-risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #fca5a5;
+  padding: 2px 8px;
+  border-radius: 12px;
+  align-self: flex-start;
+}
+.pm-sandbox-funnel-card-risk-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+.pm-sandbox-funnel-card-risk-text { font-weight: 600; }
+.pm-sandbox-funnel-card-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: auto;
+}
+.pm-sandbox-funnel-card.has-risk { border-left-color: #ef4444; }
+.pm-sandbox-funnel-card.is-expanded.has-risk { border-left-color: #ef4444; }
+
+/* Accent left-border per stage */
+.pm-sandbox-funnel-card-blue   { border-left-color: #3b82f6; }
+.pm-sandbox-funnel-card-purple { border-left-color: #8b5cf6; }
+.pm-sandbox-funnel-card-pink   { border-left-color: #ec4899; }
+.pm-sandbox-funnel-card-amber  { border-left-color: #f59e0b; }
+.pm-sandbox-funnel-card-green  { border-left-color: #10b981; }
+.pm-sandbox-funnel-card-gray   { border-left-color: #6b7280; }
+
+/* ---- Expanded panel ---- */
+.pm-sandbox-expanded {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+.pm-sandbox-expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.pm-sandbox-expanded-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.pm-sandbox-expanded-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---- Candidate list ---- */
+.pm-sandbox-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.pm-sandbox-candidate-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.pm-sandbox-candidate-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+.pm-sandbox-candidate-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-all;
+}
+.pm-sandbox-candidate-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+.pm-sandbox-candidate-entered {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.pm-sandbox-candidate-flags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pm-sandbox-candidate-flag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pm-sandbox-candidate-flag-warn {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.pm-sandbox-candidate-flag-severe {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+.pm-sandbox-candidate-flag-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.pm-sandbox-candidate-detail {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.pm-sandbox-candidate-detail:not(:disabled) {
+  cursor: pointer;
+  color: var(--text);
+}
+.pm-sandbox-candidate-detail:not(:disabled):hover {
+  background: var(--surface);
+  border-color: var(--c-project);
+}
+
+.pm-sandbox-empty {
+  padding: var(--sp-4);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ---- Inline candidate list (Task 8 — always rendered, no collapse) ---- */
+.pm-funnel-candidates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-funnel-candidates li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+.pm-funnel-candidates li .pm-funnel-candidate-name {
+  color: var(--text);
+  font-weight: 500;
+}
+.pm-funnel-candidates li .pm-funnel-candidate-meta {
+  display: inline-flex;
+  gap: var(--sp-2);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.pm-funnel-candidates-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- On-track / amber remediation alert (Task 8) ---- */
+.pm-ontrack { padding: var(--sp-3); border-radius: var(--r-sm); font-size: 12px; }
+.pm-ontrack--ok { background: rgba(16,185,129,.10); color: var(--ok, #16a34a); }
+.pm-ontrack--warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+
+/* ---- Top action bar (Task 8 — 导出报告 button) ---- */
+.pm-sandbox-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  margin-left: auto;
+}
+.pm-sandbox-export-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.pm-sandbox-export-btn:hover { border-color: var(--c-project); }
+.pm-sandbox-export-btn:focus-visible {
+  outline: 2px solid var(--b-project);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+ * Candidate Matches Page (Task 11 / S6)
+ * ============================================================================
+ * Lists candidate matches for a single position sorted by score DESC.
+ * Visual language mirrors .pm-sandbox-* so the two pages feel native:
+ *   - same colour tokens
+ *   - same card grid + radius
+ *   - same back-button / loading / error patterns
+ *
+ * Layout
+ *   1. Header     - position title, back link, min_score filter,
+ *                   重算匹配 action
+ *   2. Stats strip - 3 tiles (匹配数 / 平均分 / 当前过滤)
+ *   3. Grid       - 1-col on mobile, 2-col on desktop, 3-col on wide
+ * Each card is a .pm-match-card containing a ScoreBadge, name, and
+ * ReasonsList. Score band colour is applied via .pm-score-badge-{band}.
+ */
+
+.pm-matches {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-matches-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+.pm-matches-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.pm-matches-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.pm-matches-back:hover { color: var(--text); text-decoration: underline; }
+.pm-matches-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-matches-header-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.pm-matches-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-matches-filter-label {
+  font-weight: 500;
+}
+.pm-matches-filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  min-width: 96px;
+}
+.pm-matches-recompute {
+  padding: 8px 14px;
+  background: var(--c-project);
+  color: white;
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.pm-matches-recompute:hover:not(:disabled) {
+  opacity: 0.92;
+}
+.pm-matches-recompute:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Sort row (Task 11) — sits directly under the PositionPicker. */
+.pm-matches-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.pm-matches-sort-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---- Stats strip ---- */
+.pm-matches-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+.pm-matches-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-matches-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-matches-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* ---- Loading / error / empty ---- */
+.pm-matches-loading,
+.pm-matches-error,
+.pm-matches-empty {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.pm-matches-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* ---- Match grid ---- */
+.pm-matches-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 768px) {
+  .pm-matches-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1200px) {
+  .pm-matches-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---- Score badge (Task 11) ---- */
+.pm-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+.pm-score-badge-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+.pm-score-badge-md {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+.pm-score-badge-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+.pm-score-badge-excellent { background: #16a34a; }
+.pm-score-badge-good      { background: #2563eb; }
+.pm-score-badge-fair      { background: #d97706; }
+.pm-score-badge-poor      { background: #ef4444; }
+.pm-score-badge-value {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* ---- Single match card ---- */
+.pm-match-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-match-card:hover {
+  border-color: var(--c-project);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.pm-match-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.pm-match-card-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pm-match-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  word-break: break-all;
+}
+.pm-match-card-headline {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  word-break: break-all;
+}
+.pm-match-card-detail {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.pm-match-card-detail:not(:disabled) {
+  cursor: pointer;
+  color: var(--text);
+  border-color: var(--c-project);
+}
+.pm-match-card-detail:not(:disabled):hover {
+  background: var(--surface);
+  border-color: var(--c-project);
+  opacity: 0.9;
+}
+
+/* ---- Reasons / gaps list ---- */
+.pm-match-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+.pm-match-reasons-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-match-reasons-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+.pm-match-reasons-item-positive {
+  color: #15803d;
+}
+.pm-match-reasons-item-negative {
+  color: #b91c1c;
+}
+.pm-match-reasons-glyph {
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.45;
+}
+.pm-match-reasons-text {
+  flex: 1;
+}
+.pm-match-reasons-empty-positive,
+.pm-match-reasons-empty-negative {
+  font-size: 12px;
+  font-style: italic;
+  padding: 2px 0;
+}
+.pm-match-reasons-empty-positive { color: #15803d; }
+.pm-match-reasons-empty-negative { color: #b91c1c; }
+.pm-match-reasons-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- Score tier label (Task 11) — small chip next to the score badge. */
+.pm-score-tier {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--b-stage-match);
+  color: var(--c-stage-match);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.pm-score-tier--high {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+.pm-score-tier--mid {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+.pm-score-tier--low {
+  background: rgba(220, 38, 38, 0.10);
+  color: var(--danger, #dc2626);
+}
+
+/* ---- Sort pills (Task 11 / S6) — tablist driving the grid sort order. */
+.pm-sort-pills {
+  display: inline-flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+.pm-sort-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-sort-pill:hover:not(.active) {
+  border-color: var(--c-stage-project);
+  color: var(--c-stage-project);
+}
+.pm-sort-pill.active {
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  border-color: var(--c-stage-project);
+}
+.pm-sort-pill:focus-visible {
+  outline: 2px solid var(--b-stage-project);
+  outline-offset: 1px;
+}
+
+/* ---- Action stack (Task 11 / S6) — per-row CTA column in the match card. */
+.pm-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+.pm-action-stack-btn {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: center;
+}
+.pm-btn-danger-sm {
+  padding: 6px 10px;
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-btn-danger-sm:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #f87171;
+}
+
+/* ============================================================================
+ * Global Snapshot Page (Task 12 / S1)
+ * ============================================================================
+ *
+ * 4-stage funnel (projects / positions / candidates / matches) +
+ * real-time activity feed. Styling mirrors pm-sandbox-* but diverges
+ * in three ways:
+ *   - no risk indicators / no click handlers (purely presentational)
+ *   - bigger numbers (the snapshot is the PM's at-a-glance dashboard)
+ *   - activity feed uses chips (申请 / 认领 / 匹配) instead of stage labels
+ *
+ * Layout uses CSS grid for the 4-column funnel on wide screens; on
+ * narrow screens the funnel collapses to a single column (the page
+ * is for desktop PMs but degrades gracefully for tablet preview).
+ */
+
+.pm-snapshot {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--text);
+}
+
+.pm-snapshot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pm-snapshot-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pm-snapshot-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-snapshot-generated-at {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-refresh {
+  background: var(--primary);
+  color: white;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.pm-snapshot-refresh:hover:not(:disabled) { opacity: 0.9; }
+.pm-snapshot-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pm-snapshot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pm-snapshot-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-snapshot-loading,
+.pm-snapshot-error {
+  padding: 24px;
+  background: var(--surface-1, #f7f7f8);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-error { color: #b91c1c; }
+
+.pm-snapshot-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ----- Funnel ----- */
+
+.pm-snapshot-funnel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .pm-snapshot-funnel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pm-snapshot-funnel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pm-snapshot-funnel-card {
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-left: 4px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+}
+
+.pm-snapshot-funnel-card-blue   { border-left-color: #2563eb; }
+.pm-snapshot-funnel-card-purple { border-left-color: #7c3aed; }
+.pm-snapshot-funnel-card-amber  { border-left-color: #d97706; }
+.pm-snapshot-funnel-card-green  { border-left-color: #15803d; }
+
+.pm-snapshot-funnel-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-snapshot-funnel-card-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pm-snapshot-funnel-card-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-funnel-card-count {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.pm-snapshot-funnel-card-substats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.pm-snapshot-funnel-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-snapshot-funnel-bullets li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-funnel-bullet-val {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-snapshot-funnel-headcount {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Activity feed ----- */
+
+.pm-snapshot-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pm-snapshot-feed-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #f0f0f3);
+}
+
+.pm-snapshot-feed-item:last-child {
+  border-bottom: 0;
+}
+
+.pm-snapshot-feed-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e0e7ff;
+  color: #1e3a8a;
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+}
+
+.pm-snapshot-feed-chip-blue  { background: #dbeafe; color: #1e3a8a; }
+.pm-snapshot-feed-chip-amber { background: #fef3c7; color: #92400e; }
+.pm-snapshot-feed-chip-green { background: #dcfce7; color: #14532d; }
+
+.pm-snapshot-feed-summary {
+  font-size: 14px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.pm-snapshot-feed-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-snapshot-feed-empty {
+  padding: 32px 16px;
+  background: var(--surface-1, #ffffff);
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ============================================================================
+ * Candidate Detail Page (S5 / Task 13)
+ * ============================================================================
+ *
+ * Visual layout: header strip + 2-column top row (profile · radar) +
+ * matched-jobs list + sticky PM-notes card.
+ *
+ * Design notes:
+ *   - Section anchors are separated by `--sp-5` so the page breathes
+ *     when the PM scrolls between sections (matches can grow tall).
+ *   - The profile card uses `.pm-candidate-detail-profile-*` so the
+ *     left/top row in the candidate page differs from the PM-plan card
+ *     meta layout (which uses `.pm-plan-card-meta-row`).
+ *   - The matches list reuses `.pm-score-badge` rules from Task 11 so
+ *     the colour-banding is consistent with the rest of the workbench.
+ *   - Notes card lives in its own `.pm-private-note-*` namespace so
+ *     Task 16 can later extend it (multi-note history view) without
+ *     colliding with candidate-detail layout primitives.
+ */
+
+.pm-candidate-detail {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.pm-candidate-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-2);
+}
+
+.pm-candidate-detail-back {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.pm-candidate-detail-back:hover { color: var(--text); text-decoration: underline; }
+
+.pm-candidate-detail-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-candidate-detail-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-loading,
+.pm-candidate-detail-error {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+.pm-candidate-detail-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* ---- Top row (profile card + radar) ---- */
+
+.pm-candidate-detail-top {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 768px) {
+  .pm-candidate-detail-top { grid-template-columns: minmax(0, 1fr) 280px; }
+}
+
+.pm-candidate-detail-profile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-profile-name {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-candidate-detail-profile-headline {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-profile-meta {
+  margin: var(--sp-3) 0 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+
+.pm-candidate-detail-profile-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: var(--sp-2);
+  font-size: 13px;
+  align-items: baseline;
+}
+.pm-candidate-detail-profile-row-skills {
+  grid-column: 1 / -1;
+}
+
+.pm-candidate-detail-profile-row dt {
+  color: var(--text-muted);
+  margin: 0;
+}
+.pm-candidate-detail-profile-row dd {
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-candidate-detail-profile-userid {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-radar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-radar-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  align-self: flex-start;
+}
+
+.pm-candidate-radar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ---- Matched jobs section ---- */
+
+.pm-candidate-detail-matches {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-candidate-detail-matches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--sp-2);
+}
+
+.pm-candidate-detail-matches-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-candidate-detail-matches-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-candidate-detail-matches-loading,
+.pm-candidate-detail-matches-empty {
+  padding: var(--sp-4);
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-matches-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pm-candidate-detail-matches-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pm-candidate-detail-matches-item:hover {
+  border-color: var(--c-project);
+}
+
+.pm-candidate-detail-matches-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pm-candidate-detail-matches-title-link {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-project);
+  cursor: pointer;
+  font-family: inherit;
+  word-break: break-all;
+}
+.pm-candidate-detail-matches-title-link:hover { text-decoration: underline; }
+
+.pm-candidate-detail-matches-project {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-candidate-detail-matches-reasons {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #15803d;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+/* ============================================================================
+ * PM Private Note Card (Task 13, namespace .pm-private-note-*)
+ * ============================================================================
+ *
+ * Self-contained card for a PM-side private note bound to one
+ * candidate. Lives at the bottom of the candidate detail page; Task 16
+ * will add a cross-candidate history view that reuses this card.
+ *
+ * Two modes (controlled by local state, no router):
+ *   - read mode : ⭐ button + 显示文案 + "编辑" button
+ *   - edit mode : ⭐ button + textarea + 字符计数器 + "取消 / 保存"
+ *
+ * Star button is sticky (always interactive), independent of edit
+ * mode — toggling the star fires a PUT with `{ starred: !current }`.
+ */
+
+.pm-private-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.pm-private-note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pm-private-note-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-private-note-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.pm-private-note-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-private-note-star:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+.pm-private-note-star:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.pm-private-note-star[aria-pressed="true"] {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #fcd34d;
+  color: #b45309;
+}
+
+.pm-private-note-star-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pm-private-note-edit {
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: var(--c-project);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-edit:hover { background: var(--b-project); }
+
+.pm-private-note-display {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 24px;
+}
+
+.pm-private-note-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.pm-private-note-empty {
+  margin: 0;
+  font-style: italic;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.pm-private-note-loading,
+.pm-private-note-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pm-private-note-error { color: #b91c1c; }
+
+.pm-private-note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.pm-private-note-textarea {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: inherit;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 96px;
+}
+.pm-private-note-textarea:focus {
+  outline: 2px solid var(--b-project);
+  outline-offset: 1px;
+  border-color: var(--c-project);
+}
+
+.pm-private-note-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pm-private-note-counter {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-private-note-buttons {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.pm-private-note-cancel {
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-cancel:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.pm-private-note-save {
+  padding: 6px 14px;
+  background: var(--c-project);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pm-private-note-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * Candidate Library Page (Task 14 / S9)
+ * ============================================================================
+ *
+ * Read-only view of every candidate that has been recommended across the
+ * PM's projects + positions. Re-uses the page-shell primitives
+ * (`.pm-library` / `.pm-kpi-grid` / `.pm-filters` / `.pm-table` /
+ * `.pm-card-grid` / `.pm-view-toggle`) so the page feels native to the
+ * rest of the workbench.
+ *
+ * The component-specific selectors (`.pm-library-candidates`,
+ * `.pm-library-row-*`, `.pm-library-card-*`) stay scoped to this
+ * page so a future "candidates from a single hunter" view can ship
+ * its own primitives without colliding.
+ */
+
+/* ---- Library page wrapper ---- */
+.pm-library-candidates {
+  display: block;
+}
+
+/* ---- Table variant ---- */
+.pm-library-table .pm-library-row-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-library-table .pm-library-row-match {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.pm-library-table .pm-library-row-position {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.pm-library-table .pm-library-row-project {
+  color: var(--text-muted);
+  font-size: 13px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pm-library-table .pm-library-row-positions {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-align: center;
+}
+.pm-library-table .pm-library-row-star-cell,
+.pm-library-table .pm-library-row-detail-cell {
+  width: 56px;
+  text-align: center;
+}
+
+/* ---- Star button ---- */
+.pm-library-row-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-library-row-star:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+.pm-library-row-star:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.pm-library-row-star[aria-pressed="true"] {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #fcd34d;
+  color: #b45309;
+}
+.pm-library-row-star-glyph {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* ---- Detail button (inline in row) ---- */
+.pm-library-row-detail {
+  background: var(--surface);
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  color: var(--c-project);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.pm-library-row-detail:hover:not(:disabled) {
+  background: var(--b-project);
+}
+.pm-library-row-detail:disabled {
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ---- Card variant ---- */
+.pm-library-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px)  { .pm-library-cards { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .pm-library-cards { grid-template-columns: repeat(3, 1fr); } }
+
+.pm-library-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-library-card:hover {
+  border-color: var(--c-project);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pm-library-card-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.pm-library-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.pm-library-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-2);
+}
+
+.pm-library-card-position {
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-library-card-project {
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pm-library-card-note {
+  margin-top: var(--sp-2);
+  font-size: 12px;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 6px;
+  padding: 4px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+ * PM Workbench Shell (Phase 3b / Task 17)
+ * ============================================================================
+ *
+ * Layout chrome for the workbench: topbar + sidebar (desktop) / bottom tab
+ * bar (mobile) + main content. Mirrors `.hp-page` / `.hp-topbar` /
+ * `.hp-sidebar` / `.hp-tabbar` from hunter-portal.css so the two portals
+ * feel like one product, but uses `.pm-` class prefixes + the project
+ * colour token so the chrome doesn't collide with the hunter portal.
+ *
+ * Responsive split:
+ *   - < 1024px: sidebar hidden, tab bar visible (mobile / tablet)
+ *   - ≥ 1024px: sidebar shown, tab bar hidden (desktop)
+ *
+ * The `.pm-layout` padding-bottom of 64px on mobile reserves room for
+ * the fixed tab bar so pages don't disappear under it.
+ */
+
+.pm-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pm-page .pm-sidebar { display: none; }
+
+@media (min-width: 1024px) {
+  .pm-page { flex-direction: row; }
+  .pm-page .pm-sidebar {
+    display: flex;
+    width: 220px;
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .pm-page .pm-layout {
+    flex: 1;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* ---- Mobile layout shell ---- */
+.pm-layout {
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
+  min-width: 0;
+}
+
+.pm-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pm-brand {
+  font-weight: 700;
+  color: var(--c-project);
+}
+
+.pm-spacer { flex: 1; }
+
+.pm-logout {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.pm-logout:hover { background: var(--bg); }
+
+.pm-main {
+  padding: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Bottom tab bar (mobile only) ---- */
+.pm-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 10;
+}
+
+.pm-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.pm-tab.active {
+  color: var(--c-project);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .pm-tabbar { display: none; }
+  .pm-layout {
+    padding-bottom: 0;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* ---- Sidebar (desktop only, see media query above) ---- */
+.pm-sidebar {
+  font-size: 14px;
+}
+
+.pm-sidebar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px 20px;
+  color: var(--c-project);
+  border-bottom: 1px solid var(--border);
+}
+
+.pm-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 2px;
+  flex: 1;
+}
+
+.pm-sidebar-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 14px;
+}
+.pm-sidebar-link:hover { background: var(--b-project); }
+.pm-sidebar-link.active {
+  background: var(--b-project);
+  color: var(--c-project);
+  font-weight: 600;
+}
+
+.pm-sidebar-logout {
+  margin: 12px 16px 16px;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.pm-sidebar-logout:hover { background: var(--bg); }
+
+/* ---- Completeness pill (Task 2) ----
+   A compact one-line summary strip that lives directly under the brand
+   and shows running totals (项目数 / 人才库). It is rendered as a
+   <button> so it can be activated; the prototype at
+   prototype.html line 599 uses a similar pill pattern. */
+.pm-sidebar-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--sp-2) var(--sp-3);
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pm-sidebar-pill:hover {
+  background: var(--bg);
+  border-color: var(--c-stage-project);
+  color: var(--c-stage-project);
+}
+
+/* ---- Section labels (Task 2) ----
+   Plain <div> section headers separating the main nav from the
+   project shortcut list. Uses uppercase + letter-spacing for an
+   unobtrusive, scannable look. */
+.pm-sidebar-section {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ---- Per-nav-item badge (Task 2) ----
+   Inline count chip floated to the right of the nav item label.
+   Uses the stage project tokens so the badge feels native to the
+   PM workbench colour palette. */
+.pm-sidebar-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  margin-left: auto;
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  border-radius: 9px;
+  font-size: 10px;
+  text-align: center;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Project shortcut empty state (Task 2 / Task 8 placeholder) ----
+   Shown when the per-project shortcut list is empty (Task 8 will
+   replace this with the actual chip grid). */
+.pm-sidebar-empty {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ---- Settings page (placeholder until Task 18) ---- */
+.pm-settings {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+.pm-settings-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-3);
+  color: var(--text);
+}
+.pm-settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.pm-settings-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--sp-3);
+  align-items: baseline;
+  font-size: 14px;
+}
+.pm-settings-row dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+.pm-settings-row dd {
+  color: var(--text);
+  margin: 0;
+  word-break: break-all;
+}
+
+/* ============================================================================
+ * S1 redesign (Task 3) — Top filter strip + horizontal drill funnel
+ * ============================================================================
+ *
+ * Replaces the original `pm-snapshot-funnel*` grid with a more S1-style
+ * layout: a slim filter strip pinned to the top of the page, followed by
+ * a horizontal 4-stage funnel pipeline with `→` arrows between cards.
+ * The strip / pipeline primitives live below; the legacy `pm-snapshot-funnel`
+ * grid is retained so other Tasks (11 / 14) that still import the
+ * SnapshotFunnel component continue to render unchanged.
+ */
+
+.pm-topfilter {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-3);
+  flex-wrap: wrap;
+}
+.pm-topfilter label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pm-topfilter select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.pm-funnel-pipeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin-bottom: var(--sp-3);
+  flex-wrap: nowrap;
+}
+.pm-funnel-stage {
+  flex: 1;
+  border: 2px solid;
+  border-radius: var(--r-md, 8px);
+  padding: var(--sp-4);
+  min-height: 220px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  user-select: none;
+}
+.pm-funnel-stage:hover { transform: translateY(-2px); }
+.pm-funnel-stage:focus-visible {
+  outline: 2px solid var(--b-stage-project);
+  outline-offset: 2px;
+}
+.pm-funnel-stage-ordinal { font-size: 24px; font-weight: 600; opacity: 0.6; }
+.pm-funnel-stage-label { font-size: 14px; font-weight: 600; margin-top: 4px; }
+.pm-funnel-stage-count { font-size: 32px; font-weight: 700; margin-top: var(--sp-2); font-variant-numeric: tabular-nums; }
+.pm-funnel-stage-subs {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-2) 0 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pm-funnel-arrow {
+  align-self: center;
+  color: #94a3b8;
+  font-size: 20px;
+  padding: 0 var(--sp-2);
+  flex-shrink: 0;
+}
+
+.pm-snapshot-hint {
+  margin: 0 0 var(--sp-3) 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.pm-snapshot-tip {
+  margin: 0 0 var(--sp-4) 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+/* ---- Project detail (S2) — two-column grid + sticky match sidebar (Task 4) ---- */
+.pm-s2-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--sp-3);
+  align-items: start;
+}
+.pm-s2-match-sidebar {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.pm-s2-match-title { font-size: 14px; margin: 0 0 var(--sp-2) 0; }
+.pm-s2-match-subtitle { font-size: 11px; color: var(--text-muted); margin-bottom: var(--sp-3); }
+.pm-s2-match-list { display: flex; flex-direction: column; gap: var(--sp-2); }
+.pm-s2-match-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2); border-radius: var(--r-sm);
+  background: var(--b-stage-match);
+}
+.pm-s2-match-score { font-size: 24px; font-weight: 700; min-width: 40px; text-align: center; }
+.pm-s2-match-title-row { font-size: 12px; font-weight: 600; }
+.pm-s2-match-project { font-size: 11px; color: var(--text-muted); }
+.pm-s2-match-viewall {
+  display: block; text-align: center; margin-top: var(--sp-3);
+  padding: var(--sp-2); font-size: 11px; color: var(--accent);
+}
+
+/* ============================================================================
+ * ERP Publish Status chip (Task 5 / S2 positions)
+ * ============================================================================
+ * Lives in the last cell of the positions table. The chip shows the
+ * current publish state (unpublished / publishing / published / failed)
+ * with a colour-coded label and an action button when the status
+ * warrants user intervention (publish on first run, republish on failure).
+ *
+ * `.pm-erp-state` is reserved for a future badge variant that summarises
+ * the broader ERP integration state at the column header (currently
+ * unused but reserved so a later task can plug in without a rename).
+ */
+
+.pm-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: 11px;
+}
+.pm-publish-label { font-weight: 600; }
+.pm-publish-time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.pm-publish-reason { color: var(--text-muted); }
+.pm-publish-btn {
+  font-size: 10px !important;
+  padding: 2px 6px !important;
+  margin-left: var(--sp-1);
+}
+
+.pm-publish--unpublished { color: var(--text-muted); }
+.pm-publish--publishing  { color: #d97706; }
+.pm-publish--published   { color: var(--ok, #16a34a); }
+.pm-publish--failed      { color: var(--danger, #dc2626); }
+
+.pm-erp-state {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: var(--b-stage-hunter);
+  color: var(--c-stage-hunter);
+}
+
+/* ============================================================================
+ * AI Suggestion Banner + Metadata Edit Modal (Task 6 / S2)
+ * ============================================================================
+ * The yellow AI-suggestion box surfaces a single hint sentence at the
+ * top of the position table; the PM can either adopt it (which
+ * currently just dismisses — no backend wiring yet) or dismiss it.
+ *
+ * The metadata modal edits the project's name / target / budget /
+ * dates / team in one place. It's deliberately narrower than the
+ * create-project modal because all fields are pre-filled.
+ */
+
+.pm-ai-suggestion {
+  margin-top: var(--sp-3);
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  padding: var(--sp-3);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+.pm-ai-suggestion-body { flex: 1; }
+.pm-ai-suggestion-actions { display: flex; gap: var(--sp-2); flex-shrink: 0; }
+
+.pm-meta-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.pm-meta-modal {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+  width: 560px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+.pm-meta-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-4);
+}
+.pm-meta-modal-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: var(--sp-3);
+}
+.pm-meta-modal-dates {
+  display: flex;
+  gap: var(--sp-2);
+}
+.pm-meta-modal-footer {
+  margin-top: var(--sp-4);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ============================================================================
+ * S5 Candidate Detail — Profile Card + Tier Badges + Match Table
+ * ============================================================================
+ * Task 10 / Task 13 visual-fidelity pass for the S5 candidate detail page.
+ *
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │ PMViewBanner (top, full width)                       │
+ *   ├────────────────┬─────────────────────────────────────┤
+ *   │ CandidateProfile│ CandidateRadar (svg)               │
+ *   │ (280px)        │  TierBadgeRow (A/B/C/D per dim)     │
+ *   │                │  MatchTable (position/project/score)│
+ *   │                │  PrivateNoteCard                    │
+ *   └────────────────┴─────────────────────────────────────┘
+ *
+ * Grid uses a fixed 280px left column so the profile card stays
+ * compact and the radar + table can stretch to the right.
+ */
+
+.pm-s5-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--sp-3);
+  align-items: start;
+}
+
+.pm-candidate-profile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+}
+
+.pm-candidate-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: var(--sp-3);
+  overflow: hidden;
+}
+.pm-candidate-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.pm-candidate-title { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--sp-2); }
+.pm-candidate-resume { font-size: 12px; line-height: 1.5; margin: var(--sp-3) 0; }
+.pm-candidate-tags { list-style: none; padding: 0; margin: 0 0 var(--sp-3); display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.pm-candidate-tags li {
+  font-size: 11px;
+  background: var(--bg);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.pm-tier-badge-row { list-style: none; padding: 0; margin: var(--sp-2) 0 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.pm-tier-badge {
+  display: grid;
+  grid-template-columns: 24px 80px 40px 1fr;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+}
+.pm-tier-letter { font-size: 16px; font-weight: 700; }
+.pm-tier-bar { display: block; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.pm-tier-bar > span { display: block; height: 100%; }
+
+.pm-s5-match-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pm-s5-match-table th,
+.pm-s5-match-table td { padding: var(--sp-2); border-bottom: 1px solid var(--border); }
+.pm-s5-match-table th { text-align: left; font-weight: 600; color: var(--text-muted); background: var(--bg); }
+.pm-s5-match-table td > button + button { margin-left: var(--sp-1); }
+
+.pm-view-banner {
+  background: var(--b-stage-candidate);
+  color: #92400e;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  margin-bottom: var(--sp-3);
+}
+
+/* ============================================================================
+ * S7 ERP settings surface (Task 12)
+ * ============================================================================
+ *
+ * Layout for the four pieces that compose PMSettingsPage (S7):
+ *   1. <ErpConnectionForm> — backend radio + URL/Token inputs + buttons
+ *   2. <ErpStatusTable>   — current backend / URL / 已发布数 rows
+ *   3. <ErpCallLog>       — monospace pre block of recent API calls
+ *
+ * The selected radio gets the project stage accent (purple) so the PM can
+ * see at a glance which backend is live. The log block uses a dark slate
+ * background + cyan text (terminal aesthetic) so long paths remain readable.
+ */
+
+.pm-erp-form,
+.pm-erp-status,
+.pm-erp-log {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.pm-erp-form-title,
+.pm-erp-status-title,
+.pm-erp-log-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pm-erp-radios {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.pm-erp-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  background: var(--bg);
+  font-size: 13px;
+  color: var(--text);
+}
+.pm-erp-radio:has(input:checked) {
+  border-color: var(--c-stage-project);
+  background: var(--b-stage-project);
+  font-weight: 600;
+}
+
+.pm-erp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-erp-field input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.pm-erp-form-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.pm-erp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pm-erp-table th,
+.pm-erp-table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: baseline;
+}
+.pm-erp-table th {
+  width: 120px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.pm-erp-table tr:last-child th,
+.pm-erp-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pm-erp-log-pre {
+  width: 100%;
+  background: #0f172a;
+  color: #a5f3fc;
+  padding: var(--sp-3);
+  border-radius: var(--r-sm);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ---- ProjectCard actions row (S8 / Task 13) ---- */
+.pm-project-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.pm-project-card-action--secondary {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* ---- HR progress bar (S8 / Task 13) ---- */
+.pm-hr-bar {
+  position: relative;
+  height: 14px;
+  background: var(--bg);
+  border-radius: 7px;
+  overflow: hidden;
+  min-width: 80px;
+}
+.pm-hr-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  transition: width 0.3s;
+}
+.pm-hr-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--text);
+}
+
+/* ---- Project library timeline cell (S8 / Task 13) ---- */
+.pm-timeline {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---- Read-only chip (S9 / Task 14) ---- */
+.pm-readonly-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: var(--sp-2);
+}
+
+/* ---- Library filter bar (S9 / Task 14) ---- */
+.pm-select {
+  width: auto;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+.pm-library-header-subtitle {
+  display: block;
+  margin-top: var(--sp-1);
+  font-size: 12px;
+  color: var(--text-muted);
+}

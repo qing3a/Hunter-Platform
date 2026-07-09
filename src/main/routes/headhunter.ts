@@ -17,6 +17,8 @@ import {
 } from '../schemas/headhunter.js';
 import type { User } from '../../shared/types.js';
 import { QUOTA_COSTS } from '../../shared/constants.js';
+import { createHeadhunterPickup } from '../modules/candidate-portal/headhunter-pickup.js';
+import { EnvelopeSchema, IdString } from '../schemas/common.js';
 
 const UploadSchema = z.object({
   candidate_user_id: z.string().min(1),
@@ -30,6 +32,36 @@ const UploadSchema = z.object({
   education_school: z.string().max(200).optional(),
   skills: z.array(z.string()).optional(),
 });
+
+// Inline response schemas for the candidate-portal pickup endpoints (Task 9).
+// Full schema definitions will move to src/main/schemas/headhunter.ts in Task 11
+// (router wiring). For now we keep them minimal so respond() can validate the
+// envelope shape.
+const PendingPickupItemSchema = z.object({
+  id: z.number().int(),
+  recommendation_id: IdString,
+  candidate_user_id: IdString,
+  job_id: IdString,
+  pickup_headhunter_id: IdString.nullable(),
+  candidate_note: z.string().nullable(),
+  withdrawn_at: z.number().int().nullable(),
+  created_at: z.number().int(),
+  job_title: z.string().nullable(),
+  candidate_display_name: z.string().nullable(),
+  recommendation_status: z.string(),
+});
+const PendingPickupResponseSchema = EnvelopeSchema(
+  z.object({
+    items: z.array(PendingPickupItemSchema),
+    next_cursor: z.null(),
+  }),
+);
+const PickupResponseSchema = EnvelopeSchema(
+  z.object({
+    recommendation_id: IdString,
+    status: z.literal('pending'),
+  }),
+);
 
 export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
   const router = Router();
@@ -163,6 +195,38 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
     try {
 const list = handler.listMyCreatedJobs((req as typeof req & { user?: User }).user!);
     respond(res, ListMyCreatedJobsResponseSchema, { ok: true, data: list });
+    } catch (e) { next(e); }
+  });
+
+  // -------------------------------------------------------------------------
+  // Candidate Portal Phase 1: headhunter pickup endpoints (Task 9)
+  // -------------------------------------------------------------------------
+  const pickup = createHeadhunterPickup(db);
+
+  // GET /v1/headhunter/recommendations/pending-pickup
+  // — list self-applied recommendations awaiting pickup
+  router.get('/recommendations/pending-pickup', (req, res, next) => {
+    try {
+      const user = (req as typeof req & { user?: User }).user!;
+      const limit = req.query.limit ? Number(req.query.limit) : undefined;
+      const offset = req.query.offset ? Number(req.query.offset) : undefined;
+      // Build a query object without `undefined` keys so we satisfy
+      // exactOptionalPropertyTypes=true.
+      const query: { limit?: number; offset?: number } = {};
+      if (limit !== undefined) query.limit = limit;
+      if (offset !== undefined) query.offset = offset;
+      const result = pickup.listPendingPickup(user, query);
+      respond(res, PendingPickupResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/headhunter/recommendations/:id/pickup
+  // — claim a pending_pickup recommendation
+  router.post('/recommendations/:id/pickup', (req, res, next) => {
+    try {
+      const user = (req as typeof req & { user?: User }).user!;
+      const result = pickup.pickup(user, req.params.id);
+      respond(res, PickupResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 

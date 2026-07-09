@@ -116,3 +116,50 @@ describe('POST /v1/employer/reject-jobs/:id', () => {
     expect(reject.body.error.code).toBe('INVALID_STATE');
   });
 });
+
+describe('POST /v1/employer/pending-claims/:id/claim', () => {
+  beforeEach(setupEnv);
+  afterEach(() => { delete process.env.DATABASE_PATH; });
+
+  it('matches the documented pending-claims claim route shape', async () => {
+    const app = createApp();
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
+
+    const res = await request(app)
+      .post(`/v1/employer/pending-claims/${job.id}/claim`)
+      .set('Authorization', `Bearer ${emp.api_key}`)
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(job.id);
+    expect(res.body.data.employer_id).toBe(emp.id);
+    expect(res.body.data.status).toBe('claimed');
+  });
+});
+
+describe('POST /v1/employer/pending-claims/:id/reject', () => {
+  beforeEach(setupEnv);
+  afterEach(() => { delete process.env.DATABASE_PATH; });
+
+  it('matches the documented pending-claims reject route shape', async () => {
+    const app = createApp();
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
+
+    const res = await request(app)
+      .post(`/v1/employer/pending-claims/${job.id}/reject`)
+      .set('Authorization', `Bearer ${emp.api_key}`)
+      .send({ reason: '不符合当前需求' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('closed');
+
+    const pending = await request(app)
+      .get('/v1/employer/pending-claims')
+      .set('Authorization', `Bearer ${emp.api_key}`);
+    expect(pending.body.data).toHaveLength(0);
+  });
+});

@@ -41,7 +41,7 @@ export const ErrorEnvelope = z.object({
 /** User profile fields safe to expose to any authenticated caller. */
 export const UserPublicSchema = z.object({
   id: IdString,
-  user_type: z.enum(['candidate', 'headhunter', 'employer']),
+  user_type: z.enum(['candidate', 'headhunter', 'employer', 'pm']),
   name: z.string(),
   quota_per_day: z.number().int(),
   quota_used: z.number().int(),

@@ -5,6 +5,61 @@
 
 ---
 
+## [Unreleased] — Employer Panel (P2, 12 tasks)
+
+### Added
+- **Backend** (5 new endpoints + 1 fix):
+  - `GET /v1/employer-panel/dashboard` — aggregated employer stats (active_jobs, open_positions, candidates_viewed_this_month, interested_count, unlocked_count, placements_count, spend_this_month)
+  - `GET /v1/employer/jobs/:id` — single job detail
+  - `PATCH /v1/employer/jobs/:id` — partial update
+  - `POST /v1/employer/jobs/:id/{pause,resume,close}` — state transitions
+  - `POST /v1/employer/pending-claims/:id/{claim,reject}` — compatibility routes (legacy `claim-jobs`/`reject-jobs` retained)
+
+- **Frontend** (8 new pages + 5 new components):
+  - `/admin/employer/*` route tree (login + dashboard + jobs + candidates + placements + pending-claims + settings)
+  - `RequireEmployerAuth` HOC, `EmployerMobileLayout` shell, `EmployerSidebar`, `EmployerKPICard`
+  - `JobPostForm` (7-field form), `CandidatePreviewCard`, `PlacementTimeline`, `PendingClaimRow`
+  - `employer.ts` API client with auth + 5 namespaces (dashboard, jobs, candidates, placements, pending-claims)
+
+### Tests
+- 137 new admin-web tests (1058 → 1065 baseline; +30 dashboard + 30 browse + 30 placements + ~50 jobs/claims/etc.)
+- 30 new backend tests (`tests/integration/employer/dashboard.test.ts`)
+- 5 new backend tests (`tests/integration/employer/job-detail.test.ts` — pause/resume/close/get/update)
+- 9 new backend tests (`tests/integration/employer-claim-reject.test.ts` — pending-claim compatibility routes)
+- 1 E2E test (`tests/integration/employer/e2e.test.ts`)
+
+### Fixed
+- `admin-list-pagination.test.ts` date-drift flake (seeded `now` is now `Date.now()` instead of hardcoded 2026-06-24)
+
+---
+
+## v3.0.0 (2026-07-08) — C 端候选人门户 Phase 1
+
+新增能力:
+- `/v1/candidate-portal/*` 路由组 (OTP 认证 + 13 端点)
+- C 端候选人自助注册/登录 (邮箱 + 6 位 OTP, 开发模式控制台输出)
+- 候选人浏览/申请/撤回工作
+- 候选人消息系统
+- 候选人公开简历编辑 (技能/期望/可见性)
+- 候选人能力雷达图 (前端)
+- 移动优先响应式 UI (`/candidate/*` 路径)
+- 暗色模式 (data-theme="dark")
+
+数据库 (v025 + v026):
+- 新增 `candidate_otp_codes` / `candidate_messages` / `candidate_applications` 表
+- 扩展 `recommendations` (source_type / pickup_headhunter_id / candidate_note)
+- 扩展 `candidates_anonymized` (visibility / expectations_json)
+- 重建 `recommendations` 支持 `pending_pickup` 状态 (nullable headhunter_id)
+
+数据流:
+- 候选人申请 → 创建 recommendation (status=pending_pickup, source_type=candidate_self_apply)
+- 猎头认领 → status 转 pending, 通知候选人
+- 进入原 4 步解锁流程
+
+后续: Phase 2 PM 模式 + Phase 3 Hunter 模式 (ow-recruit-saas 借鉴)
+
+---
+
 ## v2.9.0 (Sub-G — Public Rate-Limit + Commission Config + Cache TTL 0s) — 2026-06-26
 
 Sub-F 让 worker 读 Config，但还有 3 个运营控制缺口：agent 预读 rate-limit、commission rate 调优、admin 改后立即生效。v2.9.0 解决。

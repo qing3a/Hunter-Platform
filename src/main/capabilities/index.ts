@@ -12,6 +12,8 @@ export { candidateCapabilities } from './candidate.js';
 export { adminCapabilities } from './admin.js';
 export { authCapabilities } from './auth.js';
 export { notificationsCapabilities } from './notifications.js';
+export { candidatePortalCapabilities, CANDIDATE_PORTAL_CAPABILITIES } from './candidate-portal.js';
+export { pmCapabilities } from './pm.js';
 
 import { headhunterCapabilities } from './headhunter.js';
 import { employerCapabilities } from './employer.js';
@@ -19,10 +21,12 @@ import { candidateCapabilities } from './candidate.js';
 import { adminCapabilities } from './admin.js';
 import { authCapabilities } from './auth.js';
 import { notificationsCapabilities } from './notifications.js';
+import { candidatePortalCapabilities } from './candidate-portal.js';
+import { pmCapabilities } from './pm.js';
 import type { Capability, CapabilitySet } from './types.js';
 
 const ALL_SETS: CapabilitySet[] = [
-  headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities, authCapabilities, notificationsCapabilities,
+  headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities, authCapabilities, notificationsCapabilities, candidatePortalCapabilities, pmCapabilities,
 ];
 
 /** Look up a capability by HTTP method + path. Returns undefined if not

@@ -28,6 +28,22 @@ export const headhunterCapabilities = defineCapabilitySet({
       effects: ['consume_quota(5)', 'db.recommendations.insert'],
     },
     {
+      name: 'headhunter.recommendations.list_pending_pickup',
+      description: '猎头看待认领候选人列表 (候选人主动申请进入 pending_pickup 状态)。',
+      method: 'GET', path: '/v1/headhunter/recommendations/pending-pickup',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.candidate_applications.listPendingPickup'],
+    },
+    {
+      name: 'headhunter.recommendations.pickup',
+      description: '猎头认领候选人申请 (pending_pickup → pending, 写入 pickup_headhunter_id)。',
+      method: 'POST', path: '/v1/headhunter/recommendations/:id/pickup',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.recommendations.update(pickup_headhunter_id)', 'db.candidate_applications.update(pickup_headhunter_id)', 'webhook: notify_pickup'],
+    },
+    {
       name: 'headhunter.withdraw_recommendation',
       description: '撤回已提交的推荐(只在 pending / employer_interested 状态可撤回)。',
       method: 'POST', path: '/v1/headhunter/recommendations/:id/withdraw',

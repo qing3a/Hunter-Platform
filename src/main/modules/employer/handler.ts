@@ -387,5 +387,111 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
       return { status: 'closed' };
       });
     },
+
+    // ========================================================================
+    // Task 5 backend gap fill: GET / PATCH / pause / resume / close
+    // ========================================================================
+
+    /**
+     * GET /v1/employer/jobs/:id — load a single job owned by the caller.
+     * Ownership is enforced: a job belonging to a different employer returns
+     * NOT_FOUND (not FORBIDDEN — no information leak about whether the id
+     * exists).
+     */
+    getJob(user: User, input: { id: string }): Job {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can view jobs');
+      const job = jobs.findById(input.id);
+      if (!job) throw Errors.notFound('Job not found');
+      if (job.employer_id !== user.id) throw Errors.notFound('Job not found');
+      return job;
+    },
+
+    /**
+     * PATCH /v1/employer/jobs/:id — edit-form submission. The input is
+     * already validated by the route's UpdateJobRequestSchema (and is
+     * therefore a strict subset of the editable fields — no status /
+     * ownership cols leak in). Ownership is enforced via the repo's
+     * `employer_id = ?` clause; a row that didn't match returns 0 changes
+     * which we surface as NOT_FOUND.
+     *
+     * `updated_at` is bumped server-side regardless of which fields the
+     * caller sent (no-op on truly-empty updates is filtered at the route
+     * layer so we always have something to apply here).
+     */
+    updateJob(user: User, input: { id: string; fields: Record<string, unknown> }): Job {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can edit jobs');
+      const existing = jobs.findById(input.id);
+      if (!existing) throw Errors.notFound('Job not found');
+      if (existing.employer_id !== user.id) throw Errors.notFound('Job not found');
+
+      jobs.updateFields(input.id, user.id, input.fields as Partial<Job>);
+      const after = jobs.findById(input.id);
+      if (!after) throw Errors.notFound('Job not found');
+      return after;
+    },
+
+    /**
+     * POST /v1/employer/jobs/:id/pause — flip `open` → `paused`. The repo's
+     * conditional update enforces the state machine atomically:
+     *
+     *   - missing job            → 0 changes → NOT_FOUND
+     *   - not owned              → 0 changes (employer_id mismatch) → NOT_FOUND
+     *   - current status ∉ {open} → 0 changes → INVALID_STATE
+     *   - happy path             → 1 change → status now 'paused'
+     *
+     * 'claimed' is intentionally NOT in allowedFrom — a claimed job is owned
+     * by an employer who already has it, and the audit-trail reason for
+     * pausing (status flip without action) doesn't apply. Reject first if
+     * the claim was unwanted, then pause as needed.
+     */
+    pauseJob(user: User, input: { id: string }): { id: string; status: 'paused' } {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can pause jobs');
+      const existing = jobs.findById(input.id);
+      if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
+      if (existing.status !== 'open') {
+        throw Errors.invalidState(`Cannot pause job in status ${existing.status}`);
+      }
+      const changes = jobs.updateStatusIfCurrent(input.id, user.id, ['open'], 'paused');
+      if (changes === 0) {
+        // Lost a race (status changed between read & write) — surface as
+        // invalid-state so the SPA can refresh.
+        throw Errors.invalidState(`Cannot pause job — status changed concurrently`);
+      }
+      return { id: input.id, status: 'paused' };
+    },
+
+    /**
+     * POST /v1/employer/jobs/:id/resume — flip `paused` → `open`.
+     * Same ownership + state-machine shape as pauseJob.
+     */
+    resumeJob(user: User, input: { id: string }): { id: string; status: 'open' } {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can resume jobs');
+      const existing = jobs.findById(input.id);
+      if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
+      if (existing.status !== 'paused') {
+        throw Errors.invalidState(`Cannot resume job in status ${existing.status}`);
+      }
+      const changes = jobs.updateStatusIfCurrent(input.id, user.id, ['paused'], 'open');
+      if (changes === 0) {
+        throw Errors.invalidState(`Cannot resume job — status changed concurrently`);
+      }
+      return { id: input.id, status: 'open' };
+    },
+
+    /**
+     * POST /v1/employer/jobs/:id/close — hard-close from `open` or `paused`.
+     * Terminal state: once a job is closed the SPA should expect any
+     * subsequent pause/resume call to fail with INVALID_STATE.
+     */
+    closeJob(user: User, input: { id: string }): { id: string; status: 'closed' } {
+      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can close jobs');
+      const existing = jobs.findById(input.id);
+      if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
+      const changes = jobs.updateStatusIfCurrent(input.id, user.id, ['open', 'paused'], 'closed');
+      if (changes === 0) {
+        throw Errors.invalidState(`Cannot close job in status ${existing.status}`);
+      }
+      return { id: input.id, status: 'closed' };
+    },
   };
 }
