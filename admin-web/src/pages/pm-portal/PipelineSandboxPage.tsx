@@ -12,6 +12,7 @@ import {
   SandboxFunnelCard,
   SandboxCandidateRow,
 } from '../../components/pm-portal/SandboxFunnelCard';
+import { PositionPicker } from '../../components/pm-portal/PositionPicker';
 
 // ============================================================================
 // PipelineSandboxPage (Task 9 / S3)
@@ -56,6 +57,20 @@ export function PipelineSandboxPage() {
     queryKey: ['pm', 'positions', 'get', positionId],
     queryFn: () => pmPositions.get(positionId!),
     enabled: Boolean(positionId),
+  });
+
+  // ---- Network: project positions (Task 7 inline picker) ----
+  // The S3 sandbox hosts a <PositionPicker> at the top of the page so
+  // the PM can flip to another position of the same project without
+  // leaving the funnel. We fetch the project's full position list and
+  // hydrate the picker from it. Always-on (no gating) so the picker
+  // is responsive even before the position header resolves — the
+  // fallback seed is the current position.
+  const projectId = positionQuery.data?.position.project_id;
+  const positionsListQuery = useQuery({
+    queryKey: ['pm', 'positions', 'list', projectId, 'picker'],
+    queryFn: () => pmPositions.list(projectId!, { limit: 100 }),
+    enabled: Boolean(projectId),
   });
 
   // ---- Network: sandbox aggregation ----
@@ -137,6 +152,44 @@ export function PipelineSandboxPage() {
           <h1 className="pm-sandbox-title" data-testid="pm-sandbox-title">
             {position ? `${position.title} · 招聘漏斗` : '招聘漏斗'}
           </h1>
+          {/*
+            Inline position picker (Task 7). The picker is rendered as
+            soon as the position header resolves; before that the route
+            positionId isn't yet known to belong to a real project so
+            we skip rendering to avoid an orphan <select>.
+          */}
+          {projectId && positionId && (
+            <PositionPicker
+              positions={[
+                ...((positionsListQuery.data?.positions ?? []).map((p) => ({
+                  id: p.id,
+                  title: p.title,
+                  title_level: p.title_level ?? undefined,
+                }))),
+                // Fallback: when the list hasn't resolved, or doesn't
+                // include the current position, seed the picker with
+                // the route position so the active selection renders.
+                ...(positionsListQuery.data?.positions?.some(
+                  (p) => p.id === positionId,
+                )
+                  ? []
+                  : [
+                      {
+                        id: positionId,
+                        title: position?.title ?? '当前岗位',
+                        title_level: position?.title_level ?? undefined,
+                      },
+                    ]),
+              ]}
+              value={positionId}
+              onChange={(newPositionId) => {
+                if (newPositionId === positionId) return;
+                navigate(
+                  `/admin/pm/projects/${projectId}/positions/${newPositionId}/sandbox`,
+                );
+              }}
+            />
+          )}
         </div>
         {position && (
           <div className="pm-sandbox-meta" data-testid="pm-sandbox-meta">

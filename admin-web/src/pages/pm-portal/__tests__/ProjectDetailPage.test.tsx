@@ -64,6 +64,7 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
 });
 
 const mockedGetProject = vi.mocked(pmProjects.get);
+const mockedListProjects = vi.mocked(pmProjects.list);
 const mockedListPositions = vi.mocked(pmPositions.list);
 const mockedStatsPositions = vi.mocked(pmPositions.stats);
 const mockedListMatches = vi.mocked(pmMatches.list);
@@ -161,11 +162,17 @@ describe('ProjectDetailPage', () => {
     cleanup();
     navigateSpy.mockClear();
     mockedGetProject.mockReset();
+    mockedListProjects.mockReset();
     mockedListPositions.mockReset();
     mockedStatsPositions.mockReset();
     mockedListMatches.mockReset();
     mockedUpdateProject.mockReset();
     mockedUpdateProject.mockResolvedValue(makeProject());
+    // Task 7 — ProjectDetailPage hosts an inline <ProjectPicker> that
+    // fetches the projects list. Default to an empty list so existing
+    // tests don't trip on the new query (the page still seeds the
+    // picker with the current project as a fallback).
+    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
   });
 
   it('shows a loading state while the project request is in flight', () => {
@@ -577,7 +584,13 @@ describe('ProjectDetailPage', () => {
     fireEvent.click(screen.getByTestId('pm-detail-action-metadata'));
     await waitFor(() => screen.getByTestId('pm-meta-modal'));
 
-    expect(screen.getByDisplayValue('AI Engineering Expansion')).toBeInTheDocument();
+    // Scope to the modal so the ProjectPicker <option> with the same
+    // project name (Task 7) doesn't trip getByDisplayValue.
+    expect(
+      within(screen.getByTestId('pm-meta-modal')).getByDisplayValue(
+        'AI Engineering Expansion',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('closes the MetadataEditModal when the backdrop is clicked', async () => {
@@ -633,5 +646,56 @@ describe('ProjectDetailPage', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('pm-meta-modal')).toBeNull();
     });
+  });
+
+  // -------------------------------------------------------------------------
+  // Task 7 — inline ProjectPicker in the top breadcrumb
+  // -------------------------------------------------------------------------
+
+  it('renders the inline <ProjectPicker> in the top bar (Task 7)', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+    mockedListProjects.mockResolvedValueOnce({
+      projects: [makeProject({ id: 'proj-1' }), makeProject({ id: 'proj-2', name: 'ProjectB' })],
+      total: 2,
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-project-picker'));
+
+    const picker = screen.getByTestId('pm-project-picker');
+    const options = picker.querySelectorAll('option');
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent('AI Engineering Expansion');
+    expect(options[1]).toHaveTextContent('ProjectB');
+  });
+
+  it('navigates to the new project when the <ProjectPicker> selection changes (Task 7)', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+    mockedListProjects.mockResolvedValueOnce({
+      projects: [makeProject({ id: 'proj-1' }), makeProject({ id: 'proj-2', name: 'ProjectB' })],
+      total: 2,
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-project-picker'));
+
+    fireEvent.change(screen.getByTestId('pm-project-picker'), {
+      target: { value: 'proj-2' },
+    });
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-2');
   });
 });

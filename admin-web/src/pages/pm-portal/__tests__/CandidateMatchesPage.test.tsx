@@ -45,6 +45,7 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
 });
 
 const mockedGetPosition = vi.mocked(pmPositions.get);
+const mockedListPositions = vi.mocked(pmPositions.list);
 const mockedListMatches = vi.mocked(pmMatches.list);
 const mockedRecompute = vi.mocked(pmMatches.recompute);
 
@@ -112,6 +113,8 @@ describe('CandidateMatchesPage — loading / error', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('shows a loading state while both queries are in flight', () => {
@@ -167,6 +170,8 @@ describe('CandidateMatchesPage — header + back nav', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('renders the position title in the header', async () => {
@@ -221,6 +226,8 @@ describe('CandidateMatchesPage — stats', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('reports the total count and the rounded average score', async () => {
@@ -272,6 +279,8 @@ describe('CandidateMatchesPage — match grid + sort', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('renders one card per match with index-namespaced test ids', async () => {
@@ -368,6 +377,8 @@ describe('CandidateMatchesPage — empty states', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('shows the default empty hint when the initial list is empty', async () => {
@@ -415,6 +426,8 @@ describe('CandidateMatchesPage — recompute', () => {
     mockedGetPosition.mockReset();
     mockedListMatches.mockReset();
     mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('calls pmMatches.recompute with the position id on click', async () => {
@@ -474,5 +487,75 @@ describe('CandidateMatchesPage — recompute', () => {
     await waitFor(() => {
       expect(mockedListMatches.mock.calls.length).toBeGreaterThan(callsBefore);
     });
+  });
+});
+
+// -------------------------------------------------------------------------
+// Task 7 — inline PositionPicker in the S6 header
+// -------------------------------------------------------------------------
+
+describe('CandidateMatchesPage — Task 7 PositionPicker', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedGetPosition.mockReset();
+    mockedListMatches.mockReset();
+    mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+  });
+
+  it('renders the <PositionPicker> with the project positions', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition({ project_id: 'proj-1' }),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedListPositions.mockResolvedValueOnce({
+      positions: [
+        makePosition({ id: 'pos-1', title: 'Senior Frontend Engineer', title_level: 'senior' }),
+        makePosition({ id: 'pos-2', title: 'Tech Lead', title_level: 'staff' }),
+      ],
+      total: 2,
+    });
+
+    renderPage();
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-position-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(2);
+    });
+
+    const picker = screen.getByTestId('pm-position-picker');
+    const options = picker.querySelectorAll('option');
+    expect(options[0]).toHaveTextContent('Senior Frontend Engineer');
+    expect(options[1]).toHaveTextContent('Tech Lead');
+  });
+
+  it('navigates to the new position matches page when the <PositionPicker> selection changes', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition({ project_id: 'proj-1' }),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedListPositions.mockResolvedValueOnce({
+      positions: [
+        makePosition({ id: 'pos-1', title: 'Senior Frontend Engineer' }),
+        makePosition({ id: 'pos-2', title: 'Tech Lead' }),
+      ],
+      total: 2,
+    });
+
+    renderPage();
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-position-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(2);
+    });
+
+    fireEvent.change(screen.getByTestId('pm-position-picker'), {
+      target: { value: 'pos-2' },
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      '/admin/pm/projects/proj-1/positions/pos-2/matches',
+    );
   });
 });

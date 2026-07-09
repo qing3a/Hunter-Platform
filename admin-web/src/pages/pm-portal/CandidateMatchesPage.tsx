@@ -8,6 +8,7 @@ import {
   type Position,
 } from '../../api/pm-portal';
 import { MatchCard } from '../../components/pm-portal/MatchCard';
+import { PositionPicker } from '../../components/pm-portal/PositionPicker';
 import { useToast } from '../../lib/toast';
 
 // ============================================================================
@@ -66,6 +67,18 @@ export function CandidateMatchesPage() {
     queryKey: ['pm', 'positions', 'get', positionId],
     queryFn: () => pmPositions.get(positionId!),
     enabled: Boolean(positionId),
+  });
+
+  // ---- Network: project positions (Task 7 inline picker) ----
+  // S6 hosts a <PositionPicker> at the top of the page so the PM can
+  // jump to another position's match list without leaving the funnel.
+  // The query is gated on the position header so the picker is only
+  // rendered once we know the project id.
+  const matchProjectId = positionQuery.data?.position.project_id;
+  const positionsListQuery = useQuery({
+    queryKey: ['pm', 'positions', 'list', matchProjectId, 'picker'],
+    queryFn: () => pmPositions.list(matchProjectId!, { limit: 100 }),
+    enabled: Boolean(matchProjectId),
   });
 
   // ---- Network: matches list ----
@@ -186,6 +199,40 @@ export function CandidateMatchesPage() {
           <h1 className="pm-matches-title" data-testid="pm-matches-title">
             {position ? `${position.title} · 候选人匹配` : '候选人匹配'}
           </h1>
+          {/*
+            Inline position picker (Task 7). Renders once the position
+            header has resolved (so we know the project id); before
+            that we skip rendering to avoid an orphan <select>.
+          */}
+          {matchProjectId && positionId && (
+            <PositionPicker
+              positions={[
+                ...((positionsListQuery.data?.positions ?? []).map((p) => ({
+                  id: p.id,
+                  title: p.title,
+                  title_level: p.title_level ?? undefined,
+                }))),
+                ...(positionsListQuery.data?.positions?.some(
+                  (p) => p.id === positionId,
+                )
+                  ? []
+                  : [
+                      {
+                        id: positionId,
+                        title: position?.title ?? '当前岗位',
+                        title_level: position?.title_level ?? undefined,
+                      },
+                    ]),
+              ]}
+              value={positionId}
+              onChange={(newPositionId) => {
+                if (newPositionId === positionId) return;
+                navigate(
+                  `/admin/pm/projects/${matchProjectId}/positions/${newPositionId}/matches`,
+                );
+              }}
+            />
+          )}
         </div>
         <div className="pm-matches-header-actions">
           <label className="pm-matches-filter">

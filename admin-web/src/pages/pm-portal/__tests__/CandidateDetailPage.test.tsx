@@ -652,3 +652,106 @@ describe('CandidateDetailPage — PM private note integration', () => {
     });
   });
 });
+
+// -------------------------------------------------------------------------
+// Task 7 — inline candidate picker in the S5 header
+// -------------------------------------------------------------------------
+
+describe('CandidateDetailPage — Task 7 candidate picker', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedListProjects.mockReset();
+    mockedListPositions.mockReset();
+    mockedListMatches.mockReset();
+    mockedNotesGet.mockReset();
+  });
+
+  it('renders the <select> candidate picker with the route candidate pre-selected', async () => {
+    mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage('cand-1');
+    await waitFor(() => screen.getByTestId('pm-candidate-picker'));
+
+    const picker = screen.getByTestId('pm-candidate-picker') as HTMLSelectElement;
+    expect(picker.value).toBe('cand-1');
+  });
+
+  it('lists every deduped candidate across projects / positions', async () => {
+    const project1 = makeProject({ id: 'proj-1' });
+    const project2 = makeProject({ id: 'proj-2', name: 'ProjectB' });
+    const pos1 = makePosition({ id: 'pos-1', project_id: 'proj-1' });
+    const pos2 = makePosition({ id: 'pos-2', project_id: 'proj-2' });
+
+    mockedListProjects.mockResolvedValue({ projects: [project1, project2], total: 2 });
+    mockedListPositions.mockImplementation(async (projectId) => {
+      if (projectId === 'proj-1') return { positions: [pos1], total: 1 };
+      if (projectId === 'proj-2') return { positions: [pos2], total: 1 };
+      return { positions: [], total: 0 };
+    });
+    mockedListMatches.mockImplementation(async (positionId) => {
+      if (positionId === 'pos-1') {
+        return {
+          matches: [
+            // cand-1 appears twice (in pos-1) — must be deduped.
+            makeMatch({ match_id: 1, position_id: 'pos-1', candidate_user_id: 'cand-1', candidate_display_name: '张*三' }),
+            makeMatch({ match_id: 2, position_id: 'pos-1', candidate_user_id: 'cand-1', candidate_display_name: '张*三' }),
+            makeMatch({ match_id: 3, position_id: 'pos-1', candidate_user_id: 'cand-2', candidate_display_name: '李*四' }),
+          ],
+          total: 3,
+        };
+      }
+      if (positionId === 'pos-2') {
+        return {
+          matches: [
+            makeMatch({ match_id: 4, position_id: 'pos-2', candidate_user_id: 'cand-3', candidate_display_name: '王*五' }),
+          ],
+          total: 1,
+        };
+      }
+      return { matches: [], total: 0 };
+    });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage('cand-1');
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-candidate-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(3);
+    });
+
+    const picker = screen.getByTestId('pm-candidate-picker');
+    const options = picker.querySelectorAll('option');
+    // Sorted by user_id ASC: cand-1, cand-2, cand-3
+    const values = Array.from(options).map((o) => o.value);
+    expect(values).toEqual(['cand-1', 'cand-2', 'cand-3']);
+  });
+
+  it('navigates to the new candidate detail URL on change', async () => {
+    const project1 = makeProject({ id: 'proj-1' });
+    const pos1 = makePosition({ id: 'pos-1' });
+    mockedListProjects.mockResolvedValue({ projects: [project1], total: 1 });
+    mockedListPositions.mockResolvedValue({ positions: [pos1], total: 1 });
+    mockedListMatches.mockImplementation(async () => ({
+      matches: [
+        makeMatch({ match_id: 1, position_id: 'pos-1', candidate_user_id: 'cand-1', candidate_display_name: '张*三' }),
+        makeMatch({ match_id: 2, position_id: 'pos-1', candidate_user_id: 'cand-2', candidate_display_name: '李*四' }),
+      ],
+      total: 2,
+    }));
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage('cand-1');
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-candidate-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(2);
+    });
+
+    fireEvent.change(screen.getByTestId('pm-candidate-picker'), {
+      target: { value: 'cand-2' },
+    });
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/candidates/cand-2');
+  });
+});

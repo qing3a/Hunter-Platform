@@ -44,6 +44,7 @@ vi.mock('../../../api/pm-portal', async (importOriginal) => {
 });
 
 const mockedGetPosition = vi.mocked(pmPositions.get);
+const mockedListPositions = vi.mocked(pmPositions.list);
 const mockedGetSandbox = vi.mocked(pmSandbox.get);
 
 // ---- Helpers --------------------------------------------------------------
@@ -118,7 +119,13 @@ describe('PipelineSandboxPage — loading / error', () => {
     cleanup();
     navigateSpy.mockClear();
     mockedGetPosition.mockReset();
+    mockedListPositions.mockReset();
     mockedGetSandbox.mockReset();
+    // Task 7 — PipelineSandboxPage hosts an inline <PositionPicker>
+    // that fetches the project's positions. Default to an empty list
+    // so existing tests don't trip on the new query (the page still
+    // seeds the picker with the current position as a fallback).
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('shows a loading state while both queries are in flight', () => {
@@ -157,7 +164,9 @@ describe('PipelineSandboxPage — header + meta', () => {
     cleanup();
     navigateSpy.mockClear();
     mockedGetPosition.mockReset();
+    mockedListPositions.mockReset();
     mockedGetSandbox.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('renders the position title in the header', async () => {
@@ -213,7 +222,9 @@ describe('PipelineSandboxPage — funnel cards', () => {
     cleanup();
     navigateSpy.mockClear();
     mockedGetPosition.mockReset();
+    mockedListPositions.mockReset();
     mockedGetSandbox.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('renders all 6 funnel cards in canonical pipeline order', async () => {
@@ -286,7 +297,9 @@ describe('PipelineSandboxPage — expand / collapse', () => {
     cleanup();
     navigateSpy.mockClear();
     mockedGetPosition.mockReset();
+    mockedListPositions.mockReset();
     mockedGetSandbox.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
   });
 
   it('expands a stage when its card is clicked', async () => {
@@ -410,5 +423,77 @@ describe('PipelineSandboxPage — expand / collapse', () => {
       expect(screen.getByTestId('pm-sandbox-expanded-empty')).toBeInTheDocument();
     });
     expect(screen.getByTestId('pm-sandbox-expanded-empty')).toHaveTextContent('此阶段暂无候选人');
+  });
+});
+
+// -------------------------------------------------------------------------
+// Task 7 — inline PositionPicker in the sandbox header
+// -------------------------------------------------------------------------
+
+describe('PipelineSandboxPage — Task 7 PositionPicker', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedGetPosition.mockReset();
+    mockedListPositions.mockReset();
+    mockedGetSandbox.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+  });
+
+  it('renders the <PositionPicker> with the project positions', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition({ project_id: 'proj-1' }),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedGetSandbox.mockResolvedValue(makeSummary());
+    mockedListPositions.mockResolvedValueOnce({
+      positions: [
+        makePosition({ id: 'pos-1', title: 'Senior Frontend Engineer', title_level: 'senior' }),
+        makePosition({ id: 'pos-2', title: 'Tech Lead', title_level: 'staff' }),
+      ],
+      total: 2,
+    });
+
+    renderPage();
+    // Wait for the list query to resolve and the picker to re-render
+    // with the second option (the picker first renders with a single
+    // fallback option while the list query is in flight).
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-position-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(2);
+    });
+
+    const picker = screen.getByTestId('pm-position-picker');
+    const options = picker.querySelectorAll('option');
+    expect(options[0]).toHaveTextContent('Senior Frontend Engineer');
+    expect(options[1]).toHaveTextContent('Tech Lead');
+  });
+
+  it('navigates to the new position sandbox when the <PositionPicker> selection changes', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition({ project_id: 'proj-1' }),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedGetSandbox.mockResolvedValue(makeSummary());
+    mockedListPositions.mockResolvedValueOnce({
+      positions: [
+        makePosition({ id: 'pos-1', title: 'Senior Frontend Engineer' }),
+        makePosition({ id: 'pos-2', title: 'Tech Lead' }),
+      ],
+      total: 2,
+    });
+
+    renderPage();
+    await waitFor(() => {
+      const picker = screen.getByTestId('pm-position-picker');
+      expect(picker.querySelectorAll('option')).toHaveLength(2);
+    });
+
+    fireEvent.change(screen.getByTestId('pm-position-picker'), {
+      target: { value: 'pos-2' },
+    });
+    expect(navigateSpy).toHaveBeenCalledWith(
+      '/admin/pm/projects/proj-1/positions/pos-2/sandbox',
+    );
   });
 });

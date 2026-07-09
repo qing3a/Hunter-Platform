@@ -210,6 +210,40 @@ export function CandidateDetailPage() {
     projectsQuery.isLoading || positionsQueries.some((q) => q.isLoading);
   const isLoadingMatches = matchesQueries.some((q) => q.isLoading);
 
+  // ---- Derived: de-duplicated candidate list (Task 7 inline picker) ----
+  // We flatten every match we've already pulled (the same useQueries
+  // fan-out that powers `matchedJobs`), dedupe by candidate_user_id,
+  // and keep the highest-scoring display name we observed. The picker
+  // re-uses this so the PM can flip between candidates visible to them
+  // across all PM projects, without leaving the detail page.
+  const allCandidates: Array<{
+    user_id: string;
+    display_name: string | null;
+  }> = useMemo(() => {
+    const byId = new Map<string, { user_id: string; display_name: string | null }>();
+    matchesQueries.forEach((q) => {
+      if (!q.data) return;
+      for (const m of q.data.matches) {
+        if (!m.candidate_user_id) continue;
+        const existing = byId.get(m.candidate_user_id);
+        if (existing) {
+          if (!existing.display_name && m.candidate_display_name) {
+            existing.display_name = m.candidate_display_name;
+          }
+          continue;
+        }
+        byId.set(m.candidate_user_id, {
+          user_id: m.candidate_user_id,
+          display_name: m.candidate_display_name ?? null,
+        });
+      }
+    });
+    // Stable sort by user_id ASC.
+    return Array.from(byId.values()).sort((a, b) =>
+      a.user_id.localeCompare(b.user_id),
+    );
+  }, [matchesQueries]);
+
   // ---- Handlers ----
   const handleBack = () => {
     navigate(-1);
@@ -266,6 +300,39 @@ export function CandidateDetailPage() {
           >
             {candidate.display_name}
           </span>
+        )}
+        {/*
+          Inline candidate picker (Task 7). Lists every candidate the
+          PM is currently aware of (deduped across all projects /
+          positions in this page's fan-out). On change, navigates to
+          the new candidate's detail URL.
+        */}
+        {candidateUserId && (
+          <select
+            className="pm-candidate-detail-picker"
+            data-testid="pm-candidate-picker"
+            aria-label="选择候选人"
+            value={candidateUserId}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next === candidateUserId) return;
+              navigate(`/admin/pm/candidates/${next}`);
+            }}
+          >
+            {/* Always include the route candidate so the picker
+                remains usable while the matches fan-out is still
+                loading. */}
+            <option value={candidateUserId}>
+              {candidate?.display_name ?? candidateUserId}
+            </option>
+            {allCandidates
+              .filter((c) => c.user_id !== candidateUserId)
+              .map((c) => (
+                <option key={c.user_id} value={c.user_id}>
+                  {c.display_name ?? c.user_id}
+                </option>
+              ))}
+          </select>
         )}
       </header>
 

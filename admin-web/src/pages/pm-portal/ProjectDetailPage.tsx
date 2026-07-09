@@ -15,6 +15,7 @@ import { AIDecomposeModal } from '../../components/pm-portal/AIDecomposeModal';
 import { MatchSidebar, type SidebarMatch } from '../../components/pm-portal/MatchSidebar';
 import { AISuggestionBanner } from '../../components/pm-portal/AISuggestionBanner';
 import { MetadataEditModal } from '../../components/pm-portal/MetadataEditModal';
+import { ProjectPicker } from '../../components/pm-portal/ProjectPicker';
 
 // ============================================================================
 // ProjectDetailPage (S2 / Task 4)
@@ -142,6 +143,16 @@ export function ProjectDetailPage() {
     enabled: Boolean(id),
   });
 
+  // ---- Network: project list (Task 7 inline picker) ----
+  // The S2 detail surface hosts a <ProjectPicker> in the top breadcrumb
+  // so the PM can flip between their projects without leaving the page.
+  // We fetch the full list (≤ 100) and always fall back to the current
+  // project so the picker remains usable during the initial fetch.
+  const projectsListQuery = useQuery({
+    queryKey: ['pm', 'projects', 'list'],
+    queryFn: () => pmProjects.list({ limit: 100 }),
+  });
+
   // Position stats for the overview tile row. Always-on in the S2
   // layout (the overview no longer hides behind a tab).
   const statsQuery = useQuery({
@@ -240,14 +251,43 @@ export function ProjectDetailPage() {
 
   return (
     <div className="pm-detail" data-testid="pm-detail">
-      <button
-        type="button"
-        className="pm-btn-link pm-detail-back"
-        onClick={() => navigate('/admin/pm/projects')}
-        data-testid="pm-detail-back"
-      >
-        ← 返回项目库
-      </button>
+      <div className="pm-detail-topbar">
+        <button
+          type="button"
+          className="pm-btn-link pm-detail-back"
+          onClick={() => navigate('/admin/pm/projects')}
+          data-testid="pm-detail-back"
+        >
+          ← 返回项目库
+        </button>
+        {/*
+          Inline project picker (Task 7). Always render so the PM can
+          flip back to a project even when the projects list call is
+          still in flight — the `projects` array is always seeded with
+          the current project, so the select never looks empty.
+        */}
+        {id && (
+          <ProjectPicker
+            projects={[
+              ...((projectsListQuery.data?.projects ?? []).map((p) => ({
+                id: p.id,
+                name: p.name,
+              }))),
+              // Fallback: when the list is loading or the current
+              // project isn't in the list, always include the route
+              // project so the picker shows the active selection.
+              ...(projectsListQuery.data?.projects?.some((p) => p.id === id)
+                ? []
+                : [{ id, name: project.name }]),
+            ]}
+            value={id}
+            onChange={(newId) => {
+              if (newId === id) return;
+              navigate(`/admin/pm/projects/${newId}`);
+            }}
+          />
+        )}
+      </div>
 
       <header className="pm-detail-header" data-testid="pm-detail-header">
         <div className="pm-detail-header-main">
