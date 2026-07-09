@@ -273,7 +273,7 @@ describe('StaffingPlanCard — capability radar (smoke test)', () => {
   it('renders the radar SVG with 5 dimension labels', () => {
     const plan = makePlan();
     const positions: Position[] = [];
-    const { container } = renderCard({ plan, positions, index: 0 });
+    renderCard({ plan, positions, index: 0 });
     // The card mounts a RadarChart inside the pm-plan-card-radar-0 wrapper.
     // Scope to that wrapper — the card now also has a TriangleRadar SVG
     // above the capability radar, so a bare `container.querySelector('svg')`
