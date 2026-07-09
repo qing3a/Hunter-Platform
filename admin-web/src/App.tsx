@@ -82,6 +82,7 @@ function AdminApp() {
     <Routes>
       <Route path="/admin/login" element={<LoginPage />} />
       <Route path="/admin" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+      <Route path="/admin/" element={<Navigate to="/admin" replace />} />
       <Route path="/admin/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
       <Route path="/admin/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
       <Route path="/admin/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
@@ -114,6 +115,7 @@ export default function App() {
         {/* Candidate Portal — auth via RequireAuth (OTP session) */}
         <Route path="/candidate/login" element={<CandidateLoginPage />} />
         <Route path="/candidate" element={<Navigate to="/candidate/home" replace />} />
+        <Route path="/candidate/" element={<Navigate to="/candidate/home" replace />} />
         <Route path="/candidate/home" element={<RequireAuth><HomePage /></RequireAuth>} />
         <Route path="/candidate/browse" element={<RequireAuth><BrowsePage /></RequireAuth>} />
         <Route path="/candidate/jobs/:id" element={<RequireAuth><CandidateJobDetailPage /></RequireAuth>} />
@@ -127,6 +129,7 @@ export default function App() {
         {/* Hunter Portal — auth via RequireHunterAuth (role=headhunter) */}
         <Route path="/hunter/login" element={<HunterLoginPage />} />
         <Route path="/hunter" element={<Navigate to="/hunter/workspace" replace />} />
+        <Route path="/hunter/" element={<Navigate to="/hunter/workspace" replace />} />
         <Route path="/hunter/workspace" element={<RequireHunterAuth><HunterWorkspacePage /></RequireHunterAuth>} />
         <Route path="/hunter/pickup" element={<RequireHunterAuth><PickupQueuePage /></RequireHunterAuth>} />
         <Route path="/hunter/candidates" element={<RequireHunterAuth><CandidateListPage /></RequireHunterAuth>} />
@@ -144,6 +147,7 @@ export default function App() {
             Unknown /admin/pm/* paths bounce to /admin/pm/projects. */}
         <Route path="/admin/pm/login" element={<PMLoginPage />} />
         <Route path="/admin/pm" element={<Navigate to="/admin/pm/snapshot" replace />} />
+        <Route path="/admin/pm/" element={<Navigate to="/admin/pm/snapshot" replace />} />
         <Route
           element={
             <RequirePMAuth>
@@ -178,6 +182,7 @@ export default function App() {
             / tab bar on mobile + <Outlet />). */}
         <Route path="/admin/employer/login" element={<EmployerLoginPage />} />
         <Route path="/admin/employer" element={<Navigate to="/admin/employer/dashboard" replace />} />
+        <Route path="/admin/employer/" element={<Navigate to="/admin/employer/dashboard" replace />} />
         <Route
           element={
             <RequireEmployerAuth>
