@@ -276,10 +276,9 @@ describe('ProjectDetailPage', () => {
     renderPage();
     // Wait for the lazy pmMatches.list query to resolve and at least
     // one row to render. The sidebar mounts before the matches load
-    // (it shows the empty state during the loading window). In the
-    // real-world v1 case every match is scoped to the same position
-    // so all rows share the same data-testid suffix — use
-    // getAllByTestId to count them.
+    // (it shows the empty state during the loading window). All four
+    // matches share the same position_id, so use getAllByTestId to
+    // count them.
     await waitFor(() => screen.getAllByTestId('pm-s2-match-row-pos-99'));
 
     const sidebar = screen.getByTestId('pm-s2-match-sidebar');

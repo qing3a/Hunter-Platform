@@ -5,8 +5,8 @@ import { MatchSidebar } from '../MatchSidebar';
 
 describe('MatchSidebar', () => {
   const matches = [
-    { positionId: 'pos-1', positionTitle: '高级前端工程师', projectName: '电商 V3', score: 92 },
-    { positionId: 'pos-2', positionTitle: '全栈工程师', projectName: '数据中台', score: 78 },
+    { matchId: 1, positionId: 'pos-1', positionTitle: '高级前端工程师', projectName: '电商 V3', score: 92 },
+    { matchId: 2, positionId: 'pos-2', positionTitle: '全栈工程师', projectName: '数据中台', score: 78 },
   ];
 
   it('renders the sidebar with title and subtitle', () => {

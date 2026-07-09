@@ -190,6 +190,7 @@ export function ProjectDetailPage() {
   // surface ("this position / project") is what the SidebarMatch
   // contract expects from the S2 visual mock.
   const sidebarMatches: SidebarMatch[] = (sidebarMatchesQuery.data?.matches ?? []).map((m) => ({
+    matchId: m.match_id,
     positionId: m.position_id,
     positionTitle: sidebarPosition?.title ?? '该岗位',
     projectName: project.name,

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 export interface SidebarMatch {
+  matchId: number;
   positionId: string;
   positionTitle: string;
   projectName: string;
@@ -34,7 +35,7 @@ export function MatchSidebar({ positionId, matches }: Props) {
         <div className="pm-s2-match-list">
           {matches.map((m) => (
             <div
-              key={m.positionId}
+              key={m.matchId}
               data-testid={`pm-s2-match-row-${m.positionId}`}
               className="pm-s2-match-row"
             >
