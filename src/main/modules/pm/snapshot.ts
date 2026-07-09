@@ -28,11 +28,17 @@
 //                  (1 query)
 //   - Activity  → single UNION query across recommendations + matches
 //                  (1 query)
-//   - Candidate names → batched profile lookup across the activity
-//                  event's anonymized_candidate_ids (1 IN-clause query)
+//   - Candidate names (anonymized → display_name) → batched profile
+//                  lookup across the activity event's anonymized_candidate_ids
+//                  (1 IN-clause query)
+//   - User names (candidate_user_id → display_name) → batched users
+//                  lookup for the match side of the activity feed
+//                  (1 IN-clause query)
 //   - Position titles → batched lookup across position_ids (1 IN-clause query)
+//   - Anon → user_id → batched lookup so recommendation rows can surface
+//                  candidate_user_id on the wire (1 IN-clause query)
 //
-// Total: ~7 queries for the whole snapshot regardless of project count.
+// Total: ~9 queries regardless of project count.
 
 import type { DB } from '../../db/connection.js';
 import type { User } from '../../../shared/types.js';
@@ -383,9 +389,9 @@ export function createSnapshotHandler(db: DB): SnapshotModule {
   /**
    * Build the pre-formatted Chinese summary for a single event.
    *
-   * `pickup`   → "猎头 hh_xxx 认领了 张*三"
-   * `application` → "张*三 申请了 <岗位>"
-   * `match_created` → "系统为 张*三 生成了匹配 (<岗位>)"
+   * pickup → "猎头认领了 ${name} 的申请 · ${title}"
+   * application → "${name} 申请了 ${title}"
+   * match_created → "系统为 ${name} 生成了匹配 · ${title}"
    *
    * Candidate names are anonymized via maskName(); position titles are
    * emitted verbatim (PM owns the position). When the underlying name
@@ -475,11 +481,7 @@ export function createSnapshotHandler(db: DB): SnapshotModule {
             occurred_at: r.occurred_at,
             project_id: r.project_id,
             position_id: r.position_id,
-            candidate_user_id: r.candidate_user_id ?? (r.anonymized_candidate_id
-              ? candidateByAnon.get(r.anonymized_candidate_id)?.display_name ?? null
-                ? null  // backfill below if needed
-                : null
-              : null),
+            candidate_user_id: r.candidate_user_id ?? null,
             summary: formatSummary(r.event_type, displayName, positionTitle),
           };
         });
