@@ -1221,3 +1221,314 @@
   font-size: 13px;
 }
 
+/* ============================================================================
+ * Candidate Matches Page (Task 11 / S6)
+ * ============================================================================
+ * Lists candidate matches for a single position sorted by score DESC.
+ * Visual language mirrors .pm-sandbox-* so the two pages feel native:
+ *   - same colour tokens
+ *   - same card grid + radius
+ *   - same back-button / loading / error patterns
+ *
+ * Layout
+ *   1. Header     - position title, back link, min_score filter,
+ *                   重算匹配 action
+ *   2. Stats strip - 3 tiles (匹配数 / 平均分 / 当前过滤)
+ *   3. Grid       - 1-col on mobile, 2-col on desktop, 3-col on wide
+ * Each card is a .pm-match-card containing a ScoreBadge, name, and
+ * ReasonsList. Score band colour is applied via .pm-score-badge-{band}.
+ */
+
+.pm-matches {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.pm-matches-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+.pm-matches-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.pm-matches-back {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.pm-matches-back:hover { color: var(--text); text-decoration: underline; }
+.pm-matches-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.pm-matches-header-actions {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.pm-matches-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-matches-filter-label {
+  font-weight: 500;
+}
+.pm-matches-filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  min-width: 96px;
+}
+.pm-matches-recompute {
+  padding: 8px 14px;
+  background: var(--c-project);
+  color: white;
+  border: 1px solid var(--c-project);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.pm-matches-recompute:hover:not(:disabled) {
+  opacity: 0.92;
+}
+.pm-matches-recompute:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Stats strip ---- */
+.pm-matches-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+.pm-matches-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-matches-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.pm-matches-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* ---- Loading / error / empty ---- */
+.pm-matches-loading,
+.pm-matches-error,
+.pm-matches-empty {
+  padding: var(--sp-6);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.pm-matches-error {
+  color: #b91c1c;
+  border-color: #fca5a5;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* ---- Match grid ---- */
+.pm-matches-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-4);
+}
+@media (min-width: 768px) {
+  .pm-matches-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1200px) {
+  .pm-matches-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---- Score badge (Task 11) ---- */
+.pm-score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+.pm-score-badge-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 13px;
+}
+.pm-score-badge-md {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+.pm-score-badge-lg {
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+}
+.pm-score-badge-excellent { background: #16a34a; }
+.pm-score-badge-good      { background: #2563eb; }
+.pm-score-badge-fair      { background: #d97706; }
+.pm-score-badge-poor      { background: #ef4444; }
+.pm-score-badge-value {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* ---- Single match card ---- */
+.pm-match-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pm-match-card:hover {
+  border-color: var(--c-project);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+.pm-match-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.pm-match-card-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pm-match-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  word-break: break-all;
+}
+.pm-match-card-headline {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  word-break: break-all;
+}
+.pm-match-card-detail {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+.pm-match-card-detail:not(:disabled) {
+  cursor: pointer;
+  color: var(--text);
+  border-color: var(--c-project);
+}
+.pm-match-card-detail:not(:disabled):hover {
+  background: var(--surface);
+  border-color: var(--c-project);
+  opacity: 0.9;
+}
+
+/* ---- Reasons / gaps list ---- */
+.pm-match-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+.pm-match-reasons-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pm-match-reasons-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+.pm-match-reasons-item-positive {
+  color: #15803d;
+}
+.pm-match-reasons-item-negative {
+  color: #b91c1c;
+}
+.pm-match-reasons-glyph {
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1.45;
+}
+.pm-match-reasons-text {
+  flex: 1;
+}
+.pm-match-reasons-empty-positive,
+.pm-match-reasons-empty-negative {
+  font-size: 12px;
+  font-style: italic;
+  padding: 2px 0;
+}
+.pm-match-reasons-empty-positive { color: #15803d; }
+.pm-match-reasons-empty-negative { color: #b91c1c; }
+.pm-match-reasons-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+

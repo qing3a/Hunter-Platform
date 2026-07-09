@@ -252,6 +252,55 @@ export interface MatchSuggestion {
 }
 
 /**
+ * Mirrors backend `MatchListItemSchema` (see
+ * src/main/schemas/pm.ts and src/main/db/repositories/matches.ts).
+ * Returned by the `GET /v1/pm/positions/:id/matches` endpoint.
+ *
+ * The `headline` field is optional/nullable: it is reserved for the
+ * candidate's anonymised one-liner (e.g. "5 年前端 · React / TS")
+ * and will surface in a later Task once the candidates_anonymized
+ * schema exposes it. Until then the UI gracefully renders an
+ * empty headline block.
+ */
+export interface MatchListItem {
+  match_id: number;
+  position_id: string;
+  candidate_user_id: string;
+  /** 0-100 inclusive (integer on the wire). */
+  score: number;
+  /** Positive signals from weighted-match. */
+  reasons: string[];
+  /** Negative signals from weighted-match. */
+  gaps: string[];
+  /** unix ms */
+  created_at: number;
+  /** Hydrated via JOIN candidates_anonymized → users. Nullable. */
+  candidate_display_name: string | null;
+  /** Reserved — populated by future anonymization enrichment. */
+  headline: string | null;
+}
+
+/**
+ * Mirrors backend `TopMatchSchema`. Returned inside the recompute
+ * response (POST /v1/pm/positions/:id/matches/recompute). Does not
+ * include `match_id` or `created_at` — recompute returns a transient
+ * view of the freshly-scored top-N, not the persisted rows.
+ */
+export interface TopMatch {
+  candidate_user_id: string;
+  score: number;
+  reasons: string[];
+  gaps: string[];
+  candidate_display_name: string | null;
+}
+
+/** Payload returned by `POST /v1/pm/positions/:id/matches/recompute`. */
+export interface RecomputeMatchesResponse {
+  computed_count: number;
+  top_matches: TopMatch[];
+}
+
+/**
  * Mirrors backend `PositionRow` (see
  * src/main/db/repositories/project-positions.ts). Returned by
  * list / create / get / update / bulkCreate endpoints.
@@ -554,14 +603,46 @@ export const pmDecompose = {
 };
 
 export const pmMatches = {
-  list: (projectId: string, params?: { limit?: number; offset?: number }) => {
+  /**
+   * GET /v1/pm/positions/:id/matches?min_score=&limit=&offset=
+   *
+   * Mirrors backend `listMatches` (createMatchesHandler in
+   * src/main/modules/pm/matches.ts). The endpoint is position-scoped
+   * — note the URL shape `/positions/:id/matches` (NOT
+   * `/projects/:id/matches`). The legacy `MatchSuggestion` namespace
+   * above is a separate flow and is not affected by this call.
+   *
+   * The response is already sorted by score DESC server-side (the
+   * repo's `listByPosition` enforces `ORDER BY score DESC`).
+   * `min_score` accepts 0..100; passing 0 disables filtering.
+   */
+  list: (
+    positionId: string,
+    params?: { min_score?: number; limit?: number; offset?: number },
+  ) => {
     const q = new URLSearchParams();
     Object.entries(params ?? {}).forEach(([k, v]) => v != null && q.set(k, String(v)));
     const qs = q.toString();
-    return request<{ matches: MatchSuggestion[]; total: number }>(
-      BASE, `/projects/${projectId}/matches${qs ? `?${qs}` : ''}`,
+    return request<{ matches: MatchListItem[]; total: number }>(
+      BASE, `/positions/${positionId}/matches${qs ? `?${qs}` : ''}`,
     );
   },
+  /**
+   * POST /v1/pm/positions/:id/matches/recompute
+   *
+   * Bulk UPSERTs matches for the position and returns the top-N
+   * (by score DESC) immediately, hydrated with display name.
+   * Mirrors backend `recomputeMatches`.
+   *
+   * The caller is expected to invalidate / refetch the list query
+   * afterwards — recompute writes are idempotent so a follow-up
+   * `list()` will reflect the fresh scores.
+   */
+  recompute: (positionId: string) =>
+    request<RecomputeMatchesResponse>(
+      BASE, `/positions/${positionId}/matches/recompute`,
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
   accept: (matchId: string) =>
     request<MatchSuggestion>(BASE, `/matches/${matchId}/accept`, { method: 'POST' }),
   reject: (matchId: string, reason?: string) =>
