@@ -155,7 +155,9 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
   });
 
   // v009: claim (spec §5.2)
-  router.post('/claim-jobs/:id', (req, res, next) => {
+  // Compatibility route for Task 8 / Employer Panel plan:
+  // POST /v1/employer/pending-claims/:id/claim.
+  router.post('/pending-claims/:id/claim', (req, res, next) => {
     try {
       const job_id = String(req.params.id);
       if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
@@ -165,6 +167,31 @@ const list = handler.listPendingClaims((req as typeof req & { user?: User }).use
   });
 
   // v009: reject (spec §5.3)
+  // Compatibility route for Task 8 / Employer Panel plan:
+  // POST /v1/employer/pending-claims/:id/reject.
+  router.post('/pending-claims/:id/reject', (req, res, next) => {
+    try {
+      const parsed = RejectJobSchema.safeParse(req.body ?? {});
+      if (!parsed.success) throw Errors.invalidParams('Invalid request body', { issues: parsed.error.issues });
+      const result = handler.rejectJob(
+        (req as typeof req & { user?: User }).user!,
+        { job_id: String(req.params.id), reason: parsed.data.reason ?? null },
+      );
+      respond(res, RejectJobResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // v009: claim (legacy route retained for existing clients)
+  router.post('/claim-jobs/:id', (req, res, next) => {
+    try {
+      const job_id = String(req.params.id);
+      if (!job_id || job_id.length === 0) throw Errors.invalidParams('job id required');
+      const job = handler.claimJob((req as typeof req & { user?: User }).user!, { job_id });
+      respond(res, ClaimJobResponseSchema, { ok: true, data: job });
+    } catch (e) { next(e); }
+  });
+
+  // v009: reject (legacy route retained for existing clients)
   router.post('/reject-jobs/:id', (req, res, next) => {
     try {
       const parsed = RejectJobSchema.safeParse(req.body ?? {});

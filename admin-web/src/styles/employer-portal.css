@@ -942,3 +942,146 @@
 .employer-candidate-card-actions button {
   flex: 1;
 }
+
+/* ============================================================================
+ * Pending Claims (Task 8 — claim / reject headhunter-created jobs)
+ * ========================================================================== */
+
+.employer-pending-claims {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+}
+
+.employer-pending-claims-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.employer-pending-claims-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.employer-pending-claims-count {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.employer-pending-claims-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+}
+
+.employer-pending-claim-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.employer-pending-claim-row-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.employer-pending-claim-titleblock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.employer-pending-claim-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.employer-pending-claim-industry,
+.employer-pending-claim-hc {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 2px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.employer-pending-claim-hc {
+  flex-shrink: 0;
+  background: var(--b-stage-position);
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+  font-weight: 700;
+}
+
+.employer-pending-claim-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.employer-pending-claim-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.employer-pending-claim-skill {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.employer-pending-claim-skill-empty {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.employer-pending-claim-actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--border);
+}
+
+.employer-pending-claims-empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.employer-pending-claims-error {
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--danger-bg, rgba(220, 38, 38, 0.08));
+  border: 1px solid var(--danger, #dc2626);
+  border-radius: 6px;
+  color: var(--danger, #dc2626);
+  font-size: 14px;
+}

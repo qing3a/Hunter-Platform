@@ -97,7 +97,7 @@ export interface DashboardResponse {
 /** Mirror of `JobSchema` in src/main/schemas/common.ts → common types. */
 export interface Job {
   id: string;
-  employer_id: string;
+  employer_id: string | null;
   source_headhunter_id: string | null;
   created_for_employer_id: string | null;
   title: string;
@@ -414,11 +414,17 @@ export const employerPlacements = {
 export const employerPendingClaims = {
   /** GET /v1/employer/pending-claims — `open` jobs claimable by me. */
   list: () => request<Job[]>(`/v1/employer`, '/pending-claims'),
-  /** POST /v1/employer/claim-jobs/:id — idempotent if already own claimed. */
+  /** POST /v1/employer/pending-claims/:id/claim — idempotent if already own claimed. */
   claim: (id: string) =>
-    request<Job>(`/v1/employer`, `/claim-jobs/${id}`, {
+    request<Job>(`/v1/employer`, `/pending-claims/${id}/claim`, {
       method: 'POST',
       body: JSON.stringify({}),
+    }),
+  /** POST /v1/employer/pending-claims/:id/reject — closes a pending claim. */
+  reject: (id: string, input: RejectJobInput = {}) =>
+    request<{ status: 'closed' }>(`/v1/employer`, `/pending-claims/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(input),
     }),
 };
 
