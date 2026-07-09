@@ -1,0 +1,305 @@
+/* Employer Portal — dashboard / sidebar / mobile layout
+ *
+ * Phase 3c / Task 4. Sits alongside hunter-portal.css and pm-portal.css;
+ * re-uses the same colour tokens (var(--c-*) / var(--b-*)) and spacing
+ * scale (var(--sp-*)) defined in tokens.css so the three portals feel
+ * like one product. New selectors are prefixed `.employer-` to avoid
+ * collision with the candidate / hunter / PM classes.
+ *
+ * The employer side doesn't ship its own stage palette — there is no
+ * "stage progression" on the employer side (jobs and placements have
+ * discrete statuses, not a funnel). The chrome accent therefore borrows
+ * the position-stage token (`var(--c-stage-position)` / `var(--b-stage-position)`)
+ * so the chrome still feels tinted with the green "招聘" colour shared
+ * by the rest of the candidate / hunter portal chrome.
+ */
+
+/* ============================================================================
+ * Page shell (Task 4 — sidebar on desktop, bottom tab bar on mobile)
+ * ========================================================================== */
+
+.employer-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.employer-page .employer-sidebar { display: none; }
+
+@media (min-width: 1024px) {
+  .employer-page { flex-direction: row; }
+  .employer-page .employer-sidebar {
+    display: flex;
+    width: 220px;
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .employer-page .employer-layout {
+    flex: 1;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+ * Mobile layout shell
+ * ========================================================================== */
+
+.employer-layout {
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
+  min-width: 0;
+}
+
+.employer-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.employer-brand {
+  font-weight: 700;
+  color: var(--c-stage-position);
+}
+
+.employer-spacer { flex: 1; }
+
+.employer-logout {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-logout:hover { background: var(--bg); }
+
+.employer-main {
+  padding: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================================
+ * Bottom tab bar (mobile only)
+ * ========================================================================== */
+
+.employer-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 10;
+}
+
+.employer-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.employer-tab.active {
+  color: var(--c-stage-position);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .employer-tabbar { display: none; }
+  .employer-layout {
+    padding-bottom: 0;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* ============================================================================
+ * Sidebar (desktop only)
+ * ========================================================================== */
+
+.employer-sidebar {
+  font-size: 14px;
+}
+
+.employer-sidebar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px 20px;
+  color: var(--c-stage-position);
+  border-bottom: 1px solid var(--border);
+}
+
+.employer-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 2px;
+  flex: 1;
+}
+
+.employer-sidebar-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 14px;
+}
+.employer-sidebar-link:hover { background: var(--b-stage-position); }
+.employer-sidebar-link.active {
+  background: var(--b-stage-position);
+  color: var(--c-stage-position);
+  font-weight: 600;
+}
+
+.employer-sidebar-logout {
+  margin: 12px 16px 16px;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-sidebar-logout:hover { background: var(--bg); }
+
+/* ============================================================================
+ * Dashboard — KPI grid + header + actions
+ * ========================================================================== */
+
+.employer-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-4);
+}
+
+.employer-dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+  flex-wrap: wrap;
+}
+
+.employer-dashboard-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+.employer-dashboard-refresh {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.employer-dashboard-refresh:hover { background: var(--bg); }
+
+.employer-dashboard-error {
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  color: var(--danger);
+}
+
+/* ---- KPI grid ---- */
+.employer-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-6);
+}
+
+@media (min-width: 768px) {
+  .employer-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.employer-kpi-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-4);
+}
+
+.employer-kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.employer-kpi-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+}
+
+.employer-kpi-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: var(--sp-1);
+  font-style: italic;
+}
+
+.employer-kpi-tile[data-accent="green"]  .employer-kpi-value { color: #16a34a; }
+.employer-kpi-tile[data-accent="blue"]   .employer-kpi-value { color: #2563eb; }
+.employer-kpi-tile[data-accent="amber"]  .employer-kpi-value { color: #d97706; }
+.employer-kpi-tile[data-accent="purple"] .employer-kpi-value { color: #9333ea; }
+
+/* ---- Quick-action row ---- */
+.employer-dashboard-actions {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.employer-dashboard-action {
+  flex: 1;
+  min-width: 180px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+  text-align: center;
+}
+.employer-dashboard-action:hover {
+  background: var(--b-stage-position);
+  border-color: var(--c-stage-position);
+  color: var(--c-stage-position);
+}

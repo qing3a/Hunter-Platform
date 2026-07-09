@@ -62,6 +62,14 @@ import { PMSettingsPage } from './pages/pm-portal/PMSettingsPage';
 import { RequirePMAuth } from './components/pm-portal/RequirePMAuth';
 import { PMMobileLayout } from './components/pm-portal/PMMobileLayout';
 
+// Employer Panel pages (Phase 3c — Task 4 ships Login + Dashboard;
+// Tasks 5-9 will add Jobs / Candidates / Placements / PendingClaims /
+// Settings under the same RequireEmployerAuth layout).
+import { EmployerLoginPage } from './pages/employer-portal/EmployerLoginPage';
+import { EmployerDashboardPage } from './pages/employer-portal/EmployerDashboardPage';
+import { RequireEmployerAuth } from './components/employer-portal/RequireEmployerAuth';
+import { EmployerMobileLayout } from './components/employer-portal/EmployerMobileLayout';
+
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
 // The single outer BrowserRouter in main.tsx owns the routing context.
 function AdminApp() {
@@ -154,6 +162,27 @@ export default function App() {
           <Route path="/admin/pm/candidates/:userId" element={<PMCandidateDetailPage />} />
           <Route path="/admin/pm/settings" element={<PMSettingsPage />} />
           <Route path="/admin/pm/*" element={<Navigate to="/admin/pm/projects" replace />} />
+        </Route>
+
+        {/* Employer Panel — Task 4 ships Login + Dashboard. Tasks 5-9 will
+            add /jobs /candidates /placements /pending-claims /settings under
+            the same RequireEmployerAuth layout. Unknown /admin/employer/*
+            paths bounce to /admin/employer/dashboard. The login page stays
+            public; everything else is nested under a layout-route that
+            renders `<EmployerMobileLayout />` (topbar + sidebar on desktop
+            / tab bar on mobile + <Outlet />). */}
+        <Route path="/admin/employer/login" element={<EmployerLoginPage />} />
+        <Route path="/admin/employer" element={<Navigate to="/admin/employer/dashboard" replace />} />
+        <Route
+          element={
+            <RequireEmployerAuth>
+              <EmployerMobileLayout />
+            </RequireEmployerAuth>
+          }
+        >
+          <Route path="/admin/employer/dashboard" element={<EmployerDashboardPage />} />
+          {/* Tasks 5-9 will add: /jobs /candidates /placements /pending-claims /settings */}
+          <Route path="/admin/employer/*" element={<Navigate to="/admin/employer/dashboard" replace />} />
         </Route>
 
         {/* Default: root and any unknown path → admin */}
