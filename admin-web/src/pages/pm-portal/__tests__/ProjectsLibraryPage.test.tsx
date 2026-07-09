@@ -434,7 +434,84 @@ describe('ProjectsLibraryPage', () => {
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
     const row = screen.getByTestId('pm-library-row');
-    expect(within(row).getByText('-')).toBeInTheDocument();
+    // S8 / Task 13 also added a timeline cell that renders "-" when
+    // both start_at and end_at are null, so the row may legitimately
+    // contain more than one "-" — we only care that the placeholder
+    // for the null budget shows up at least once.
+    expect(within(row).getAllByText('-').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders 8 columns in the table header (S8 / Task 13)', async () => {
+    mockedList.mockResolvedValueOnce({
+      projects: [makeProject()],
+      total: 1,
+    });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    const headers = screen.getAllByRole('columnheader');
+    expect(headers).toHaveLength(8);
+    expect(headers.map((h) => h.textContent)).toEqual([
+      '名称', '状态', '预算', '岗位', '计划', '猎头推进', '时间线', '操作',
+    ]);
+  });
+
+  it('renders an HR progress bar inside every project row', async () => {
+    mockedList.mockResolvedValueOnce({
+      projects: [
+        makeProject({ id: 'p1' }),
+        makeProject({ id: 'p2' }),
+      ],
+      total: 2,
+    });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    const rows = screen.getAllByTestId('pm-library-row');
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(within(row).getByTestId('pm-hr-bar')).toBeInTheDocument();
+    }
+  });
+
+  it('formats the timeline as a start–end date range when both dates are present', async () => {
+    // 2025-01-15 .. 2025-04-30 — exercises the formatter against the
+    // YYYY-MM-DD output of `new Date(unixMs).toISOString().slice(0,10)`.
+    mockedList.mockResolvedValueOnce({
+      projects: [
+        makeProject({
+          start_at: Date.UTC(2025, 0, 15),
+          end_at: Date.UTC(2025, 3, 30),
+        }),
+      ],
+      total: 1,
+    });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    const row = screen.getByTestId('pm-library-row');
+    expect(within(row).getByTestId('pm-timeline')).toHaveTextContent('2025-01-15 → 2025-04-30');
+  });
+
+  it('falls back to "—" when both start_at and end_at are null', async () => {
+    mockedList.mockResolvedValueOnce({
+      projects: [makeProject({ start_at: null, end_at: null })],
+      total: 1,
+    });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    const row = screen.getByTestId('pm-library-row');
+    expect(within(row).getByTestId('pm-timeline')).toHaveTextContent('-');
+  });
+
+  it('renders the 建模 button inside each card (S8 / Task 13)', async () => {
+    mockedList.mockResolvedValueOnce({
+      projects: [makeProject()],
+      total: 1,
+    });
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+
+    fireEvent.click(screen.getByTestId('pm-view-card'));
+    expect(screen.getByTestId('pm-library-cards')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-project-card-model')).toHaveTextContent('建模');
   });
 
   it('every ProjectStatus option is present in the status filter', async () => {

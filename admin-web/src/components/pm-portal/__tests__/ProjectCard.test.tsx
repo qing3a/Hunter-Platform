@@ -114,6 +114,19 @@ describe('ProjectCard', () => {
     expect(lastNavigateTo).toBe('/admin/pm/projects/proj-xyz');
     expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-xyz');
   });
+
+  it('renders the ⚙️ 建模 button (S8 / Task 13)', () => {
+    renderCard(makeProject());
+    const modelBtn = screen.getByTestId('pm-project-card-model');
+    expect(modelBtn).toHaveTextContent('建模');
+  });
+
+  it('navigates to /admin/pm/projects/:id when "建模" is clicked', () => {
+    renderCard(makeProject({ id: 'proj-mod' }));
+    fireEvent.click(screen.getByTestId('pm-project-card-model'));
+    expect(lastNavigateTo).toBe('/admin/pm/projects/proj-mod');
+    expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/projects/proj-mod');
+  });
 });
 
 describe('ProjectCard — status badge', () => {

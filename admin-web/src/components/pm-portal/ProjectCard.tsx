@@ -130,14 +130,24 @@ export function ProjectCard({ project }: ProjectCardProps) {
         </div>
       </dl>
 
-      <button
-        type="button"
-        className="pm-project-card-action"
-        data-testid="pm-project-card-view"
-        onClick={() => navigate(`/admin/pm/projects/${project.id}`)}
-      >
-        查看详情 →
-      </button>
+      <div className="pm-project-card-actions">
+        <button
+          type="button"
+          className="pm-project-card-action"
+          data-testid="pm-project-card-view"
+          onClick={() => navigate(`/admin/pm/projects/${project.id}`)}
+        >
+          查看详情 →
+        </button>
+        <button
+          type="button"
+          className="pm-project-card-action pm-project-card-action--secondary"
+          data-testid="pm-project-card-model"
+          onClick={() => navigate(`/admin/pm/projects/${project.id}`)}
+        >
+          ⚙ 建模
+        </button>
+      </div>
     </div>
   );
 }

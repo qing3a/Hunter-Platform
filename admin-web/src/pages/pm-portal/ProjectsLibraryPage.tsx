@@ -6,6 +6,7 @@ import { EmptyState } from '../../components/candidate-portal/EmptyState';
 import { ProjectCard, formatBudgetYuan } from '../../components/pm-portal/ProjectCard';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
 import { CreateProjectModal } from '../../components/pm-portal/CreateProjectModal';
+import { HRProgressBar } from '../../components/pm-portal/HRProgressBar';
 
 // ============================================================================
 // Projects Library — S8 / Task 4
@@ -92,6 +93,31 @@ function filterAndSort(
     .filter((p) => (status === 'all' ? true : p.status === status))
     .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
 }
+
+/**
+ * Format a project's start / end dates as a "YYYY-MM-DD → YYYY-MM-DD"
+ * timeline range, or "-" when either side is missing. We render the
+ * range in UTC to keep the output deterministic across PMs in
+ * different timezones (the backend stores unix-ms timestamps; converting
+ * to a local date for the table cell would shift the visible day by
+ * ±1 around the date-line).
+ */
+function formatTimelineRange(startAt: number | null, endAt: number | null): string {
+  if (startAt == null || endAt == null) return '-';
+  const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  return `${fmt(startAt)} → ${fmt(endAt)}`;
+}
+
+/**
+ * Placeholder HR-progress values for the v1 table cell. The list
+ * endpoint doesn't yet expose a rolled-up `headcount_filled /
+ * headcount_planned` per project (Task 13 / S8 marks this as a v1
+ * placeholder until that aggregation ships). Once it does, swap the
+ * constants for the real numbers from `p.stats` (or whatever the
+ * backend field ends up being).
+ */
+const HR_PLACEHOLDER_FILLED = 0;
+const HR_PLACEHOLDER_PLANNED = 5;
 
 export function ProjectsLibraryPage() {
   const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
@@ -266,6 +292,8 @@ export function ProjectsLibraryPage() {
               <th>预算</th>
               <th>岗位</th>
               <th>计划</th>
+              <th>猎头推进</th>
+              <th>时间线</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -288,6 +316,20 @@ export function ProjectsLibraryPage() {
                 <td>{formatBudgetYuan(p.budget_total)}</td>
                 <td>{p.position_count}</td>
                 <td>{p.plan_count}</td>
+                <td>
+                  <HRProgressBar
+                    filled={HR_PLACEHOLDER_FILLED}
+                    planned={HR_PLACEHOLDER_PLANNED}
+                  />
+                </td>
+                <td>
+                  <span
+                    data-testid="pm-timeline"
+                    className="pm-timeline"
+                  >
+                    {formatTimelineRange(p.start_at, p.end_at)}
+                  </span>
+                </td>
                 <td>
                   <a
                     href={`/admin/pm/projects/${p.id}`}
