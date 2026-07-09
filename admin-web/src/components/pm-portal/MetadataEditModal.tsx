@@ -39,10 +39,24 @@ export function MetadataEditModal({ open, project, onSave, onClose }: Props) {
         </div>
         <label>现有团队 (JSON) <textarea value={team} onChange={(e) => setTeam(e.target.value)} data-testid="pm-meta-team" /></label>
         <footer className="pm-meta-modal-footer">
-          <button className="pm-btn-primary" data-testid="pm-meta-modal-save" onClick={() => onSave({
-            name, target, budget_total: Number(budget) * 10000, start_at: fromDateInput(start), end_at: fromDateInput(end),
-            current_team: JSON.parse(team),
-          })}>💾 保存元数据</button>
+          <button
+            className="pm-btn-primary"
+            data-testid="pm-meta-modal-save"
+            onClick={() => onSave({
+              name,
+              target,
+              // Budget unit: input is 万元 (10^4 yuan) shown for display
+              // convenience, but the backend stores budget_total in 分 (fen),
+              // the smallest CNY unit (1 yuan = 100 fen). To go 万元 -> 分 we
+              // multiply by 1_000_000 (= 10_000 yuan * 100 fen/yuan).
+              budget_total: Math.round(Number(budget) * 1_000_000),
+              start_at: fromDateInput(start),
+              end_at: fromDateInput(end),
+              current_team: JSON.parse(team),
+            })}
+          >
+            💾 保存元数据
+          </button>
         </footer>
       </div>
     </div>

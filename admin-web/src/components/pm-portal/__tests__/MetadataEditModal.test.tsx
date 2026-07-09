@@ -28,8 +28,14 @@ describe('MetadataEditModal', () => {
     const onSave = vi.fn();
     render(<MetadataEditModal open={true} project={project} onSave={onSave} onClose={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('项目名'), { target: { value: '新名字' } });
+    fireEvent.change(screen.getByLabelText(/总预算/), { target: { value: '850' } });
     fireEvent.click(screen.getByRole('button', { name: /保存/ }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: '新名字' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      name: '新名字',
+      // Input is in 万元 (10^4 yuan); backend stores in 分 (fen).
+      // 850 万元 = 8,500,000 元 = 850,000,000 分.
+      budget_total: 850_000_000,
+    }));
   });
 
   it('does not render when open is false', () => {
