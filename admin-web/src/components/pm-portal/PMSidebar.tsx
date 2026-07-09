@@ -55,7 +55,7 @@ export function PMSidebar({ badgeCounts = { projects: 0, library: 0 } }: PMSideb
         type="button"
         className="pm-sidebar-pill"
         data-testid="pm-sidebar-pill"
-        onClick={() => { window.location.href = '/admin/pm/projects'; }}
+        onClick={() => { navigate('/admin/pm/projects'); }}
         title="点击查看项目详情"
       >
         <span>项目数 {badgeCounts.projects}</span>
