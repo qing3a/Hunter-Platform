@@ -6,6 +6,18 @@
   --c-match: #9333ea;      --b-match: #faf5ff;
   --c-hunter: #10b981;     --b-hunter: rgba(16,185,129,0.1);
 
+  /* Stage tokens (PM workbench stage palette) */
+  --c-stage-project: #2563eb;
+  --c-stage-position: #16a34a;
+  --c-stage-candidate: #d97706;
+  --c-stage-match: #9333ea;
+  --c-stage-hunter: #10b981;
+  --b-stage-project: #eff6ff;
+  --b-stage-position: #f0fdf4;
+  --b-stage-candidate: #fffbeb;
+  --b-stage-match: #faf5ff;
+  --b-stage-hunter: rgba(16, 185, 129, 0.10);
+
   /* 间距 */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px;
   --sp-4: 16px; --sp-6: 24px; --sp-8: 32px;
