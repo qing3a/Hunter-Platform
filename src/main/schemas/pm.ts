@@ -592,3 +592,75 @@ export type UpdatePlanInput = z.infer<typeof UpdatePlanSchema>;
 export type ListPlansQuery = z.infer<typeof ListPlansQuerySchema>;
 export type PlanRow = z.infer<typeof PlanRowSchema>;
 export type PlanPositionSpec = z.infer<typeof PlanPositionSpecSchema>;
+
+// ===== Matches (Task 10) =====
+//
+// A match is a scored candidate↔position pairing computed by
+// src/main/lib/weighted-match.ts. Matches are recomputed on demand
+// (`POST /v1/pm/positions/:id/matches/recompute`) and listed with a
+// min_score filter + pagination (`GET /v1/pm/positions/:id/matches`).
+//
+// Wire shape:
+//   - reasons / gaps are flat string[] arrays (parsed server-side from
+//     JSON columns)
+//   - candidate_display_name and headline are hydrated server-side via a
+//     JOIN to candidates_anonymized + users; the match row itself only
+//     stores candidate_user_id (no FK denormalisation)
+//   - score is integer 0-100
+
+/** Mirrors `MatchRow` in db/repositories/matches.ts. */
+export const MatchRowSchema = z.object({
+  match_id: z.number().int(),
+  position_id: z.string(),
+  candidate_user_id: z.string(),
+  score: z.number().int().min(0).max(100),
+  reasons: z.array(z.string()),
+  gaps: z.array(z.string()),
+  /** unix ms */
+  created_at: z.number().int(),
+}).strict();
+
+/**
+ * List-row variant: MatchRow + display data hydrated from
+ * candidates_anonymized + users. This is what the GET endpoint returns.
+ */
+export const MatchListItemSchema = MatchRowSchema.extend({
+  /** User.name hydrated via JOIN candidates_anonymized → candidates_private → users. */
+  candidate_display_name: z.string().nullable(),
+}).strict();
+
+/** GET /v1/pm/positions/:id/matches?min_score=&limit=&offset= */
+export const ListMatchesQuerySchema = z.object({
+  min_score: z.coerce.number().int().min(0).max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().nonnegative().default(0),
+}).strict();
+
+/** Top-N entry returned inside recompute's response (no pagination, small N). */
+export const TopMatchSchema = z.object({
+  candidate_user_id: z.string(),
+  score: z.number().int().min(0).max(100),
+  reasons: z.array(z.string()),
+  gaps: z.array(z.string()),
+  candidate_display_name: z.string().nullable(),
+}).strict();
+
+export const RecomputeMatchesResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    computed_count: z.number().int().nonnegative(),
+    top_matches: z.array(TopMatchSchema),
+  }),
+}).strict();
+
+export const ListMatchesResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    matches: z.array(MatchListItemSchema),
+    total: z.number().int().nonnegative(),
+  }),
+}).strict();
+
+export type MatchListItem = z.infer<typeof MatchListItemSchema>;
+export type TopMatch = z.infer<typeof TopMatchSchema>;
+export type ListMatchesQuery = z.infer<typeof ListMatchesQuerySchema>;

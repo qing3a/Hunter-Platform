@@ -42,6 +42,7 @@ import { createPositionsHandler } from '../modules/pm/positions.js';
 import { createDecomposeHandler } from '../modules/pm/decompose.js';
 import { createPlansHandler } from '../modules/pm/plans.js';
 import { createSandboxHandler } from '../modules/pm/sandbox.js';
+import { createMatchesHandler } from '../modules/pm/matches.js';
 import {
   CreateProjectSchema, UpdateProjectSchema, ListProjectsQuerySchema,
   CreatePositionSchema, UpdatePositionSchema, ListPositionsQuerySchema,
@@ -61,6 +62,9 @@ import {
   DecomposeResponseSchema, CommitDecompositionResponseSchema,
   ListDecompositionsResponseSchema,
   SandboxResponseSchema,
+  ListMatchesQuerySchema,
+  ListMatchesResponseSchema,
+  RecomputeMatchesResponseSchema,
 } from '../schemas/pm.js';
 
 export function createPmRouter(db: DB): Router {
@@ -72,6 +76,7 @@ export function createPmRouter(db: DB): Router {
   const decompose = createDecomposeHandler(db);
   const plans = createPlansHandler(db);
   const sandbox = createSandboxHandler(db);
+  const matches = createMatchesHandler(db);
 
   // ===== Projects =====
 
@@ -353,6 +358,34 @@ export function createPmRouter(db: DB): Router {
       const user = (req as Request & { user?: User }).user!;
       const result = sandbox.getSandbox(user, String(req.params.id));
       respond(res, SandboxResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // ===== Matches (Task 10) =====
+
+  // GET /v1/pm/positions/:id/matches?min_score=&limit=&offset=
+  router.get('/positions/:id/matches', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const parsed = ListMatchesQuerySchema.safeParse(req.query);
+      if (!parsed.success) {
+        throw Errors.invalidParams('Invalid query', { issues: parsed.error.issues });
+      }
+      const filter: { min_score?: number; limit?: number; offset?: number } = {};
+      if (parsed.data.min_score !== undefined) filter.min_score = parsed.data.min_score;
+      if (parsed.data.limit !== undefined) filter.limit = parsed.data.limit;
+      if (parsed.data.offset !== undefined) filter.offset = parsed.data.offset;
+      const result = matches.listMatches(user, String(req.params.id), filter);
+      respond(res, ListMatchesResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // POST /v1/pm/positions/:id/matches/recompute
+  router.post('/positions/:id/matches/recompute', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = matches.recomputeMatches(user, String(req.params.id));
+      respond(res, RecomputeMatchesResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 
