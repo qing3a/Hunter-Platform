@@ -1098,6 +1098,16 @@
   width: 100%;
 }
 
+/* ---- S4 triangle radar + locked ribbon (Task 9) ---- */
+.pm-triangle-radar { display: block; margin: var(--sp-2) auto; }
+.pm-locked-ribbon {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--c-stage-project); color: white;
+  padding: 2px 8px; border-radius: var(--r-sm);
+  font-size: 10px; font-weight: 600;
+  z-index: 1;
+}
+
 /* ===========================================================================
  * Pipeline Sandbox (Task 9 / S3) — 5 阶段漏斗
  * ===========================================================================

@@ -6,6 +6,8 @@ import {
   type Project,
 } from '../../api/pm-portal';
 import { CapabilityRadar, computeCapabilities, type CapabilityCategory } from './CapabilityRadar';
+import { TriangleRadar } from './TriangleRadar';
+import { LockedRibbon } from './LockedRibbon';
 
 // ============================================================================
 // StaffingPlanCard (S4 / Task 8)
@@ -123,6 +125,21 @@ export function StaffingPlanCard({
     [plan, project, positions],
   );
 
+  // S4 triangle radar (综合 / 覆盖 / 匹配). The first two are derived
+  // from plan-level signals; composite is a placeholder until the
+  // scoring service is wired up.
+  //   coverage: total_headcount, scaled 0-20 → 0-100 (20+ HC = full)
+  //   match:    positions_json length, scaled 0-5 → 0-100 (5+ roles = full)
+  //   composite: hard-coded 80 for now (TODO: pull from scoring svc)
+  const radarValues = useMemo(
+    () => ({
+      coverage: Math.min(100, plan.total_headcount * 5),
+      match: Math.min(100, (plan.positions_json?.length ?? 0) * 20),
+      composite: 80,
+    }),
+    [plan.total_headcount, plan.positions_json],
+  );
+
   return (
     <article
       className={`pm-plan-card${isSelected ? ' pm-plan-card-selected' : ''}`}
@@ -130,6 +147,8 @@ export function StaffingPlanCard({
       data-plan-id={plan.id}
       data-selected={isSelected ? 'true' : 'false'}
     >
+      <LockedRibbon locked={plan.is_selected === 1} />
+
       <header className="pm-plan-card-header">
         <h3 className="pm-plan-card-name" data-testid="pm-plan-card-name">
           {plan.name}
@@ -159,6 +178,8 @@ export function StaffingPlanCard({
           </dd>
         </div>
       </dl>
+
+      <TriangleRadar values={radarValues} locked={plan.is_selected === 1} />
 
       <CapabilityRadar plan={plan} positions={positions} size={220} index={index} />
 

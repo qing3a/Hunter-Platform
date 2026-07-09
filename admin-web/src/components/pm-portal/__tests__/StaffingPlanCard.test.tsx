@@ -275,11 +275,35 @@ describe('StaffingPlanCard — capability radar (smoke test)', () => {
     const positions: Position[] = [];
     const { container } = renderCard({ plan, positions, index: 0 });
     // The card mounts a RadarChart inside the pm-plan-card-radar-0 wrapper.
-    expect(screen.getByTestId('pm-plan-card-radar-0')).toBeInTheDocument();
-    const svg = container.querySelector('svg');
+    // Scope to that wrapper — the card now also has a TriangleRadar SVG
+    // above the capability radar, so a bare `container.querySelector('svg')`
+    // would pick up the triangle (3 text labels), not the radar (5).
+    const radarWrapper = screen.getByTestId('pm-plan-card-radar-0');
+    const svg = radarWrapper.querySelector('svg');
     expect(svg).toBeInTheDocument();
     // 5 text labels (one per dimension).
     expect(svg!.querySelectorAll('text')).toHaveLength(5);
+  });
+});
+
+describe('StaffingPlanCard — S4 triangle radar + locked ribbon (Task 9)', () => {
+  beforeEach(() => {
+    cleanup();
+  });
+
+  it('renders the TriangleRadar with the 3-axis testid', () => {
+    renderCard({ plan: makePlan() });
+    expect(screen.getByTestId('pm-triangle-radar')).toBeInTheDocument();
+  });
+
+  it('renders the LockedRibbon when plan.is_selected === 1', () => {
+    renderCard({ plan: makePlan({ is_selected: 1 }) });
+    expect(screen.getByTestId('pm-locked-ribbon')).toBeInTheDocument();
+  });
+
+  it('does not render the LockedRibbon when plan.is_selected === 0', () => {
+    renderCard({ plan: makePlan({ is_selected: 0 }) });
+    expect(screen.queryByTestId('pm-locked-ribbon')).not.toBeInTheDocument();
   });
 });
 
