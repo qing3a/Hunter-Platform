@@ -5,6 +5,34 @@
 
 ---
 
+## [Unreleased] — Employer Panel (P2, 12 tasks)
+
+### Added
+- **Backend** (5 new endpoints + 1 fix):
+  - `GET /v1/employer-panel/dashboard` — aggregated employer stats (active_jobs, open_positions, candidates_viewed_this_month, interested_count, unlocked_count, placements_count, spend_this_month)
+  - `GET /v1/employer/jobs/:id` — single job detail
+  - `PATCH /v1/employer/jobs/:id` — partial update
+  - `POST /v1/employer/jobs/:id/{pause,resume,close}` — state transitions
+  - `POST /v1/employer/pending-claims/:id/{claim,reject}` — compatibility routes (legacy `claim-jobs`/`reject-jobs` retained)
+
+- **Frontend** (8 new pages + 5 new components):
+  - `/admin/employer/*` route tree (login + dashboard + jobs + candidates + placements + pending-claims + settings)
+  - `RequireEmployerAuth` HOC, `EmployerMobileLayout` shell, `EmployerSidebar`, `EmployerKPICard`
+  - `JobPostForm` (7-field form), `CandidatePreviewCard`, `PlacementTimeline`, `PendingClaimRow`
+  - `employer.ts` API client with auth + 5 namespaces (dashboard, jobs, candidates, placements, pending-claims)
+
+### Tests
+- 137 new admin-web tests (1058 → 1065 baseline; +30 dashboard + 30 browse + 30 placements + ~50 jobs/claims/etc.)
+- 30 new backend tests (`tests/integration/employer/dashboard.test.ts`)
+- 5 new backend tests (`tests/integration/employer/job-detail.test.ts` — pause/resume/close/get/update)
+- 9 new backend tests (`tests/integration/employer-claim-reject.test.ts` — pending-claim compatibility routes)
+- 1 E2E test (`tests/integration/employer/e2e.test.ts`)
+
+### Fixed
+- `admin-list-pagination.test.ts` date-drift flake (seeded `now` is now `Date.now()` instead of hardcoded 2026-06-24)
+
+---
+
 ## v3.0.0 (2026-07-08) — C 端候选人门户 Phase 1
 
 新增能力:
