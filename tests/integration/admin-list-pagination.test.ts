@@ -37,8 +37,10 @@ describe('admin list pagination + dashboard stats (Sub-B)', () => {
     adminAuth = `Bearer ${lr.body.data.api_key}`;
 
     // Seed 25 users with varied names + created_at. Use i=1..25 (skip "today")
-// so all users are always inside the 30-day window regardless of test execution TZ.
-    const now = new Date('2026-06-24T12:00:00Z').getTime();
+// and anchor `now` to real Date.now() so all users always fall inside the
+// handler's 30-day window (which also uses Date.now()) regardless of when
+// the test runs. Avoids date drift from a hardcoded reference date.
+    const now = Date.now();
     for (let i = 1; i <= 25; i++) {
       db.prepare(`INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
         quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)
