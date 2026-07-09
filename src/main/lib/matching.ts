@@ -1,3 +1,5 @@
+import { jaccard } from './jaccard.js';
+
 export interface MatchInput {
   candidate_skills: string[];
   candidate_expectations: {
@@ -17,12 +19,8 @@ export interface MatchInput {
 const TITLE_LEVELS = ['intern', 'junior', 'mid', 'senior', 'staff', 'principal'];
 
 export function calculateMatchScore(input: MatchInput): number {
-  // Jaccard similarity (0-100)
-  const a = new Set(input.candidate_skills.map(s => s.toLowerCase()));
-  const b = new Set(input.job_skills.map(s => s.toLowerCase()));
-  const inter = [...a].filter(x => b.has(x)).length;
-  const union = new Set([...a, ...b]).size;
-  const jaccard = union === 0 ? 0 : (inter / union) * 100;
+  // Jaccard similarity (0-100) — shared primitive from ./jaccard.ts
+  const jaccardScore = jaccard(input.candidate_skills, input.job_skills) * 100;
 
   let bonus = 0;
   // Title level match: same or adjacent
@@ -44,7 +42,7 @@ export function calculateMatchScore(input: MatchInput): number {
     bonus += 2;
   }
 
-  return Math.round(jaccard + bonus);
+  return Math.round(jaccardScore + bonus);
 }
 
 export interface JobForRanking {

@@ -16,8 +16,14 @@
 //   location  10 pts - same city / remote_ok / diff
 //
 // Argument-order convention for sub-scoring helpers: position first,
-// candidate second (matches levelMatchScore). salaryMatchScore and
-// educationMatchScore take object params to stay readable at the call site.
+// candidate second (matches levelMatchScore). salaryMatchScore takes
+// object params to stay readable at the call site.
+
+import { jaccard } from './jaccard.js';
+
+// Re-export jaccard for callers that still import it from this module
+// (back-compat for the unit test suite and any downstream consumers).
+export { jaccard };
 
 export interface PositionMatchInput {
   required_skills: string[];
@@ -60,16 +66,6 @@ export const WEIGHTS = {
 
 const LEVELS = ['junior', 'mid', 'senior', 'staff'] as const;
 export const EDU_LEVELS = ['none', 'highschool', 'bachelor', 'master', 'phd'] as const;
-
-export function jaccard(a: string[], b: string[]): number {
-  if (a.length === 0 || b.length === 0) return 0;
-  const setA = new Set(a.map((s) => s.toLowerCase()));
-  const setB = new Set(b.map((s) => s.toLowerCase()));
-  let inter = 0;
-  for (const x of setA) if (setB.has(x)) inter++;
-  const union = setA.size + setB.size - inter;
-  return union === 0 ? 0 : inter / union;
-}
 
 export function levelMatchScore(
   positionLevel: string | null,
@@ -213,33 +209,43 @@ export function calculateMatch(input: MatchInput): MatchResult {
   }
 
   // Education (10)
-  // v028 PM position schema does not carry education requirement; we
-  // award full 10 pts when the candidate has any declared education,
-  // and half-points (5) when they don't.
-  const eduRatio = input.candidate.education ? 1 : 0.5;
+  // v028 PM position schema does not carry an education requirement column,
+  // so we pass `null` to the helper. The helper returns 0.5 ("no
+  // requirement" → neutral baseline). In the PM domain we treat a candidate's
+  // declared education as a positive signal (it proves they have one), so we
+  // layer a boost on top: any declared education → 1.0; nothing declared →
+  // fall back to the helper's neutral 0.5.
+  const eduHelperRatio = educationMatchScore(null, input.candidate.education);
+  const eduRatio = input.candidate.education
+    ? Math.max(eduHelperRatio, 1)
+    : eduHelperRatio;
   const eduPts = Math.round(eduRatio * WEIGHTS.education);
   if (input.candidate.education) {
     reasons.push('学历达标');
   }
-  void educationMatchScore;
 
   // Location (10)
-  // v028 doesn't carry a position location column either. Candidate's
-  // remote_ok + city declaration becomes the dominant signal:
-  //   - remote_ok=true           → 8 pts + reason "接受远程"
-  //   - city declared            → 7 pts + reason "所在地 <city>"
-  //   - neither                  → 5 pts (neutral)
-  let locPts: number;
+  // Same v028 caveat: no position-side location. Pass `null` to the helper,
+  // then layer candidate-side signals on top of its neutral 0.5 baseline:
+  //   remote_ok=true           → 0.8 + reason "接受远程"
+  //   city declared            → 0.7 + reason "所在地 <city>"
+  //   neither                  → 0.5 (helper's neutral)
+  const locHelperRatio = locationMatchScore(
+    null,
+    input.candidate.location,
+    input.candidate.remote_ok,
+  );
+  let locRatio: number;
   if (input.candidate.remote_ok) {
-    locPts = WEIGHTS.location * 0.8;
+    locRatio = Math.max(locHelperRatio, 0.8);
     reasons.push('接受远程');
   } else if (input.candidate.location) {
-    locPts = WEIGHTS.location * 0.7;
+    locRatio = Math.max(locHelperRatio, 0.7);
     reasons.push(`所在地 ${input.candidate.location}`);
   } else {
-    locPts = WEIGHTS.location * 0.5;
+    locRatio = locHelperRatio;
   }
-  void locationMatchScore;
+  const locPts = Math.round(locRatio * WEIGHTS.location);
 
   const raw = skillPts + lvlPts + indPts + salPts + eduPts + locPts;
   const score = Math.max(0, Math.min(100, Math.round(raw)));
