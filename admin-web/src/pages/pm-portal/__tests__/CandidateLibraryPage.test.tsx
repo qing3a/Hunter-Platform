@@ -14,6 +14,7 @@ import {
   pmLibrary,
   pmNotes,
   type LibraryCandidate,
+  type PmPrivateNote,
 } from '../../../api/pm-portal';
 import { ToastProvider } from '../../../lib/toast';
 
@@ -64,6 +65,15 @@ function makeCandidate(overrides: Partial<LibraryCandidate> = {}): LibraryCandid
   };
 }
 
+function makeNote(overrides: Partial<PmPrivateNote> = {}): PmPrivateNote {
+  return {
+    starred: false,
+    note_text: '',
+    updated_at: 1_700_000_000_000,
+    ...overrides,
+  };
+}
+
 function renderPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -99,7 +109,7 @@ describe('CandidateLibraryPage — loading + error + empty', () => {
 
   it('renders the title + a loading state while pmLibrary.list is in flight', () => {
     mockedList.mockReturnValue(new Promise(() => {}));
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     expect(screen.getByTestId('pm-library-title')).toHaveTextContent('候选人库');
     expect(screen.getByTestId('pm-library-loading')).toBeInTheDocument();
@@ -107,7 +117,7 @@ describe('CandidateLibraryPage — loading + error + empty', () => {
 
   it('renders an error banner when pmLibrary.list rejects', async () => {
     mockedList.mockRejectedValueOnce(new Error('网络异常'));
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('pm-library-error')).toBeInTheDocument();
@@ -117,7 +127,7 @@ describe('CandidateLibraryPage — loading + error + empty', () => {
 
   it('renders the empty-state when there are zero aggregated candidates', async () => {
     mockedList.mockResolvedValueOnce({ candidates: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByText('暂无候选人')).toBeInTheDocument();
@@ -171,9 +181,9 @@ describe('CandidateLibraryPage — stats strip', () => {
     });
     // cand-1 is starred, cand-2 has a note.
     mockedNotesGet.mockImplementation(async (userId: string) => {
-      if (userId === 'cand-1') return { starred: true, note_text: '' };
-      if (userId === 'cand-2') return { starred: false, note_text: '已沟通' };
-      return { starred: false, note_text: '' };
+      if (userId === 'cand-1') return makeNote({ starred: true });
+      if (userId === 'cand-2') return makeNote({ note_text: '已沟通' });
+      return makeNote();
     });
 
     renderPage();
@@ -227,7 +237,7 @@ describe('CandidateLibraryPage — table view (default)', () => {
       ],
       total: 2,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -271,7 +281,7 @@ describe('CandidateLibraryPage — table view (default)', () => {
       ],
       total: 2,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
     const rows = screen.getAllByTestId(/^pm-library-row-\d+$/);
@@ -301,7 +311,7 @@ describe('CandidateLibraryPage — view toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
     fireEvent.click(screen.getByTestId('pm-library-view-card'));
@@ -314,7 +324,7 @@ describe('CandidateLibraryPage — view toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     localStorage.setItem('pm.library.candidates.viewMode', 'card');
 
     renderPage();
@@ -329,7 +339,7 @@ describe('CandidateLibraryPage — view toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
 
@@ -347,7 +357,7 @@ describe('CandidateLibraryPage — view toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     localStorage.setItem('pm.library.candidates.viewMode', 'card');
 
     renderPage();
@@ -389,7 +399,7 @@ describe('CandidateLibraryPage — search', () => {
       ],
       total: 2,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -422,7 +432,7 @@ describe('CandidateLibraryPage — search', () => {
       ],
       total: 2,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -440,7 +450,7 @@ describe('CandidateLibraryPage — search', () => {
       candidates: [makeCandidate({ candidate_user_id: 'cand-1', display_name: 'Alpha' })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -472,8 +482,8 @@ describe('CandidateLibraryPage — star toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
-    mockedNotesUpdate.mockResolvedValue({ starred: true, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
+    mockedNotesUpdate.mockResolvedValue(makeNote({ starred: true }));
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -488,8 +498,8 @@ describe('CandidateLibraryPage — star toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: true, note_text: '' });
-    mockedNotesUpdate.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote({ starred: true }));
+    mockedNotesUpdate.mockResolvedValue(makeNote({ starred: false }));
 
     renderPage();
     await waitFor(() => {
@@ -507,7 +517,7 @@ describe('CandidateLibraryPage — star toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     // Never-resolving promise keeps the request in flight so we can
     // observe the optimistic value.
     mockedNotesUpdate.mockReturnValue(new Promise(() => {}));
@@ -525,7 +535,7 @@ describe('CandidateLibraryPage — star toggle', () => {
       candidates: [makeCandidate()],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     mockedNotesUpdate.mockRejectedValueOnce(new Error('网络异常'));
 
     renderPage();
@@ -560,7 +570,7 @@ describe('CandidateLibraryPage — click-through', () => {
       candidates: [makeCandidate({ candidate_user_id: 'cand-42' })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));
@@ -573,7 +583,7 @@ describe('CandidateLibraryPage — click-through', () => {
       candidates: [makeCandidate({ candidate_user_id: 'cand-7' })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage();
     await waitFor(() => screen.getByTestId('pm-library-table'));

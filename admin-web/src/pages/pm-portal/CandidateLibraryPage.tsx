@@ -10,6 +10,7 @@ import {
   pmLibrary,
   pmNotes,
   type LibraryCandidate,
+  type PmPrivateNote,
 } from '../../api/pm-portal';
 import { EmptyState } from '../../components/candidate-portal/EmptyState';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
@@ -124,9 +125,15 @@ export function CandidateLibraryPage() {
   /**
    * Resolve the starred / note text for each candidate from the
    * matching useQueries slot. `undefined` means "still loading".
+   *
+   * `note_text` is `string | null` because the backend synthesises
+   * `null` when no note has been saved yet (see PmPrivateNote in
+   * src/api/pm-portal.ts). Downstream consumers either coalesce with
+   * `?? ''` (the row chip in card view) or use a truthy guard
+   * (`stats.noteCount`).
    */
   const notesByCandidate = useMemo(() => {
-    const map = new Map<string, { starred: boolean; note_text: string }>();
+    const map = new Map<string, PmPrivateNote>();
     candidates.forEach((c, idx) => {
       const q = notesQueries[idx];
       if (q?.data) {

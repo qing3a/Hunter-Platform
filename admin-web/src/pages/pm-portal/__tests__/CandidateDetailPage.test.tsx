@@ -9,6 +9,7 @@ import {
   pmPositions,
   pmProjects,
   type MatchListItem,
+  type PmPrivateNote,
   type Position,
   type ProjectSummary,
 } from '../../../api/pm-portal';
@@ -117,6 +118,15 @@ function makeMatch(overrides: Partial<MatchListItem> = {}): MatchListItem {
   };
 }
 
+function makeNote(overrides: Partial<PmPrivateNote> = {}): PmPrivateNote {
+  return {
+    starred: false,
+    note_text: '',
+    updated_at: 1_700_000_000_000,
+    ...overrides,
+  };
+}
+
 function renderPage(userId = 'cand-1') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
@@ -152,7 +162,7 @@ describe('CandidateDetailPage — loading + error', () => {
     mockedListProjects.mockReturnValue(new Promise(() => {}));
     mockedListPositions.mockReturnValue(new Promise(() => {}));
     mockedListMatches.mockReturnValue(new Promise(() => {}));
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     expect(screen.getByTestId('pm-candidate-detail-loading')).toBeInTheDocument();
   });
@@ -161,7 +171,7 @@ describe('CandidateDetailPage — loading + error', () => {
     mockedListProjects.mockRejectedValueOnce(new Error('项目不可用'));
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-error')).toBeInTheDocument();
@@ -173,7 +183,7 @@ describe('CandidateDetailPage — loading + error', () => {
     mockedListProjects.mockRejectedValueOnce(new Error('boom'));
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-error')).toBeInTheDocument();
@@ -201,7 +211,7 @@ describe('CandidateDetailPage — header', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-title')).toHaveTextContent(
@@ -214,7 +224,7 @@ describe('CandidateDetailPage — header', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-profile-name')).toHaveTextContent(
@@ -227,7 +237,7 @@ describe('CandidateDetailPage — header', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage();
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-title')).toBeInTheDocument();
@@ -240,7 +250,7 @@ describe('CandidateDetailPage — header', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-abc');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-profile-userid')).toHaveAttribute(
@@ -269,7 +279,7 @@ describe('CandidateDetailPage — profile (top row)', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-profile-years')).toHaveTextContent(
@@ -288,7 +298,7 @@ describe('CandidateDetailPage — profile (top row)', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-unknown');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-profile-name')).toHaveTextContent(
@@ -304,7 +314,7 @@ describe('CandidateDetailPage — profile (top row)', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       const card = screen.getByTestId('pm-candidate-detail-radar-card');
@@ -359,7 +369,7 @@ describe('CandidateDetailPage — matched jobs list', () => {
       }
       return { matches: [], total: 0 };
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -398,7 +408,7 @@ describe('CandidateDetailPage — matched jobs list', () => {
       }
       return { matches: [], total: 0 };
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -428,7 +438,7 @@ describe('CandidateDetailPage — matched jobs list', () => {
       ],
       total: 2,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -447,7 +457,7 @@ describe('CandidateDetailPage — matched jobs list', () => {
       matches: [makeMatch({ candidate_user_id: 'someone-else' })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -469,7 +479,7 @@ describe('CandidateDetailPage — matched jobs list', () => {
       ],
       total: 3,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-matches-list')).toBeInTheDocument();
@@ -504,7 +514,7 @@ describe('CandidateDetailPage — match row click-through', () => {
       matches: [makeMatch({ match_id: 1, score: 88, position_id: 'pos-77' })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -523,7 +533,7 @@ describe('CandidateDetailPage — match row click-through', () => {
       matches: [makeMatch({ match_id: 1, position_id: 'pos-1', score: 80 })],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-match-0-project')).toHaveTextContent(
@@ -562,7 +572,7 @@ describe('CandidateDetailPage — reasons preview', () => {
       ],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toBeInTheDocument();
@@ -587,7 +597,7 @@ describe('CandidateDetailPage — reasons preview', () => {
       ],
       total: 1,
     });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
     renderPage('cand-1');
     await waitFor(() => {
       expect(screen.getByTestId('pm-candidate-detail-match-0-reasons')).toBeInTheDocument();
@@ -616,7 +626,7 @@ describe('CandidateDetailPage — PM private note integration', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '已联系, 等回复' });
+    mockedNotesGet.mockResolvedValue(makeNote({ note_text: '已联系, 等回复' }));
 
     renderPage('cand-1');
     await waitFor(() => {
@@ -634,7 +644,7 @@ describe('CandidateDetailPage — PM private note integration', () => {
     mockedListProjects.mockResolvedValue({ projects: [], total: 0 });
     mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
     mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
-    mockedNotesGet.mockResolvedValue({ starred: false, note_text: '' });
+    mockedNotesGet.mockResolvedValue(makeNote());
 
     renderPage('cand-1');
     await waitFor(() => {

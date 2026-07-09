@@ -195,7 +195,7 @@ describe('PrivateNoteCard — star toggle', () => {
 
   it('flips aria-pressed optimistically and dispatches a PUT with the new boolean', async () => {
     mockedGet.mockResolvedValueOnce(makeNote({ starred: false, note_text: '' }));
-    mockedUpdate.mockResolvedValue({ starred: true, note_text: '' });
+    mockedUpdate.mockResolvedValue(makeNote({ starred: true, note_text: '' }));
     renderCard();
     await waitFor(() =>
       expect(screen.getByTestId('pm-private-note-empty')).toBeInTheDocument(),
