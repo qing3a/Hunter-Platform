@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -9,27 +9,53 @@ import {
 } from '../../api/pm-portal';
 import { MatchCard } from '../../components/pm-portal/MatchCard';
 import { PositionPicker } from '../../components/pm-portal/PositionPicker';
+import { SortPills, type SortKey } from '../../components/pm-portal/SortPills';
 import { useToast } from '../../lib/toast';
 
 // ============================================================================
 // CandidateMatchesPage (Task 11 / S6)
 // ============================================================================
 //
-// Lists candidate matches for a single project_position, sorted by
-// score DESC. Each card shows:
+// Lists candidate matches for a single project_position. Sort order is
+// driven by the SortPills (匹配度 / 到岗时间 / 薪资匹配) and the page
+// re-sorts client-side on pill change so the UI reacts instantly.
+//
+// Each card shows:
 //   - score badge         colour-coded by band (excellent / good / fair / poor)
+//   - score tier label    small "高分 / 中分 / 低分" chip next to the score
 //   - masked display name + optional headline
 //   - reasons (green ✓)   weighted-match positive signals
 //   - gaps    (red ✗)     weighted-match negative signals
+//   - per-row action stack  → 推荐给猎头 / 📞 解锁 / ✗ 不合适
 //   - 查看详情 button      placeholder (Task 13 will wire it)
 //
 // Controls
 // --------
+//   - sort pills         匹配度 (score) / 到岗时间 (created_at) / 薪资匹配
+//                        (score fallback — salary data not yet on the
+//                        match list item)
 //   - min_score dropdown  (0 / 60 / 75 / 90) — drives pmMatches.list's
-//                         `min_score` query param
-//   - 重算匹配 button      calls pmMatches.recompute then invalidates the
-//                         list query (the recompute response itself is
-//                         shown as a toast)
+//                        `min_score` query param
+//   - 重算匹配 button     calls pmMatches.recompute then invalidates the
+//                        list query (the recompute response itself is
+//                        shown as a toast)
+//
+// Sort semantics
+// --------------
+//   - 'score'  -> score DESC, then match_id ASC for stable ordering
+//   - 'time'   -> created_at DESC (most recent first; salary / time-to-join
+//                 data is not on MatchListItem yet — Task 13 will surface it)
+//   - 'salary' -> falls back to the score-DESC order so the pill is still
+//                 useful as a UI affordance even though the data isn't
+//                 available. The placeholder keeps the affordance
+//                 consistent with the prototype (prototype.html lines
+//                 1645-1658).
+//
+// Action callbacks
+// ----------------
+//   - recommend / unlock / reject all push a `info` toast for v1. The
+//     real mutation calls will land in a later Task that introduces
+//     the recommend / unlock backend endpoints.
 //
 // Routing
 // -------
@@ -39,7 +65,8 @@ import { useToast } from '../../lib/toast';
 // Network
 // -------
 //   - pmPositions.get(id)      position title + project_id for back-nav
-//   - pmMatches.list(id, ?)    paginated matches (score DESC, total count)
+//   - pmPositions.list(id, ?)  paginated project positions (inline picker)
+//   - pmMatches.list(id, ?)    paginated matches (server: score DESC)
 //   - pmMatches.recompute(id)  bulk UPSERT + top-N echo
 
 /** Allowed values for the min_score filter — matches the spec. */
@@ -53,6 +80,36 @@ const MIN_SCORE_LABELS: Record<MinScoreOption, string> = {
   90: '90+',
 };
 
+/**
+ * Pure helper — sort the matches array by the current SortKey.
+ * Kept top-level so unit tests can import it directly.
+ */
+export function sortMatches(
+  matches: MatchListItem[],
+  key: SortKey,
+): MatchListItem[] {
+  const copy = [...matches];
+  if (key === 'time') {
+    return copy.sort((a, b) => {
+      if (b.created_at !== a.created_at) return b.created_at - a.created_at;
+      return a.match_id - b.match_id;
+    });
+  }
+  if (key === 'salary') {
+    // No salary data on MatchListItem yet — fall back to score DESC so
+    // the pill is still useful as a UI affordance (and stable).
+    return copy.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.match_id - b.match_id;
+    });
+  }
+  // 'score' — default
+  return copy.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.match_id - b.match_id;
+  });
+}
+
 export function CandidateMatchesPage() {
   const { id: positionId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -61,6 +118,7 @@ export function CandidateMatchesPage() {
 
   // ---- Local UI state ----
   const [minScore, setMinScore] = useState<MinScoreOption>(0);
+  const [sortKey, setSortKey] = useState<SortKey>('score');
 
   // ---- Network: position header ----
   const positionQuery = useQuery({
@@ -83,8 +141,8 @@ export function CandidateMatchesPage() {
 
   // ---- Network: matches list ----
   // Server-side already sorts by score DESC; we additionally client-side
-  // sort by score DESC so reordering after a recompute (where the order
-  // might lag by one render frame) is deterministic in the UI.
+  // sort so reordering after a recompute (where the order might lag by
+  // one render frame) is deterministic in the UI.
   const matchesQuery = useQuery({
     queryKey: ['pm', 'matches', 'list', positionId, minScore],
     queryFn: () => pmMatches.list(positionId!, { min_score: minScore, limit: 100 }),
@@ -112,16 +170,8 @@ export function CandidateMatchesPage() {
 
   // ---- Derived state ----
   const position = positionQuery.data?.position as Position | undefined;
-  const matches: MatchListItem[] = useMemo(() => {
-    const raw = matchesQuery.data?.matches ?? [];
-    // Defensive client-side sort by score DESC then by match_id ASC for
-    // stable ordering. Server already sorts by score DESC, but recompute
-    // mutations can leave a stale cache in flight for a tick.
-    return [...raw].sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.match_id - b.match_id;
-    });
-  }, [matchesQuery.data]);
+  const rawMatches: MatchListItem[] = matchesQuery.data?.matches ?? [];
+  const matches = useMemo(() => sortMatches(rawMatches, sortKey), [rawMatches, sortKey]);
   const total = matchesQuery.data?.total ?? 0;
   const averageScore = useMemo(() => {
     if (matches.length === 0) return null;
@@ -143,6 +193,42 @@ export function CandidateMatchesPage() {
   const handleMinScoreChange = (next: MinScoreOption) => {
     setMinScore(next);
   };
+
+  const handleSortChange = (next: SortKey) => {
+    setSortKey(next);
+  };
+
+  // Per-row action callbacks — v1 emits a toast placeholder; later
+  // Tasks will wire the real pmMatches.{recommend,unlock,reject}
+  // mutations. We log the match id so the PM can see something is
+  // happening even if their toast dismisses before they read it.
+  const handleRecommend = useCallback(
+    (m: MatchListItem) => {
+      toast.push({
+        type: 'info',
+        message: `已记录推荐 #${m.match_id}（v1 占位,后续接入）`,
+      });
+    },
+    [toast],
+  );
+  const handleUnlock = useCallback(
+    (m: MatchListItem) => {
+      toast.push({
+        type: 'info',
+        message: `已记录解锁 #${m.match_id}（v1 占位,后续接入）`,
+      });
+    },
+    [toast],
+  );
+  const handleReject = useCallback(
+    (m: MatchListItem) => {
+      toast.push({
+        type: 'info',
+        message: `已记录不适合 #${m.match_id}（v1 占位,后续接入）`,
+      });
+    },
+    [toast],
+  );
 
   // ---- Render guards ----
 
@@ -233,6 +319,15 @@ export function CandidateMatchesPage() {
               }}
             />
           )}
+          {/*
+            Sort pills (Task 11). Sits directly under the picker so the
+            PM sees it on the same scan line. Default is 'score' so the
+            initial view matches the pre-Task-11 behaviour.
+          */}
+          <div className="pm-matches-sort" data-testid="pm-matches-sort">
+            <span className="pm-matches-sort-label">排序</span>
+            <SortPills value={sortKey} onChange={handleSortChange} />
+          </div>
         </div>
         <div className="pm-matches-header-actions">
           <label className="pm-matches-filter">
@@ -317,7 +412,14 @@ export function CandidateMatchesPage() {
           aria-label="候选人匹配列表"
         >
           {matches.map((match, idx) => (
-            <MatchCard key={match.match_id} match={match} index={idx} />
+            <MatchCard
+              key={match.match_id}
+              match={match}
+              index={idx}
+              onRecommend={handleRecommend}
+              onUnlock={handleUnlock}
+              onReject={handleReject}
+            />
           ))}
         </section>
       )}

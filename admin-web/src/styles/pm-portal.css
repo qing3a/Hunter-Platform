@@ -1557,6 +1557,19 @@
   cursor: not-allowed;
 }
 
+/* ---- Sort row (Task 11) — sits directly under the PositionPicker. */
+.pm-matches-sort {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+.pm-matches-sort-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 /* ---- Stats strip ---- */
 .pm-matches-stats {
   display: grid;
@@ -1764,6 +1777,97 @@
   font-size: 13px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* ---- Score tier label (Task 11) — small chip next to the score badge. */
+.pm-score-tier {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--b-stage-match);
+  color: var(--c-stage-match);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.pm-score-tier--high {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+.pm-score-tier--mid {
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+}
+.pm-score-tier--low {
+  background: rgba(220, 38, 38, 0.10);
+  color: var(--danger, #dc2626);
+}
+
+/* ---- Sort pills (Task 11 / S6) — tablist driving the grid sort order. */
+.pm-sort-pills {
+  display: inline-flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+.pm-sort-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-sort-pill:hover:not(.active) {
+  border-color: var(--c-stage-project);
+  color: var(--c-stage-project);
+}
+.pm-sort-pill.active {
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  border-color: var(--c-stage-project);
+}
+.pm-sort-pill:focus-visible {
+  outline: 2px solid var(--b-stage-project);
+  outline-offset: 1px;
+}
+
+/* ---- Action stack (Task 11 / S6) — per-row CTA column in the match card. */
+.pm-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  border-top: 1px solid var(--border);
+  padding-top: var(--sp-3);
+}
+.pm-action-stack-btn {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: center;
+}
+.pm-btn-danger-sm {
+  padding: 6px 10px;
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pm-btn-danger-sm:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #f87171;
 }
 
 /* ============================================================================

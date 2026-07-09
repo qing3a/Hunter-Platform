@@ -172,3 +172,81 @@ describe('MatchCard — 查看详情 button', () => {
     expect(onViewDetail).not.toHaveBeenCalled();
   });
 });
+
+// ============================================================================
+// Task 11 — score tier label + per-row ActionStack wiring
+// ============================================================================
+
+describe('MatchCard — score tier label (Task 11)', () => {
+  beforeEach(() => cleanup());
+
+  it('renders the 高分 tier for an excellent score (>=90)', () => {
+    render(<MatchCard match={makeMatch({ score: 95 })} index={0} />);
+    const tier = screen.getByTestId('pm-match-card-0-tier');
+    expect(tier).toHaveTextContent('高分');
+    expect(tier).toHaveAttribute('data-tier', 'high');
+    expect(screen.getByTestId('pm-match-card-0')).toHaveAttribute('data-tier', 'high');
+  });
+
+  it('renders the 中分 tier for a good/fair score (60-89)', () => {
+    render(<MatchCard match={makeMatch({ score: 72 })} index={0} />);
+    const tier = screen.getByTestId('pm-match-card-0-tier');
+    expect(tier).toHaveTextContent('中分');
+    expect(tier).toHaveAttribute('data-tier', 'mid');
+  });
+
+  it('renders the 低分 tier for a poor score (<60)', () => {
+    render(<MatchCard match={makeMatch({ score: 40 })} index={0} />);
+    const tier = screen.getByTestId('pm-match-card-0-tier');
+    expect(tier).toHaveTextContent('低分');
+    expect(tier).toHaveAttribute('data-tier', 'low');
+  });
+});
+
+describe('MatchCard — per-row ActionStack (Task 11)', () => {
+  beforeEach(() => cleanup());
+
+  it('renders an <ActionStack> in the card footer', () => {
+    render(<MatchCard match={makeMatch()} index={0} />);
+    expect(screen.getByTestId('pm-match-card-0-footer')).toBeInTheDocument();
+    expect(screen.getByTestId('pm-action-stack')).toBeInTheDocument();
+  });
+
+  it('fires onRecommend with the match object when the recommend button is clicked', () => {
+    const onRecommend = vi.fn();
+    const match = makeMatch({ match_id: 99 });
+    render(<MatchCard match={match} index={0} onRecommend={onRecommend} />);
+    fireEvent.click(screen.getByTestId('pm-action-recommend'));
+    expect(onRecommend).toHaveBeenCalledTimes(1);
+    expect(onRecommend).toHaveBeenCalledWith(match);
+  });
+
+  it('fires onUnlock with the match object when the unlock button is clicked', () => {
+    const onUnlock = vi.fn();
+    const match = makeMatch({ match_id: 7 });
+    render(<MatchCard match={match} index={0} onUnlock={onUnlock} />);
+    fireEvent.click(screen.getByTestId('pm-action-unlock'));
+    expect(onUnlock).toHaveBeenCalledTimes(1);
+    expect(onUnlock).toHaveBeenCalledWith(match);
+  });
+
+  it('fires onReject with the match object when the reject button is clicked', () => {
+    const onReject = vi.fn();
+    const match = makeMatch({ match_id: 13 });
+    render(<MatchCard match={match} index={0} onReject={onReject} />);
+    fireEvent.click(screen.getByTestId('pm-action-reject'));
+    expect(onReject).toHaveBeenCalledTimes(1);
+    expect(onReject).toHaveBeenCalledWith(match);
+  });
+
+  it('does nothing when action callbacks are omitted and the buttons are clicked', () => {
+    // No callbacks — we just assert the buttons exist and clicking
+    // them doesn't throw.
+    render(<MatchCard match={makeMatch()} index={0} />);
+    expect(() => {
+      fireEvent.click(screen.getByTestId('pm-action-recommend'));
+      fireEvent.click(screen.getByTestId('pm-action-unlock'));
+      fireEvent.click(screen.getByTestId('pm-action-reject'));
+    }).not.toThrow();
+  });
+});

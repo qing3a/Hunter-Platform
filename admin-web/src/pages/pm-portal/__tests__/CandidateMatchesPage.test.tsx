@@ -559,3 +559,158 @@ describe('CandidateMatchesPage — Task 7 PositionPicker', () => {
     );
   });
 });
+
+// -------------------------------------------------------------------------
+// Task 11 — S6 SortPills + per-row action stack
+// -------------------------------------------------------------------------
+
+describe('CandidateMatchesPage — Task 11 SortPills', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedGetPosition.mockReset();
+    mockedListMatches.mockReset();
+    mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+  });
+
+  it('renders the 3 sort pills with the default "score" pill active', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({ matches: [], total: 0 });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-sort-pills')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('pm-sort-pill-score')).toHaveClass('active');
+    expect(screen.getByTestId('pm-sort-pill-time')).not.toHaveClass('active');
+    expect(screen.getByTestId('pm-sort-pill-salary')).not.toHaveClass('active');
+  });
+
+  it('re-orders cards by created_at DESC when the "到岗时间" pill is clicked', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({
+      matches: [
+        makeMatch({ match_id: 1, score: 90, created_at: 1_000 }),
+        makeMatch({ match_id: 2, score: 60, created_at: 9_000 }),
+        makeMatch({ match_id: 3, score: 80, created_at: 5_000 }),
+      ],
+      total: 3,
+    });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-matches-grid')).toBeInTheDocument();
+    });
+    // Default sort: score DESC → [90, 80, 60] = [1, 3, 2]
+    let grid = screen.getByTestId('pm-matches-grid');
+    let cards = within(grid).getAllByTestId(/^pm-match-card-\d+$/);
+    expect(cards.map((c) => c.getAttribute('data-match-id'))).toEqual(['1', '3', '2']);
+
+    // Click the "到岗时间" pill → created_at DESC → [2, 3, 1]
+    fireEvent.click(screen.getByTestId('pm-sort-pill-time'));
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-sort-pill-time')).toHaveClass('active');
+    });
+    grid = screen.getByTestId('pm-matches-grid');
+    cards = within(grid).getAllByTestId(/^pm-match-card-\d+$/);
+    expect(cards.map((c) => c.getAttribute('data-match-id'))).toEqual(['2', '3', '1']);
+  });
+});
+
+describe('CandidateMatchesPage — Task 11 per-row action stack', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedGetPosition.mockReset();
+    mockedListMatches.mockReset();
+    mockedRecompute.mockReset();
+    mockedListPositions.mockReset();
+    mockedListPositions.mockResolvedValue({ positions: [], total: 0 });
+  });
+
+  it('renders an <ActionStack> in every match card', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({
+      matches: [
+        makeMatch({ match_id: 1 }),
+        makeMatch({ match_id: 2 }),
+      ],
+      total: 2,
+    });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-matches-grid')).toBeInTheDocument();
+    });
+    // One ActionStack per card → 2 total.
+    const stacks = screen.getAllByTestId('pm-action-stack');
+    expect(stacks).toHaveLength(2);
+    // The recommend button exists inside each stack.
+    expect(screen.getAllByTestId('pm-action-recommend')).toHaveLength(2);
+  });
+
+  it('renders the score tier label next to each score badge', async () => {
+    mockedGetPosition.mockResolvedValue({
+      position: makePosition(),
+      stats: { headcount_planned: 5, headcount_filled: 1, is_complete: false },
+    });
+    mockedListMatches.mockResolvedValue({
+      matches: [
+        makeMatch({ match_id: 1, score: 95 }), // high
+        makeMatch({ match_id: 2, score: 72 }), // mid
+        makeMatch({ match_id: 3, score: 40 }), // low
+      ],
+      total: 3,
+    });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('pm-matches-grid')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('pm-match-card-0-tier')).toHaveTextContent('高分');
+    expect(screen.getByTestId('pm-match-card-1-tier')).toHaveTextContent('中分');
+    expect(screen.getByTestId('pm-match-card-2-tier')).toHaveTextContent('低分');
+  });
+});
+
+// -------------------------------------------------------------------------
+// sortMatches helper
+// -------------------------------------------------------------------------
+
+import { sortMatches } from '../CandidateMatchesPage';
+
+describe('sortMatches helper', () => {
+  const matches: MatchListItem[] = [
+    { ...makeMatch({ match_id: 1, score: 90, created_at: 1_000 }) },
+    { ...makeMatch({ match_id: 2, score: 60, created_at: 9_000 }) },
+    { ...makeMatch({ match_id: 3, score: 80, created_at: 5_000 }) },
+  ];
+
+  it('returns score DESC for "score"', () => {
+    const sorted = sortMatches(matches, 'score');
+    expect(sorted.map((m) => m.match_id)).toEqual([1, 3, 2]);
+  });
+
+  it('returns created_at DESC for "time"', () => {
+    const sorted = sortMatches(matches, 'time');
+    expect(sorted.map((m) => m.match_id)).toEqual([2, 3, 1]);
+  });
+
+  it('falls back to score DESC for "salary" (no salary data on MatchListItem yet)', () => {
+    const sorted = sortMatches(matches, 'salary');
+    expect(sorted.map((m) => m.match_id)).toEqual([1, 3, 2]);
+  });
+
+  it('does not mutate the input array', () => {
+    const original = [...matches];
+    sortMatches(matches, 'time');
+    expect(matches).toEqual(original);
+  });
+});
