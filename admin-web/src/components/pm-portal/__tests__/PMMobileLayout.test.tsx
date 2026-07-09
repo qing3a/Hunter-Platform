@@ -111,8 +111,11 @@ describe('PMMobileLayout', () => {
 
   it('renders the topbar brand colour token via inline pm-brand class (no regressions)', () => {
     renderAt('/admin/pm/projects');
-    // The brand text lives inside an element tagged .pm-brand.
-    const brandEl = screen.getByText('猎头平台 · PM 工作台');
+    // The brand text lives inside an element tagged .pm-brand. After
+    // Task 2 the same text also appears in the sidebar's
+    // .pm-sidebar-brand, so we scope the lookup to the topbar.
+    const topbar = screen.getByTestId('pm-topbar');
+    const brandEl = within(topbar).getByText('猎头平台 · PM 工作台');
     expect(brandEl.className).toBe('pm-brand');
   });
 });

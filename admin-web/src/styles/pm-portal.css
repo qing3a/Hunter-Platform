@@ -2798,6 +2798,73 @@
 }
 .pm-sidebar-logout:hover { background: var(--bg); }
 
+/* ---- Completeness pill (Task 2) ----
+   A compact one-line summary strip that lives directly under the brand
+   and shows running totals (项目数 / 人才库). It is rendered as a
+   <button> so it can be activated; the prototype at
+   prototype.html line 599 uses a similar pill pattern. */
+.pm-sidebar-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--sp-2) var(--sp-3);
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pm-sidebar-pill:hover {
+  background: var(--bg);
+  border-color: var(--c-stage-project);
+  color: var(--c-stage-project);
+}
+
+/* ---- Section labels (Task 2) ----
+   Plain <div> section headers separating the main nav from the
+   project shortcut list. Uses uppercase + letter-spacing for an
+   unobtrusive, scannable look. */
+.pm-sidebar-section {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ---- Per-nav-item badge (Task 2) ----
+   Inline count chip floated to the right of the nav item label.
+   Uses the stage project tokens so the badge feels native to the
+   PM workbench colour palette. */
+.pm-sidebar-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  margin-left: auto;
+  background: var(--b-stage-project);
+  color: var(--c-stage-project);
+  border-radius: 9px;
+  font-size: 10px;
+  text-align: center;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Project shortcut empty state (Task 2 / Task 8 placeholder) ----
+   Shown when the per-project shortcut list is empty (Task 8 will
+   replace this with the actual chip grid). */
+.pm-sidebar-empty {
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* ---- Settings page (placeholder until Task 18) ---- */
 .pm-settings {
   max-width: 720px;
