@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   pmProjects,
   pmPositions,
@@ -13,6 +13,8 @@ import { PositionTable } from '../../components/pm-portal/PositionTable';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
 import { AIDecomposeModal } from '../../components/pm-portal/AIDecomposeModal';
 import { MatchSidebar, type SidebarMatch } from '../../components/pm-portal/MatchSidebar';
+import { AISuggestionBanner } from '../../components/pm-portal/AISuggestionBanner';
+import { MetadataEditModal } from '../../components/pm-portal/MetadataEditModal';
 
 // ============================================================================
 // ProjectDetailPage (S2 / Task 4)
@@ -98,6 +100,8 @@ export function ProjectDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showAiModal, setShowAiModal] = useState(false);
+  const [showMetaModal, setShowMetaModal] = useState(false);
+  const [showAiBanner, setShowAiBanner] = useState(true);
 
   /**
    * Called by AIDecomposeModal after a successful commit. Invalidates
@@ -111,6 +115,23 @@ export function ProjectDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['pm', 'positions', 'stats', id] });
     queryClient.invalidateQueries({ queryKey: ['pm', 'projects', 'get', id] });
   }
+
+  /**
+   * Mutation that PATCHes the project row with the form payload from
+   * MetadataEditModal. The form's budget is in 万元 (10,000 元) and
+   * the modal multiplies it back to 元 before handing it to the
+   * mutation. On success we invalidate the project query so the
+   * header re-renders with the new name / target / budget / dates /
+   * team.
+   */
+  const updateProjectMutation = useMutation({
+    mutationFn: (patch: Parameters<typeof pmProjects.update>[1]) =>
+      pmProjects.update(id!, patch),
+    onSuccess: () => {
+      if (!id) return;
+      queryClient.invalidateQueries({ queryKey: ['pm', 'projects', 'get', id] });
+    },
+  });
 
   // The project detail fetch. This is unconditional because every
   // section (header / PositionTable / MatchSidebar) needs the project
@@ -198,8 +219,7 @@ export function ProjectDetailPage() {
   }));
 
   function handleMetadataClick() {
-    // Task 6 wires the actual MetadataEditModal here. For Task 4 the
-    // button is presentational so the visual fidelity ships first.
+    setShowMetaModal(true);
   }
 
   function handleCompareClick() {
@@ -359,6 +379,13 @@ export function ProjectDetailPage() {
               ✨ 智能拆岗位
             </button>
           </div>
+          {showAiBanner && (
+            <AISuggestionBanner
+              suggestion="建议增加 1 名 国际化工程师 (P6, 10 月到岗, 估计 +30 万成本)"
+              onApply={() => setShowAiBanner(false)}
+              onDismiss={() => setShowAiBanner(false)}
+            />
+          )}
           <PositionTable
             positions={positionsQuery.data?.positions ?? []}
             loading={positionsQuery.isLoading}
@@ -375,6 +402,18 @@ export function ProjectDetailPage() {
           projectId={id}
           onClose={() => setShowAiModal(false)}
           onCommitted={onDecomposeCommitted}
+        />
+      )}
+
+      {showMetaModal && (
+        <MetadataEditModal
+          open={showMetaModal}
+          project={project}
+          onClose={() => setShowMetaModal(false)}
+          onSave={(payload) => {
+            updateProjectMutation.mutate(payload);
+            setShowMetaModal(false);
+          }}
         />
       )}
     </div>

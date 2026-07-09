@@ -67,6 +67,7 @@ const mockedGetProject = vi.mocked(pmProjects.get);
 const mockedListPositions = vi.mocked(pmPositions.list);
 const mockedStatsPositions = vi.mocked(pmPositions.stats);
 const mockedListMatches = vi.mocked(pmMatches.list);
+const mockedUpdateProject = vi.mocked(pmProjects.update);
 
 // ---- Helpers --------------------------------------------------------------
 
@@ -163,6 +164,8 @@ describe('ProjectDetailPage', () => {
     mockedListPositions.mockReset();
     mockedStatsPositions.mockReset();
     mockedListMatches.mockReset();
+    mockedUpdateProject.mockReset();
+    mockedUpdateProject.mockResolvedValue(makeProject());
   });
 
   it('shows a loading state while the project request is in flight', () => {
@@ -507,6 +510,128 @@ describe('ProjectDetailPage', () => {
     fireEvent.click(screen.getByTestId('pm-decompose-modal-close'));
     await waitFor(() => {
       expect(screen.queryByTestId('pm-decompose-modal')).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Task 6 — MetadataEditModal + AISuggestionBanner
+  // -------------------------------------------------------------------------
+
+  it('renders the AISuggestionBanner above the position table by default', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [makePosition()],
+      plans: [],
+      stats: { total_positions: 1, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats());
+    mockedListPositions.mockResolvedValueOnce({ positions: [makePosition()], total: 1 });
+    mockedListMatches.mockResolvedValueOnce({ matches: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-ai-suggestion'));
+
+    // The banner is inside the left column (s2-main), before the
+    // positions table.
+    const main = screen.getByTestId('pm-s2-main');
+    const banner = within(main).getByTestId('pm-ai-suggestion');
+    expect(banner).toHaveTextContent('AI 建议');
+  });
+
+  it('hides the AISuggestionBanner after the PM clicks 忽略', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [makePosition()],
+      plans: [],
+      stats: { total_positions: 1, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats());
+    mockedListPositions.mockResolvedValueOnce({ positions: [makePosition()], total: 1 });
+    mockedListMatches.mockResolvedValueOnce({ matches: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-ai-suggestion-dismiss'));
+
+    fireEvent.click(screen.getByTestId('pm-ai-suggestion-dismiss'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('pm-ai-suggestion')).toBeNull();
+    });
+  });
+
+  it('opens the MetadataEditModal when 📋 项目元数据 is clicked', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-metadata'));
+
+    // Modal is not present until the button is clicked.
+    expect(screen.queryByTestId('pm-meta-modal')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-metadata'));
+    await waitFor(() => screen.getByTestId('pm-meta-modal'));
+
+    expect(screen.getByDisplayValue('AI Engineering Expansion')).toBeInTheDocument();
+  });
+
+  it('closes the MetadataEditModal when the backdrop is clicked', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-metadata'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-metadata'));
+    await waitFor(() => screen.getByTestId('pm-meta-modal'));
+
+    // Backdrop click — clicking the backdrop element closes the modal.
+    fireEvent.click(screen.getByTestId('pm-meta-modal'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('pm-meta-modal')).toBeNull();
+    });
+  });
+
+  it('saves via pmProjects.update when the modal 保存 button is clicked', async () => {
+    mockedGetProject.mockResolvedValueOnce({
+      project: makeProject(),
+      positions: [],
+      plans: [],
+      stats: { total_positions: 0, filled_positions: 0, total_plans: 0, selected_plan_id: null },
+    });
+    mockedStatsPositions.mockResolvedValueOnce(makeStats({ total: 0 }));
+    mockedListPositions.mockResolvedValueOnce({ positions: [], total: 0 });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-detail-action-metadata'));
+
+    fireEvent.click(screen.getByTestId('pm-detail-action-metadata'));
+    await waitFor(() => screen.getByTestId('pm-meta-modal'));
+
+    fireEvent.change(screen.getByLabelText('项目名'), { target: { value: '新名字' } });
+    fireEvent.click(screen.getByTestId('pm-meta-modal-save'));
+
+    await waitFor(() => {
+      expect(mockedUpdateProject).toHaveBeenCalledWith(
+        'proj-1',
+        expect.objectContaining({ name: '新名字' }),
+      );
+    });
+
+    // The modal closes after a successful save.
+    await waitFor(() => {
+      expect(screen.queryByTestId('pm-meta-modal')).toBeNull();
     });
   });
 });
