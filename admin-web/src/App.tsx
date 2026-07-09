@@ -41,15 +41,26 @@ import { HunterWorkspacePage } from './pages/hunter-portal/HunterWorkspacePage';
 import { PickupQueuePage } from './pages/hunter-portal/PickupQueuePage';
 import { CandidateListPage } from './pages/hunter-portal/CandidateListPage';
 import { KanbanPage } from './pages/hunter-portal/KanbanPage';
-import { CandidateDetailPage } from './pages/hunter-portal/CandidateDetailPage';
+import { CandidateDetailPage as HunterCandidateDetailPage } from './pages/hunter-portal/CandidateDetailPage';
 import { ComparisonPage } from './pages/hunter-portal/ComparisonPage';
 import { TasksPage } from './pages/hunter-portal/TasksPage';
 import { HunterSettingsPage } from './pages/hunter-portal/HunterSettingsPage';
 import { RequireHunterAuth } from './components/hunter-portal/RequireHunterAuth';
 
-// PM Workbench pages (Phase 1 / Task 3 ships only the login page; the full
-// route tree + RequirePMAuth-guarded routes mount in Task 17).
+// PM Workbench pages (Task 17 wires the full route tree behind RequirePMAuth;
+// Tasks 3-16 created the individual page modules).
 import { PMLoginPage } from './pages/pm-portal/PMLoginPage';
+import { ProjectsLibraryPage } from './pages/pm-portal/ProjectsLibraryPage';
+import { ProjectDetailPage } from './pages/pm-portal/ProjectDetailPage';
+import { PlanComparisonPage } from './pages/pm-portal/PlanComparisonPage';
+import { PipelineSandboxPage } from './pages/pm-portal/PipelineSandboxPage';
+import { CandidateMatchesPage } from './pages/pm-portal/CandidateMatchesPage';
+import { CandidateLibraryPage } from './pages/pm-portal/CandidateLibraryPage';
+import { CandidateDetailPage as PMCandidateDetailPage } from './pages/pm-portal/CandidateDetailPage';
+import { GlobalSnapshotPage } from './pages/pm-portal/GlobalSnapshotPage';
+import { PMSettingsPage } from './pages/pm-portal/PMSettingsPage';
+import { RequirePMAuth } from './components/pm-portal/RequirePMAuth';
+import { PMMobileLayout } from './components/pm-portal/PMMobileLayout';
 
 // Admin sub-app: all admin routes live under /admin/* (no nested router).
 // The single outer BrowserRouter in main.tsx owns the routing context.
@@ -106,17 +117,44 @@ export default function App() {
         <Route path="/hunter/workspace" element={<RequireHunterAuth><HunterWorkspacePage /></RequireHunterAuth>} />
         <Route path="/hunter/pickup" element={<RequireHunterAuth><PickupQueuePage /></RequireHunterAuth>} />
         <Route path="/hunter/candidates" element={<RequireHunterAuth><CandidateListPage /></RequireHunterAuth>} />
-        <Route path="/hunter/candidates/:id" element={<RequireHunterAuth><CandidateDetailPage /></RequireHunterAuth>} />
+        <Route path="/hunter/candidates/:id" element={<RequireHunterAuth><HunterCandidateDetailPage /></RequireHunterAuth>} />
         <Route path="/hunter/kanban" element={<RequireHunterAuth><KanbanPage /></RequireHunterAuth>} />
         <Route path="/hunter/compare" element={<RequireHunterAuth><ComparisonPage /></RequireHunterAuth>} />
         <Route path="/hunter/tasks" element={<RequireHunterAuth><TasksPage /></RequireHunterAuth>} />
         <Route path="/hunter/settings" element={<RequireHunterAuth><HunterSettingsPage /></RequireHunterAuth>} />
         <Route path="/hunter/*" element={<Navigate to="/hunter/workspace" replace />} />
 
-        {/* PM Workbench — only the login page is mounted here in Task 3.
-            The full /pm/* tree ships with Task 17 (RequirePMAuth gates
-            /pm/projects, /pm/plans, /pm/decompose, /pm/matches, etc.). */}
+        {/* PM Workbench — Task 17 wires the full /pm/* tree behind
+            RequirePMAuth. The login page stays public; everything else is
+            nested under a layout-route that renders `<PMMobileLayout />`
+            (topbar + sidebar on desktop / tab bar on mobile + <Outlet />).
+            Unknown /pm/* paths bounce to /pm/projects. */}
         <Route path="/pm/login" element={<PMLoginPage />} />
+        <Route path="/pm" element={<Navigate to="/pm/snapshot" replace />} />
+        <Route
+          element={
+            <RequirePMAuth>
+              <PMMobileLayout />
+            </RequirePMAuth>
+          }
+        >
+          <Route path="/pm/snapshot" element={<GlobalSnapshotPage />} />
+          <Route path="/pm/projects" element={<ProjectsLibraryPage />} />
+          <Route path="/pm/projects/:id" element={<ProjectDetailPage />} />
+          <Route path="/pm/projects/:id/compare" element={<PlanComparisonPage />} />
+          <Route
+            path="/pm/projects/:id/positions/:positionId/sandbox"
+            element={<PipelineSandboxPage />}
+          />
+          <Route
+            path="/pm/projects/:id/positions/:positionId/matches"
+            element={<CandidateMatchesPage />}
+          />
+          <Route path="/pm/library" element={<CandidateLibraryPage />} />
+          <Route path="/pm/candidates/:userId" element={<PMCandidateDetailPage />} />
+          <Route path="/pm/settings" element={<PMSettingsPage />} />
+          <Route path="/pm/*" element={<Navigate to="/pm/projects" replace />} />
+        </Route>
 
         {/* Default: root and any unknown path → admin */}
         <Route path="/" element={<Navigate to="/admin" replace />} />

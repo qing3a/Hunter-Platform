@@ -2620,3 +2620,219 @@
   white-space: nowrap;
 }
 
+/* ============================================================================
+ * PM Workbench Shell (Phase 3b / Task 17)
+ * ============================================================================
+ *
+ * Layout chrome for the workbench: topbar + sidebar (desktop) / bottom tab
+ * bar (mobile) + main content. Mirrors `.hp-page` / `.hp-topbar` /
+ * `.hp-sidebar` / `.hp-tabbar` from hunter-portal.css so the two portals
+ * feel like one product, but uses `.pm-` class prefixes + the project
+ * colour token so the chrome doesn't collide with the hunter portal.
+ *
+ * Responsive split:
+ *   - < 1024px: sidebar hidden, tab bar visible (mobile / tablet)
+ *   - ≥ 1024px: sidebar shown, tab bar hidden (desktop)
+ *
+ * The `.pm-layout` padding-bottom of 64px on mobile reserves room for
+ * the fixed tab bar so pages don't disappear under it.
+ */
+
+.pm-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pm-page .pm-sidebar { display: none; }
+
+@media (min-width: 1024px) {
+  .pm-page { flex-direction: row; }
+  .pm-page .pm-sidebar {
+    display: flex;
+    width: 220px;
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .pm-page .pm-layout {
+    flex: 1;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* ---- Mobile layout shell ---- */
+.pm-layout {
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 64px;
+  min-width: 0;
+}
+
+.pm-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pm-brand {
+  font-weight: 700;
+  color: var(--c-project);
+}
+
+.pm-spacer { flex: 1; }
+
+.pm-logout {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.pm-logout:hover { background: var(--bg); }
+
+.pm-main {
+  padding: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Bottom tab bar (mobile only) ---- */
+.pm-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+  z-index: 10;
+}
+
+.pm-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.pm-tab.active {
+  color: var(--c-project);
+  font-weight: 600;
+}
+
+@media (min-width: 1024px) {
+  .pm-tabbar { display: none; }
+  .pm-layout {
+    padding-bottom: 0;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* ---- Sidebar (desktop only, see media query above) ---- */
+.pm-sidebar {
+  font-size: 14px;
+}
+
+.pm-sidebar-brand {
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px 20px;
+  color: var(--c-project);
+  border-bottom: 1px solid var(--border);
+}
+
+.pm-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 2px;
+  flex: 1;
+}
+
+.pm-sidebar-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 14px;
+}
+.pm-sidebar-link:hover { background: var(--b-project); }
+.pm-sidebar-link.active {
+  background: var(--b-project);
+  color: var(--c-project);
+  font-weight: 600;
+}
+
+.pm-sidebar-logout {
+  margin: 12px 16px 16px;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+}
+.pm-sidebar-logout:hover { background: var(--bg); }
+
+/* ---- Settings page (placeholder until Task 18) ---- */
+.pm-settings {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-6) var(--sp-4);
+}
+.pm-settings-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-3);
+  color: var(--text);
+}
+.pm-settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.pm-settings-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: var(--sp-3);
+  align-items: baseline;
+  font-size: 14px;
+}
+.pm-settings-row dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 0;
+}
+.pm-settings-row dd {
+  color: var(--text);
+  margin: 0;
+  word-break: break-all;
+}
