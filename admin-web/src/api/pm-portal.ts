@@ -1054,6 +1054,16 @@ export interface LibraryCandidate {
    * a 匿名候选人 placeholder in the UI.
    */
   display_name: string | null;
+  /**
+   * Optional recruitment source channel (内推 / 主动寻访 / 历史库 /
+   * HR 转入). Added by Task 14 / S9 to drive the source filter
+   * select on the Candidate Library page. The aggregated API
+   * doesn't carry source info today (matches/positions don't
+   * surface it), so most candidates arrive with `source` unset —
+   * the filter UI still renders, and tests can supply explicit
+   * values via mock data to verify the filter logic.
+   */
+  source?: '内推' | '主动寻访' | '历史库' | 'HR转入';
 }
 
 export interface LibraryListResponse {

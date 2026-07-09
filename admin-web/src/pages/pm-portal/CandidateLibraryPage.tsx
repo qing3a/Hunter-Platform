@@ -16,11 +16,15 @@ import { EmptyState } from '../../components/candidate-portal/EmptyState';
 import { ProjectKPICard } from '../../components/pm-portal/ProjectKPICard';
 import {
   LibraryFilterBar,
+  type LibraryAnnotationValue,
+  type LibraryFilterValue,
+  type LibrarySourceValue,
   type LibraryViewMode,
 } from '../../components/pm-portal/LibraryFilterBar';
 import {
   LibraryCandidateRow,
 } from '../../components/pm-portal/LibraryCandidateRow';
+import { ReadOnlyChip } from '../../components/pm-portal/ReadOnlyChip';
 import { useToast } from '../../lib/toast';
 
 // ============================================================================
@@ -36,11 +40,23 @@ import { useToast } from '../../lib/toast';
 // --------
 //   - Search (case-insensitive substring on display_name; falls back
 //     to candidate_user_id when the name is null)
+//   - Source filter (全部来源 / 内推 / 主动寻访 / 历史库 / HR 转入) —
+//     client-side filter over `LibraryCandidate.source` (the field
+//     is optional; candidates returned by the current aggregated
+//     backend leave it undefined, so the UI defaults to "全部来源")
+//   - Annotation filter (⭐ 我标记的 / 📝 有笔记的) — derived from
+//     the bulk-hydrated PM-private notes
 //   - View toggle (table / card) persisted in localStorage under
 //     `pm.library.candidates.viewMode`
-//   - PM-private ⭐ annotation — bulk-hydrated via `pmNotes.listAll()`,
-//     toggled inline via `pmNotes.update()`
+//   - Star-first sort: starred candidates always come before
+//     unstarred ones, then by best-match score DESC (overrides the
+//     server-side ordering from `pmLibrary.list`)
+//   - PM-private ⭐ annotation — bulk-hydrated via `pmNotes.get`,
+//     toggled inline via `pmNotes.update`
 //   - 📝 note preview chip on each row when the PM has saved a note
+//   - 🔒 只读 chip in the header makes the read-only constraint
+//     visible; the "📡 权威源：" subtitle points the PM at the
+//     ERP integration
 //
 // Routing
 // -------
@@ -51,6 +67,14 @@ import { useToast } from '../../lib/toast';
 
 type ViewMode = LibraryViewMode;
 const VIEW_MODE_KEY = 'pm.library.candidates.viewMode';
+
+/**
+ * Placeholder id for the ERP authority source subtitle. The real
+ * value will arrive with Task 12's ERP settings surface (the page
+ * already plumbs the connection status, so swapping the literal
+ * here for a fetched value is a one-line change).
+ */
+const ERP_AUTHORITY_ID = 'erp-prod-default';
 
 function loadViewMode(): ViewMode {
   try {
@@ -80,6 +104,63 @@ function filterCandidates(
   });
 }
 
+/**
+ * Apply the source filter. 'all' passes everything through; any
+ * specific value keeps only candidates whose `source` matches the
+ * picked channel.
+ */
+function filterBySource(
+  candidates: LibraryCandidate[],
+  source: LibrarySourceValue,
+): LibraryCandidate[] {
+  if (source === 'all') return candidates;
+  return candidates.filter((c) => c.source === source);
+}
+
+/**
+ * Apply the annotation filter against the per-candidate PM-private
+ * notes map. 'starred' keeps only `note.starred === true`;
+ * 'noted' keeps only candidates whose note has non-empty trimmed
+ * text; 'all' is a no-op.
+ */
+function filterByAnnotation(
+  candidates: LibraryCandidate[],
+  annotation: LibraryAnnotationValue,
+  notesByCandidate: Map<string, PmPrivateNote>,
+): LibraryCandidate[] {
+  if (annotation === 'all') return candidates;
+  return candidates.filter((c) => {
+    const note = notesByCandidate.get(c.candidate_user_id);
+    if (annotation === 'starred') return Boolean(note?.starred);
+    if (annotation === 'noted') {
+      return Boolean(note?.note_text && note.note_text.trim().length > 0);
+    }
+    return true;
+  });
+}
+
+/**
+ * Sort the visible candidates: starred first, then by best-match
+ * score DESC, then by candidate_user_id ASC for stable ordering.
+ *
+ * Stable, pure function so the page can memoise the result against
+ * (candidates, notesByCandidate) without re-sorting on every
+ * keystroke.
+ */
+function sortStarredFirst(
+  candidates: LibraryCandidate[],
+  notesByCandidate: Map<string, PmPrivateNote>,
+): LibraryCandidate[] {
+  return [...candidates].sort((a, b) => {
+    const aStarred = notesByCandidate.get(a.candidate_user_id)?.starred === true;
+    const bStarred = notesByCandidate.get(b.candidate_user_id)?.starred === true;
+    if (aStarred !== bStarred) return aStarred ? -1 : 1;
+    const scoreDelta = b.current_best_match.score - a.current_best_match.score;
+    if (scoreDelta !== 0) return scoreDelta;
+    return a.candidate_user_id.localeCompare(b.candidate_user_id);
+  });
+}
+
 // ----- component ----------------------------------------------------------
 
 export function CandidateLibraryPage() {
@@ -89,7 +170,11 @@ export function CandidateLibraryPage() {
 
   // ---- Local UI state ----
   const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
-  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<LibraryFilterValue>({
+    search: '',
+    source: 'all',
+    annotation: 'all',
+  });
 
   // Persist view mode across reloads.
   useEffect(() => {
@@ -183,10 +268,23 @@ export function CandidateLibraryPage() {
     };
   }, [candidates, notesByCandidate, totalFromServer]);
 
-  const visible = useMemo(
-    () => filterCandidates(candidates, search),
-    [candidates, search],
-  );
+  /**
+   * Apply the filter pipeline to the server-side candidate list:
+   *   1. text search  (case-insensitive substring)
+   *   2. source filter
+   *   3. annotation filter
+   *   4. star-first sort (overrides server ordering)
+   *
+   * Each step is a pure function so the pipeline is easy to reason
+   * about (and so the page can memoise against the three filter
+   * inputs independently).
+   */
+  const visible = useMemo(() => {
+    const searched = filterCandidates(candidates, filters.search);
+    const sourced = filterBySource(searched, filters.source);
+    const annotated = filterByAnnotation(sourced, filters.annotation, notesByCandidate);
+    return sortStarredFirst(annotated, notesByCandidate);
+  }, [candidates, filters, notesByCandidate]);
 
   // ---- Handlers ----
 
@@ -242,7 +340,13 @@ export function CandidateLibraryPage() {
   return (
     <div className="pm-library pm-library-candidates" data-testid="pm-library-root">
       <header className="pm-library-header">
-        <h1 className="pm-library-title" data-testid="pm-library-title">候选人库</h1>
+        <h1 className="pm-library-title" data-testid="pm-library-title">
+          候选人库
+          <ReadOnlyChip />
+        </h1>
+        <span className="pm-library-header-subtitle" data-testid="pm-library-authority">
+          📡 权威源:{ERP_AUTHORITY_ID}
+        </span>
       </header>
 
       <section
@@ -277,10 +381,10 @@ export function CandidateLibraryPage() {
       </section>
 
       <LibraryFilterBar
-        search={search}
-        onSearch={setSearch}
+        value={filters}
+        onChange={setFilters}
         viewMode={viewMode}
-        onViewMode={setViewMode}
+        onViewModeChange={setViewMode}
       />
 
       {isLoading && (
@@ -301,7 +405,7 @@ export function CandidateLibraryPage() {
         <EmptyState
           icon="🔍"
           title="没有匹配的候选人"
-          description="试试调整搜索关键词"
+          description="试试调整搜索 / 来源 / 标注 条件"
         />
       )}
 

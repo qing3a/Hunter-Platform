@@ -593,3 +593,260 @@ describe('CandidateLibraryPage — click-through', () => {
     expect(navigateSpy).toHaveBeenCalledWith('/admin/pm/candidates/cand-7');
   });
 });
+
+// ============================================================================
+// S9 — source / annotation filters + star-first sort + read-only chip
+// ============================================================================
+
+describe('CandidateLibraryPage — S9 source filter', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedList.mockReset();
+    mockedNotesGet.mockReset();
+    mockedNotesUpdate.mockReset();
+    localStorage.clear();
+  });
+
+  it('filters rows by the source select (内推 keeps only 内推 candidates)', async () => {
+    mockedList.mockResolvedValueOnce({
+      candidates: [
+        makeCandidate({ candidate_user_id: 'cand-1', display_name: '张*三', source: '内推' }),
+        makeCandidate({
+          candidate_user_id: 'cand-2',
+          display_name: '李*四',
+          current_best_match: {
+            score: 75,
+            position_title: '全栈工程师',
+            position_id: 'pos-2',
+            project_name: 'Project B',
+            project_id: 'proj-2',
+          },
+          source: '主动寻访',
+        }),
+        makeCandidate({
+          candidate_user_id: 'cand-3',
+          display_name: '王*五',
+          current_best_match: {
+            score: 70,
+            position_title: '后端工程师',
+            position_id: 'pos-3',
+            project_name: 'Project C',
+            project_id: 'proj-3',
+          },
+          source: '历史库',
+        }),
+      ],
+      total: 3,
+    });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    expect(screen.getAllByTestId(/^pm-library-row-\d+$/)).toHaveLength(3);
+
+    fireEvent.change(screen.getByTestId('pm-library-source'), {
+      target: { value: '内推' },
+    });
+    await flush();
+    const rows = screen.getAllByTestId(/^pm-library-row-\d+$/);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveAttribute('data-candidate-user-id', 'cand-1');
+  });
+
+  it('shows every candidate when the source filter is "全部来源"', async () => {
+    mockedList.mockResolvedValueOnce({
+      candidates: [
+        makeCandidate({ candidate_user_id: 'cand-1', source: '内推' }),
+        makeCandidate({
+          candidate_user_id: 'cand-2',
+          source: 'HR转入',
+          current_best_match: {
+            score: 60,
+            position_title: '全栈工程师',
+            position_id: 'pos-2',
+            project_name: 'Project B',
+            project_id: 'proj-2',
+          },
+        }),
+      ],
+      total: 2,
+    });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    // 'all' is the default value — both candidates are visible.
+    expect(screen.getAllByTestId(/^pm-library-row-\d+$/)).toHaveLength(2);
+  });
+});
+
+describe('CandidateLibraryPage — S9 annotation filter', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedList.mockReset();
+    mockedNotesGet.mockReset();
+    mockedNotesUpdate.mockReset();
+    localStorage.clear();
+  });
+
+  it('filters rows by ⭐ 我标记的 (only starred candidates visible)', async () => {
+    mockedList.mockResolvedValueOnce({
+      candidates: [
+        makeCandidate({ candidate_user_id: 'cand-1', display_name: '张*三' }),
+        makeCandidate({
+          candidate_user_id: 'cand-2',
+          display_name: '李*四',
+          current_best_match: {
+            score: 60,
+            position_title: '全栈工程师',
+            position_id: 'pos-2',
+            project_name: 'Project B',
+            project_id: 'proj-2',
+          },
+        }),
+      ],
+      total: 2,
+    });
+    mockedNotesGet.mockImplementation(async (userId: string) => {
+      if (userId === 'cand-1') return makeNote({ starred: true });
+      return makeNote();
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    expect(screen.getAllByTestId(/^pm-library-row-\d+$/)).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('pm-library-annotation'), {
+      target: { value: 'starred' },
+    });
+    await flush();
+    const rows = screen.getAllByTestId(/^pm-library-row-\d+$/);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveAttribute('data-candidate-user-id', 'cand-1');
+  });
+
+  it('filters rows by 📝 有笔记的 (only candidates with note_text visible)', async () => {
+    mockedList.mockResolvedValueOnce({
+      candidates: [
+        makeCandidate({ candidate_user_id: 'cand-1', display_name: '张*三' }),
+        makeCandidate({
+          candidate_user_id: 'cand-2',
+          display_name: '李*四',
+          current_best_match: {
+            score: 60,
+            position_title: '全栈工程师',
+            position_id: 'pos-2',
+            project_name: 'Project B',
+            project_id: 'proj-2',
+          },
+        }),
+      ],
+      total: 2,
+    });
+    mockedNotesGet.mockImplementation(async (userId: string) => {
+      if (userId === 'cand-2') return makeNote({ note_text: '下周面试' });
+      return makeNote();
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    expect(screen.getAllByTestId(/^pm-library-row-\d+$/)).toHaveLength(2);
+
+    fireEvent.change(screen.getByTestId('pm-library-annotation'), {
+      target: { value: 'noted' },
+    });
+    await flush();
+    const rows = screen.getAllByTestId(/^pm-library-row-\d+$/);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveAttribute('data-candidate-user-id', 'cand-2');
+  });
+});
+
+describe('CandidateLibraryPage — S9 star-first sort', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedList.mockReset();
+    mockedNotesGet.mockReset();
+    mockedNotesUpdate.mockReset();
+    localStorage.clear();
+  });
+
+  it('places starred candidates first regardless of best-match score', async () => {
+    // Server returns the higher-scored candidate first, but the
+    // lower-scored candidate is starred — the page must re-order so
+    // the starred one lands at the top.
+    mockedList.mockResolvedValueOnce({
+      candidates: [
+        makeCandidate({
+          candidate_user_id: 'cand-high',
+          display_name: '高*分',
+          current_best_match: {
+            score: 95,
+            position_title: '高级前端工程师',
+            position_id: 'pos-1',
+            project_name: 'Project A',
+            project_id: 'proj-1',
+          },
+        }),
+        makeCandidate({
+          candidate_user_id: 'cand-star',
+          display_name: '星*标',
+          current_best_match: {
+            score: 60,
+            position_title: '全栈工程师',
+            position_id: 'pos-2',
+            project_name: 'Project B',
+            project_id: 'proj-2',
+          },
+        }),
+      ],
+      total: 2,
+    });
+    mockedNotesGet.mockImplementation(async (userId: string) => {
+      if (userId === 'cand-star') return makeNote({ starred: true });
+      return makeNote();
+    });
+
+    renderPage();
+    await waitFor(() => screen.getByTestId('pm-library-table'));
+    const rows = screen.getAllByTestId(/^pm-library-row-\d+$/);
+    expect(rows).toHaveLength(2);
+    // Starred candidate with score 60 wins over unstarred 95.
+    expect(rows[0]).toHaveAttribute('data-candidate-user-id', 'cand-star');
+    expect(rows[1]).toHaveAttribute('data-candidate-user-id', 'cand-high');
+  });
+});
+
+describe('CandidateLibraryPage — S9 read-only chip + 权威源 subtitle', () => {
+  beforeEach(() => {
+    cleanup();
+    navigateSpy.mockClear();
+    mockedList.mockReset();
+    mockedNotesGet.mockReset();
+    mockedNotesUpdate.mockReset();
+    localStorage.clear();
+  });
+
+  it('renders the 🔒 只读 chip in the header', async () => {
+    mockedList.mockResolvedValueOnce({ candidates: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage();
+    const chip = screen.getByTestId('pm-readonly-chip');
+    expect(chip).toBeInTheDocument();
+    expect(chip).toHaveTextContent('只读');
+  });
+
+  it('renders the 权威源 subtitle in the header', async () => {
+    mockedList.mockResolvedValueOnce({ candidates: [], total: 0 });
+    mockedNotesGet.mockResolvedValue(makeNote());
+
+    renderPage();
+    const sub = screen.getByTestId('pm-library-authority');
+    expect(sub).toBeInTheDocument();
+    expect(sub.textContent).toMatch(/权威源/);
+  });
+});

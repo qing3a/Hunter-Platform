@@ -3571,3 +3571,30 @@
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+/* ---- Read-only chip (S9 / Task 14) ---- */
+.pm-readonly-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: var(--sp-2);
+}
+
+/* ---- Library filter bar (S9 / Task 14) ---- */
+.pm-select {
+  width: auto;
+  min-width: 120px;
+  cursor: pointer;
+}
+
+.pm-library-header-subtitle {
+  display: block;
+  margin-top: var(--sp-1);
+  font-size: 12px;
+  color: var(--text-muted);
+}
