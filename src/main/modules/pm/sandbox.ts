@@ -138,26 +138,22 @@ export function createSandboxHandler(db: DB): SandboxModule {
   /**
    * Hydrate a single recommendation row into the wire-shape
    * SandboxCandidate. Looks up the anonymized candidate's display name
-   * (we use the candidate's `name` from users; maskName strips the rest
-   * so the PM can't read the raw PII without unlocking).
+   * via a pre-built `profilesByAnonymizedId` map (so the JOIN runs
+   * once per request, not once per candidate — see `getSandbox`).
    *
    * `stage_entered_at` is best-effort: v030 added the column and backfilled
    * it from updated_at, so it should never be null in practice. We still
    * coerce null → Date.now() as a defensive fallback (risk_flags will then
    * report a 0-day candidate).
    */
-  function hydrateCandidate(rec: Recommendation): SandboxCandidate {
+  function hydrateCandidate(
+    rec: Recommendation,
+    profilesByAnonymizedId: Map<string, { candidate_user_id: string; display_name: string | null }>,
+  ): SandboxCandidate {
     // Lookup the candidate_user_id via the anonymized → private chain.
     // The user_id is what the UI uses as the stable identity.
-    const candidateUserId = (db.prepare(`
-      SELECT cp.candidate_user_id AS user_id, u.name AS display_name
-      FROM candidates_anonymized ca
-      JOIN candidates_private cp ON cp.id = ca.source_private_id
-      JOIN users u ON u.id = cp.candidate_user_id
-      WHERE ca.id = ?
-    `).get(rec.anonymized_candidate_id) as { user_id: string; display_name: string | null } | undefined);
-
-    const displayName = maskName(candidateUserId?.display_name ?? '');
+    const profile = profilesByAnonymizedId.get(rec.anonymized_candidate_id);
+    const displayName = maskName(profile?.display_name ?? '');
 
     // Recommendation.pipeline_stage is typed as string (optional). Narrow
     // it to PipelineStage here — the DB CHECK constraint guarantees it's
@@ -168,7 +164,7 @@ export function createSandboxHandler(db: DB): SandboxModule {
 
     return {
       recommendation_id: rec.id,
-      candidate_user_id: candidateUserId?.user_id ?? '',
+      candidate_user_id: profile?.candidate_user_id ?? '',
       candidate_display_name: displayName,
       stage_entered_at: stageEnteredAt ?? Date.now(),
       risk_flags: computeRiskFlags(pipelineStage, stageEnteredAt),
@@ -202,14 +198,31 @@ export function createSandboxHandler(db: DB): SandboxModule {
       const allStages: PipelineStage[] = [...PIPELINE_STAGES, 'rejected'];
 
       // For each stage, fetch up to STAGE_CANDIDATE_LIMIT candidates.
-      // We issue 6 small queries (one per stage) — N+1 isn't a concern
-      // because the stage count is bounded by the pipeline shape (6).
-      const stages: SandboxStage[] = allStages.map((stage) => {
-        const recs = recsRepo.findByPositionAndStage(position.id, stage, {
-          limit: STAGE_CANDIDATE_LIMIT,
-          offset: 0,
-        });
-        const candidates = recs.map(hydrateCandidate);
+      // We issue 6 small queries (one per stage) — stage count is bounded
+      // by the pipeline shape, so this isn't an N+1 problem at the stage
+      // level. (The previous per-candidate hydration was the actual N+1
+      // and is now eliminated by the batched profile fetch below.)
+      const recsByStage: Array<{ stage: PipelineStage; recs: Recommendation[] }> =
+        allStages.map((stage) => ({
+          stage,
+          recs: recsRepo.findByPositionAndStage(position.id, stage, {
+            limit: STAGE_CANDIDATE_LIMIT,
+            offset: 0,
+          }),
+        }));
+
+      // Batch the anonymized → user profile lookups across ALL stages in a
+      // single IN-clause query. Before this change, `hydrateCandidate` did
+      // a per-candidate 3-table JOIN inline — up to 6 × 20 = 120
+      // round-trips per sandbox request. Now: 1.
+      const allAnonymizedIds = recsByStage.flatMap((rs) => rs.recs.map((r) => r.anonymized_candidate_id));
+      const profiles = recsRepo.findCandidatePublicProfiles(allAnonymizedIds);
+      const profilesByAnonymizedId = new Map(
+        profiles.map((p) => [p.anonymized_candidate_id, { candidate_user_id: p.candidate_user_id, display_name: p.display_name }])
+      );
+
+      const stages: SandboxStage[] = recsByStage.map(({ stage, recs }) => {
+        const candidates = recs.map((r) => hydrateCandidate(r, profilesByAnonymizedId));
         const riskCount: SandboxStageRiskCount = {
           stuck_long: candidates.filter((c) => c.risk_flags.includes('stuck_long')).length,
           stuck_very_long: candidates.filter((c) => c.risk_flags.includes('stuck_very_long')).length,

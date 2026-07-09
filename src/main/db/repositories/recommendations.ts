@@ -189,5 +189,54 @@ export function createRecommendationsRepo(db: DB) {
          LIMIT ? OFFSET ?`
       ).all(positionId, stage, limit, offset) as unknown as Recommendation[];
     },
+
+    /**
+     * PM Workbench / Task 9 — batch lookup of anonymized → private → users
+     * profile data for one or more `anonymized_candidate_id`s. Returns one
+     * row per anonymized id with the two fields the sandbox needs:
+     *   - anonymized_candidate_id  (stable key the handler hydrates against)
+     *   - candidate_user_id        (the underlying candidate user, used as
+     *                              identity on the wire)
+     *   - display_name             (raw, pre-mask; the handler still calls
+     *                              maskName() before exposing to the PM)
+     *
+     * Designed to replace the per-candidate 3-table JOIN that used to live
+     * inside `hydrateCandidate`. The old path issued one prepared statement
+     * per candidate — 6 stages × 20 candidates = up to 120 round-trips per
+     * sandbox request. With this method the handler issues exactly ONE
+     * parameterized IN-clause query for the whole page.
+     *
+     * Returns an empty array when `anonymizedIds` is empty (no SQL
+     * executed). IDs that don't resolve to a candidate are simply omitted
+     * from the result — the caller should handle missing entries.
+     *
+     * Input is deduped defensively so a candidate appearing in multiple
+     * stages doesn't trigger duplicate placeholders.
+     */
+    findCandidatePublicProfiles(anonymizedIds: string[]): Array<{
+      anonymized_candidate_id: string;
+      candidate_user_id: string;
+      display_name: string | null;
+    }> {
+      // Dedup to keep placeholder count minimal; preserve the caller's
+      // contract (set semantics) since the join can only produce one row
+      // per anonymized id anyway.
+      const uniqueIds = Array.from(new Set(anonymizedIds.filter((id) => typeof id === 'string' && id.length > 0)));
+      if (uniqueIds.length === 0) return [];
+      const placeholders = uniqueIds.map(() => '?').join(',');
+      return db.prepare(`
+        SELECT ca.id AS anonymized_candidate_id,
+               cp.candidate_user_id AS candidate_user_id,
+               u.name AS display_name
+        FROM candidates_anonymized ca
+        JOIN candidates_private cp ON cp.id = ca.source_private_id
+        JOIN users u ON u.id = cp.candidate_user_id
+        WHERE ca.id IN (${placeholders})
+      `).all(...uniqueIds) as Array<{
+        anonymized_candidate_id: string;
+        candidate_user_id: string;
+        display_name: string | null;
+      }>;
+    },
   };
 }
