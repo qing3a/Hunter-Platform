@@ -43,6 +43,7 @@ import { createDecomposeHandler } from '../modules/pm/decompose.js';
 import { createPlansHandler } from '../modules/pm/plans.js';
 import { createSandboxHandler } from '../modules/pm/sandbox.js';
 import { createMatchesHandler } from '../modules/pm/matches.js';
+import { createSnapshotHandler } from '../modules/pm/snapshot.js';
 import {
   CreateProjectSchema, UpdateProjectSchema, ListProjectsQuerySchema,
   CreatePositionSchema, UpdatePositionSchema, ListPositionsQuerySchema,
@@ -65,6 +66,7 @@ import {
   ListMatchesQuerySchema,
   ListMatchesResponseSchema,
   RecomputeMatchesResponseSchema,
+  SnapshotResponseSchema,
 } from '../schemas/pm.js';
 
 export function createPmRouter(db: DB): Router {
@@ -77,6 +79,7 @@ export function createPmRouter(db: DB): Router {
   const plans = createPlansHandler(db);
   const sandbox = createSandboxHandler(db);
   const matches = createMatchesHandler(db);
+  const snapshot = createSnapshotHandler(db);
 
   // ===== Projects =====
 
@@ -386,6 +389,17 @@ export function createPmRouter(db: DB): Router {
       const user = (req as Request & { user?: User }).user!;
       const result = matches.recomputeMatches(user, String(req.params.id));
       respond(res, RecomputeMatchesResponseSchema, { ok: true, data: result });
+    } catch (e) { next(e); }
+  });
+
+  // ===== Global Snapshot (Task 12 / S1) =====
+
+  // GET /v1/pm/snapshot
+  router.get('/snapshot', (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as Request & { user?: User }).user!;
+      const result = snapshot.getSnapshot(user);
+      respond(res, SnapshotResponseSchema, { ok: true, data: result });
     } catch (e) { next(e); }
   });
 

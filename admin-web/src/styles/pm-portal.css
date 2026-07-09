@@ -1532,3 +1532,270 @@
   font-style: italic;
 }
 
+/* ============================================================================
+ * Global Snapshot Page (Task 12 / S1)
+ * ============================================================================
+ *
+ * 4-stage funnel (projects / positions / candidates / matches) +
+ * real-time activity feed. Styling mirrors pm-sandbox-* but diverges
+ * in three ways:
+ *   - no risk indicators / no click handlers (purely presentational)
+ *   - bigger numbers (the snapshot is the PM's at-a-glance dashboard)
+ *   - activity feed uses chips (申请 / 认领 / 匹配) instead of stage labels
+ *
+ * Layout uses CSS grid for the 4-column funnel on wide screens; on
+ * narrow screens the funnel collapses to a single column (the page
+ * is for desktop PMs but degrades gracefully for tablet preview).
+ */
+
+.pm-snapshot {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--text);
+}
+
+.pm-snapshot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pm-snapshot-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pm-snapshot-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-snapshot-generated-at {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-refresh {
+  background: var(--primary);
+  color: white;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.pm-snapshot-refresh:hover:not(:disabled) { opacity: 0.9; }
+.pm-snapshot-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pm-snapshot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pm-snapshot-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+.pm-snapshot-loading,
+.pm-snapshot-error {
+  padding: 24px;
+  background: var(--surface-1, #f7f7f8);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-error { color: #b91c1c; }
+
+.pm-snapshot-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ----- Funnel ----- */
+
+.pm-snapshot-funnel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1024px) {
+  .pm-snapshot-funnel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .pm-snapshot-funnel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.pm-snapshot-funnel-card {
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-left: 4px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+}
+
+.pm-snapshot-funnel-card-blue   { border-left-color: #2563eb; }
+.pm-snapshot-funnel-card-purple { border-left-color: #7c3aed; }
+.pm-snapshot-funnel-card-amber  { border-left-color: #d97706; }
+.pm-snapshot-funnel-card-green  { border-left-color: #15803d; }
+
+.pm-snapshot-funnel-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-snapshot-funnel-card-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pm-snapshot-funnel-card-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-funnel-card-count {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.pm-snapshot-funnel-card-substats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.pm-snapshot-funnel-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pm-snapshot-funnel-bullets li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pm-snapshot-funnel-bullet-val {
+  color: var(--text);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-snapshot-funnel-headcount {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Activity feed ----- */
+
+.pm-snapshot-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-1, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pm-snapshot-feed-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #f0f0f3);
+}
+
+.pm-snapshot-feed-item:last-child {
+  border-bottom: 0;
+}
+
+.pm-snapshot-feed-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #e0e7ff;
+  color: #1e3a8a;
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+}
+
+.pm-snapshot-feed-chip-blue  { background: #dbeafe; color: #1e3a8a; }
+.pm-snapshot-feed-chip-amber { background: #fef3c7; color: #92400e; }
+.pm-snapshot-feed-chip-green { background: #dcfce7; color: #14532d; }
+
+.pm-snapshot-feed-summary {
+  font-size: 14px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.pm-snapshot-feed-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-snapshot-feed-empty {
+  padding: 32px 16px;
+  background: var(--surface-1, #ffffff);
+  border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+

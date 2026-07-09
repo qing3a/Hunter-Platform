@@ -749,3 +749,133 @@ export const pmSandbox = {
   get: (positionId: string) =>
     request<SandboxSummary>(BASE, `/positions/${positionId}/sandbox`),
 };
+
+// ============================================================================
+// Global Snapshot (Task 12 / S1) — PM 仪表盘首页
+// ============================================================================
+//
+// Mirrors the backend handler at GET /v1/pm/snapshot. The response is a
+// 4-stage funnel (projects → positions → candidates → matches) plus a
+// 24-hour activity feed of HR-relevant events (applications, headhunter
+// pickups, fresh matches).
+//
+// Wire shape:
+//   - funnel.projects      — total + by_status bucket
+//   - funnel.positions     — total + by_status + headcount totals
+//   - funnel.candidates    — total + distinct (de-duplicated across positions)
+//   - funnel.matches       — total + avg_score (integer 0..100)
+//   - activity[]           — up to 50 events, sorted DESC by occurred_at
+//   - generated_at         — server timestamp (unix ms)
+
+// ----- Wire types -----
+
+/** ProjectStatus bucket — count per status value. */
+export interface ProjectStatusBucket {
+  planning: number;
+  active: number;
+  paused: number;
+  completed: number;
+  cancelled: number;
+}
+
+/** PositionStatus bucket — count per status value. */
+export interface PositionStatusBucket {
+  open: number;
+  paused: number;
+  filled: number;
+}
+
+/** Project-side aggregates. */
+export interface ProjectsFunnel {
+  total: number;
+  by_status: ProjectStatusBucket;
+}
+
+/** Position-side aggregates. */
+export interface PositionsFunnel {
+  total: number;
+  by_status: PositionStatusBucket;
+  headcount_planned_total: number;
+  headcount_filled_total: number;
+}
+
+/** Candidate-side aggregates. */
+export interface CandidatesFunnel {
+  /** Total candidate × position matches (raw count). */
+  total: number;
+  /** Distinct candidate_user_id count (de-duplicated across positions). */
+  distinct: number;
+}
+
+/** Match-side aggregates. */
+export interface MatchesFunnel {
+  total: number;
+  /** Mean score across every match; 0 when total = 0. */
+  avg_score: number;
+}
+
+/** Full 4-stage funnel. */
+export interface SnapshotFunnel {
+  projects: ProjectsFunnel;
+  positions: PositionsFunnel;
+  candidates: CandidatesFunnel;
+  matches: MatchesFunnel;
+}
+
+/** Discriminator for activity events. */
+export type ActivityEventType = 'application' | 'pickup' | 'match_created';
+
+/**
+ * Single HR activity event. `summary` is pre-formatted by the backend
+ * (e.g. "张*三 申请了 高级前端工程师") so the frontend doesn't have
+ * to do name-masking or interpolation. Optional id fields are nullable
+ * for legacy hunter-side rows that don't link back to a PM position.
+ */
+export interface ActivityEvent {
+  event_type: ActivityEventType;
+  /** unix ms — when the underlying row was created. */
+  occurred_at: number;
+  project_id: string | null;
+  position_id: string | null;
+  candidate_user_id: string | null;
+  summary: string;
+}
+
+/** Full snapshot response from GET /v1/pm/snapshot. */
+export interface SnapshotSummary {
+  funnel: SnapshotFunnel;
+  /** Last 24h activity, DESC by occurred_at; capped at 50 events. */
+  activity: ActivityEvent[];
+  /** unix ms — server timestamp; useful for the UI's auto-refresh timer. */
+  generated_at: number;
+}
+
+// ----- Display labels -----
+
+/** Human-readable labels for activity event types. */
+export const ACTIVITY_EVENT_LABELS: Record<ActivityEventType, string> = {
+  application: '申请',
+  pickup: '认领',
+  match_created: '匹配',
+};
+
+/** Icon emoji-key for activity events (frontend renders via CSS class). */
+export const ACTIVITY_EVENT_ACCENTS: Record<ActivityEventType, 'blue' | 'amber' | 'green'> = {
+  application: 'blue',
+  pickup: 'amber',
+  match_created: 'green',
+};
+
+// ----- API namespace -----
+
+export const pmSnapshot = {
+  /**
+   * GET /v1/pm/snapshot
+   *
+   * Returns the PM's global snapshot — a 4-stage funnel + 24h activity
+   * feed. The page renders this on mount and again whenever the user
+   * clicks the manual refresh button (auto-refresh is a v1 stretch
+   * goal — the polling cadence is controlled by `pollIntervalMs`).
+   */
+  get: () => request<SnapshotSummary>(BASE, '/snapshot'),
+};

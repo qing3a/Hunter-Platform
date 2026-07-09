@@ -664,3 +664,117 @@ export const ListMatchesResponseSchema = z.object({
 export type MatchListItem = z.infer<typeof MatchListItemSchema>;
 export type TopMatch = z.infer<typeof TopMatchSchema>;
 export type ListMatchesQuery = z.infer<typeof ListMatchesQuerySchema>;
+
+// ===== Global Snapshot (Task 12 / S1) =====
+//
+// The Global Snapshot is a single-page dashboard for the PM. It aggregates
+// every project (and the projects' positions, candidates, matches) the
+// PM owns into a 4-stage funnel, then appends a real-time activity feed
+// of HR-relevant events from the last 24 hours.
+//
+// Funnel semantics:
+//   - projects:    total + by_status (planning / active / paused / completed / cancelled)
+//   - positions:   total + by_status (open / paused / filled) + headcount planned/filled
+//   - candidates:  total + distinct (the same candidate across multiple positions
+//                  is counted ONCE — the PM cares about people, not pairs)
+//   - matches:     total + avg_score (across every match tied to the PM's positions)
+//
+// Activity feed sources:
+//   - `recommendations.created_at` for new applications / pickups (last 24h)
+//   - `matches.created_at` for new matches (last 24h)
+//   - We do NOT surface position-fill transitions in v1 (no easy
+//     audit trail; out of scope for this task).
+//   - Sorted DESC by `occurred_at`, capped at 50 events.
+
+/** Status bucket for `projects` — one row per ProjectStatus enum. */
+export const ProjectStatusBucketSchema = z.object({
+  planning: z.number().int().nonnegative(),
+  active: z.number().int().nonnegative(),
+  paused: z.number().int().nonnegative(),
+  completed: z.number().int().nonnegative(),
+  cancelled: z.number().int().nonnegative(),
+}).strict();
+
+/** Status bucket for `project_positions` — open / paused / filled (cancelled omitted from wire). */
+export const PositionStatusBucketSchema = z.object({
+  open: z.number().int().nonnegative(),
+  paused: z.number().int().nonnegative(),
+  filled: z.number().int().nonnegative(),
+}).strict();
+
+/** Project-side aggregates — total + by_status. */
+export const ProjectsFunnelSchema = z.object({
+  total: z.number().int().nonnegative(),
+  by_status: ProjectStatusBucketSchema,
+}).strict();
+
+/** Position-side aggregates — total + by_status + headcount planned/filled. */
+export const PositionsFunnelSchema = z.object({
+  total: z.number().int().nonnegative(),
+  by_status: PositionStatusBucketSchema,
+  headcount_planned_total: z.number().int().nonnegative(),
+  headcount_filled_total: z.number().int().nonnegative(),
+}).strict();
+
+/** Candidate-side aggregates — total + distinct count (de-duplicated across positions). */
+export const CandidatesFunnelSchema = z.object({
+  total: z.number().int().nonnegative(),
+  /** Distinct candidate_user_id count across all matches tied to the PM's positions. */
+  distinct: z.number().int().nonnegative(),
+}).strict();
+
+/** Match-side aggregates — total + average score. */
+export const MatchesFunnelSchema = z.object({
+  total: z.number().int().nonnegative(),
+  /** Mean score across all the PM's matches; 0 when total = 0. */
+  avg_score: z.number().int().min(0).max(100),
+}).strict();
+
+/** Whole funnel — projects → positions → candidates → matches. */
+export const SnapshotFunnelSchema = z.object({
+  projects: ProjectsFunnelSchema,
+  positions: PositionsFunnelSchema,
+  candidates: CandidatesFunnelSchema,
+  matches: MatchesFunnelSchema,
+}).strict();
+
+/** Single event in the activity feed. */
+export const ActivityEventTypeSchema = z.enum([
+  'application',     // new recommendation row (candidate applies / hunter recommends)
+  'pickup',          // headhunter claimed a self-apply (pickup_headhunter_id set)
+  'match_created',   // new match row
+  // 'position_filled' // intentionally omitted in v1 (no audit trail)
+]);
+
+/**
+ * Single HR activity event from the last 24 hours.
+ * `summary` is a pre-formatted Chinese sentence (e.g. "张*三 申请了 高级前端工程师")
+ * so the frontend doesn't have to do its own name-masking / formatting.
+ */
+export const ActivityEventSchema = z.object({
+  event_type: ActivityEventTypeSchema,
+  /** unix ms — when the underlying row was created. */
+  occurred_at: z.number().int(),
+  project_id: z.string().nullable(),
+  position_id: z.string().nullable(),
+  candidate_user_id: z.string().nullable(),
+  /** Pre-rendered Chinese summary (handles masking + interpolation). */
+  summary: z.string(),
+}).strict();
+
+/** GET /v1/pm/snapshot response. */
+export const SnapshotResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    funnel: SnapshotFunnelSchema,
+    /** Last 24h of HR activity, ordered by `occurred_at` DESC; capped at 50 events. */
+    activity: z.array(ActivityEventSchema),
+    /** unix ms — server timestamp; useful for the UI to compute "refresh in N seconds". */
+    generated_at: z.number().int(),
+  }),
+}).strict();
+
+export type SnapshotFunnel = z.infer<typeof SnapshotFunnelSchema>;
+export type ActivityEvent = z.infer<typeof ActivityEventSchema>;
+export type ActivityEventType = z.infer<typeof ActivityEventTypeSchema>;
+export type SnapshotResponse = z.infer<typeof SnapshotResponseSchema>;
