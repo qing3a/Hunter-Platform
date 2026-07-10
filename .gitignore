@@ -25,3 +25,6 @@ fix-nginx-2.py
 # Playwright test artifacts (Phase 1.5+)
 admin-web/test-results/
 admin-web/playwright-report/
+
+# Isolated worktrees for subagent-driven development
+.worktrees/
