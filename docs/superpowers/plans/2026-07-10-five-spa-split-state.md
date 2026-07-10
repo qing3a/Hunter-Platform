@@ -32,11 +32,9 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 | **2 (pnpm workspaces)** | ✅ done | `5-spa-split/phase-2-workspaces` | HEAD of branch (single commit; see `git log 5-spa-split/phase-2-workspaces`) | yes — `pnpm install` exit 0, `pnpm -r list` shows 6 workspace members, admin-web e2e `Root innerHTML length: 323` + 1070 unit tests pass + tsc exit 0 |
 | **3 (shared-web extract)** | ✅ done | `5-spa-split/phase-3-shared-web` | HEAD of branch (2 commits; `f434ac7` Part A scaffold + `96985bc` Part B migration; see `git log 5-spa-split/phase-3-shared-web`) | yes — shared-web typecheck+test exit 0; admin-web tsc exit 0, unit 1070 passed + 1 skipped, e2e 1 passed (Root innerHTML length = 323) |
 | **4 (admin-web slim + 4 SPA skeletons)** | ✅ done | `5-spa-split/phase-4-admin-slim` | HEAD of branch (single commit; see `git log 5-spa-split/phase-4-admin-slim`) | yes — admin-web tsc exit 0, unit 217 passed + 1 skipped, e2e 1 passed (Root innerHTML length = 323); 4 new SPAs each typecheck/test/build exit 0 with placeholders; out/{pm,employer,candidate,hunter}/ created |
-| 9 (API multi-mount) | ⏸ blocked on 8 | — | — | — |
-| 10 (e2e 5-SPA) | ⏸ blocked on 9 | — | — | — |
-| 11 (README) | ⏸ blocked on 10 | — | — | — |
-| 12 (rebuild out/) | ⏸ blocked on 11 | — | — | — |
-| 13 (final verify) | ⏸ blocked on 12 | — | — | — |
+| **4.5 (5-SPA → 2-SPA pivot)** | ✅ done | `5-spa-split/phase-4.5-pivot-to-2-spa` | HEAD of branch (single commit; see `git log 5-spa-split/phase-4.5-pivot-to-2-spa`) | yes — app-web typecheck exit 0, **658 tests** in 62 files passed, build exit 0 (`out/app/` created, `index.html` + 177 kB JS bundle); admin-web tsc exit 0, 217 unit + 1 skipped, e2e 1 passed (Root innerHTML = 323); pnpm-workspace.yaml = 3 packages (admin-web, app-web, shared-web); 4 stub SPAs (pm-web, employer-web, candidate-web, hunter-web) deleted |
+| 5 (role switcher + session token + X-Active-Role) | ⏸ next | — | — | — |
+| 6+ (API multi-mount, e2e, README, rebuild) | ⏸ blocked on 5 | — | — | — |
 
 ## Open questions / blockers
 
@@ -92,6 +90,28 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 - **Artifacts:** single commit on `5-spa-split/phase-4-admin-slim`. Exact hash retrievable via `git rev-parse HEAD 5-spa-split/phase-4-admin-slim`. File count: 185 deletions (portal subdirs + 4 Require*Auth equivalent files via subdirs + 4 portal API files + candidate-session.ts + candidate-session.test.ts), 1 modification (admin-web/src/App.tsx), 28 new files (7 per SPA × 4), state file update, pnpm-lock.yaml.
 - **Working tree at end:** 30+ unrelated landing-template files + portal subdir modified-but-staged state still in working tree, untouched (other people's WIP).
 - **Next:** Phase 5-8 (populating each new SPA with the code that was just deleted from admin-web; plan says `git revert` + new `git mv`).
+
+### 2026-07-10 — Session 8: Phase 4.5 — 5-SPA → 2-SPA pivot
+- **Branch:** `5-spa-split/phase-4.5-pivot-to-2-spa` from `main@5bfb1ab` (the Phase 4 commit, itself a soon-to-be-rolled-back scaffold).
+- **Pivot rationale (recap from Session 7):** ow-recruit reference shows multi-role-per-user (pm + hr + candidate simultaneously, with `activeRole` switching). One user = one role was wrong. The 4 SPA skeletons built in Phase 4 are empty configs + placeholders — discarded.
+- **What this session did:**
+  - **Deleted 4 stub SPA dirs:** `pm-web/`, `employer-web/`, `candidate-web/`, `hunter-web/` via `git rm -r` (28 files total — 7 per stub dir × 4). employer-web had no real code either (PM = employer per the user insight).
+  - **Created `app-web/` skeleton (8 files + 5 src subdirs):** `app-web/package.json` (workspace package `@hunter-platform/app-web`, deps: shared-web + React 18 + TanStack Query 5 + react-router-dom 6; `--passWithNoTests` in test script), `vite.config.ts` (SPA-fallback middleware that rewrites role paths `/pm/*`, `/hr/*`, `/candidate/*`, `/login`, `/workspace`, etc. to `/`, base `/`, port 5175, proxy `/v1` to localhost:3000, out `out/app`), `tsconfig.json` (extends admin-web's, noEmit), `vitest.config.ts` (jsdom + react plugin + setupFiles `./src/test-setup.ts` + globals: true), `index.html` (Ow Recruit title, root div), `src/main.tsx` (QueryClient + StrictMode + BrowserRouter), `src/App.tsx` (placeholder div), `src/test-setup.ts` (imports `@testing-library/jest-dom`).
+  - **Restored portal code from `5-spa-split/phase-0-1`:** `git checkout` pulled `pages/{pm,candidate,hunter}-portal`, `components/{pm,candidate,hunter}-portal`, `components/{RequirePMAuth,RequireHunterAuth,RequireAuth}.tsx`, `lib/candidate-session.ts` into `admin-web/src/` temporarily. Then `git mv` to `app-web/src/...`. Also restored `api/{pm-portal,candidate-portal,hunter-portal}.ts` into `app-web/src/api/` (these were deleted from admin-web in Phase 4 since they were portal-specific and only used by the restored code).
+  - **Updated workspace:** `pnpm-workspace.yaml` and root `package.json` `workspaces` array now list 3 packages (`admin-web`, `app-web`, `shared-web`). Root `dev:web` / `build:web` / `test:web` scripts updated to 2 SPA filters using `@hunter-platform/admin-web` + `@hunter-platform/app-web` package names.
+  - **Import path fixes (no iterations needed — typecheck passed first try):** the restored portal code originally imported from `'../../lib/toast'` (the shared-web location from Phase 3). Since the code was just restored into `app-web/src/`, the relative paths to admin-web no longer exist, but the `@hunter-platform/shared-web/lib` import path was already correct in some files (those were already migrated during Phase 3 in admin-web). The 14 files that still pointed at the old relative paths were updated: `'../../lib/toast'` → `'@hunter-platform/shared-web/lib'`, `'../../../lib/toast'` → `'@hunter-platform/shared-web/lib'`. Mostly the pm-portal `__tests__/` directory that was moved whole.
+- **Verification:**
+  - `pnpm install` exit 0; `pnpm -r list --depth -1` shows 3 workspace members: `@hunter-platform/admin-web`, `@hunter-platform/app-web`, `@hunter-platform/shared-web`.
+  - `pnpm --filter @hunter-platform/app-web run typecheck` exit 0.
+  - `pnpm --filter @hunter-platform/app-web run test` PASSES — **658 tests in 62 files passed** (within the expected ~600-800 range).
+  - `pnpm --filter @hunter-platform/app-web run build` exit 0; `out/app/index.html` + `out/app/assets/index-*.js` (177.39 kB) + `out/app/assets/index-*.css` created.
+  - admin-web regression: `pnpm --filter @hunter-platform/admin-web exec tsc --noEmit` exit 0; `pnpm --filter @hunter-platform/admin-web run test` PASSES — 217 passed + 1 skipped (matches Phase 4 baseline); `pnpm --filter @hunter-platform/admin-web run test:e2e` PASSES — 1 passed, `Root innerHTML length: 323` (matches Phase 1.5 / Phase 4 baseline).
+- **Concerns (DONE_WITH_CONCERNS):**
+  - `vitest.config.ts` uses `globals: true` (different from the sub-plan spec which had `globals: false`). Necessary because the restored test files use `vi.mock`, `vi.fn`, etc. without imports (jest-dom style). Setting `globals: true` + adding `src/test-setup.ts` for `@testing-library/jest-dom` matchers is consistent with the admin-web baseline config and was a low-risk deviation.
+  - `app-web/src/test-setup.ts` was added (extra beyond the sub-plan's 8-file list) — required because vitest's `setupFiles` is configured but the plan didn't specify a setup file.
+- **Artifacts:** single commit on `5-spa-split/phase-4.5-pivot-to-2-spa` (see `git log 5-spa-split/phase-4.5-pivot-to-2-spa`). Files changed: 28 deletions (4 stub SPAs × 7 files each), 7 modifications (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, 4 admin-web/test files, state file), 200+ new files (8 skeleton + 5 src subdirs + restored code from phase-0-1).
+- **Working tree at end:** ~30 unrelated M/?? files (landing templates, .stylelintrc.json, .superpowers/, plan documents, src/shared/*) still present, untouched (other people's WIP + our own plan docs).
+- **Next:** Phase 5 (rewrite `app-web/src/App.tsx` to add the topbar role switcher; refactor auth to session token + `X-Active-Role` header; gate UI by activeRole — model after ow-recruit's `window.OW_RELAY.activeRole`).
 
 ### 2026-07-10 — Session 6: Phase 3 shared-web extraction
 - **Branch:** `5-spa-split/phase-3-shared-web` from `main@030b1d1`.
@@ -154,7 +174,82 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 
 ## Conventions
 
-- All SPA ports: admin=5174, pm=5175, employer=5176, candidate=5177, hunter=5178
-- All SPA bases (when split): admin=`/admin`, pm=`/admin/pm`, employer=`/admin/employer`, candidate=`/candidate`, hunter=`/hunter`
-- Out dirs: `out/{main,admin,pm,employer,candidate,hunter}`
-- pnpm workspace name: `@hunter-platform/<spa>` or `@hunter-platform/shared-web`
+- pnpm workspace packages: `admin-web`, `app-web`, `shared-web` (3 packages — 2-SPA pivot from 5-SPA architecture)
+- admin-web: port 5174, base `/admin`, out `out/admin`, package `@hunter-platform/admin-web`
+- app-web: port 5175, base `/`, out `out/app`, package `@hunter-platform/app-web` (PM + HR + candidate unified)
+- shared-web: utilities only (no React Router deps), package `@hunter-platform/shared-web`
+- app-web vite config has SPA-fallback middleware that rewrites role paths (`/pm/*`, `/hr/*`, `/candidate/*`, `/login`, `/workspace`, etc.) → `/` for client-side routing
+- The API server (Phase 9+) will mount `out/app` at multiple base paths (`/pm/*`, `/hr/*`, `/candidate/*`) — but in dev the SPA-fallback middleware handles this transparently
+
+---
+
+## ⚠️ MAJOR PIVOT — 2026-07-10 Session 7
+
+**Decision:** **Abandon the 5-SPA split. Move to 2-SPA architecture: `admin-web` (admin only) + `app-web` (PM/HR/candidate unified).**
+
+### Why the pivot
+- Analysis of sister project `C:\Users\Administrator\Desktop\ow-headhunter-sass` (= ow-recruit) revealed that the canonical design is **multi-role-per-user**: one user holds pm + hr + candidate roles simultaneously, switching `active_role` in-session via `X-Active-Role` header.
+- ow-recruit's `prototype.html` (8833 lines, single-file SPA) is **one SPA with role-state switching** — not 5 role-routed SPAs.
+- The 5-SPA split was based on the (wrong) assumption that one user = one role. Per-user role-switching is a UI state change, not an auth flow.
+
+### New target architecture
+- `admin-web` (5174, base `/admin`) — admin only, password auth, internal management. **No change from current state.**
+- `app-web` (5175, base `/`) — **PM + HR + candidate in one SPA**. Topbar role-switcher. Session-token auth with `X-Active-Role` header. URL paths internally distinguish role views (e.g. `/p/...`, `/h/...`, `/c/...` — TBD in Phase 5).
+- `shared-web` (utilities) — unchanged.
+- `src/main/` (API server) — unchanged.
+
+### What becomes obsolete
+- The 4 SPA skeletons (`pm-web/`, `employer-web/`, `candidate-web/`, `hunter-web/`) built in Phase 4 are **discarded** (no real code in them, just configs + placeholders).
+- The planned Phase 5-8 (per-SPA code migration) is **inverted**: instead of 4 separate migrations, one "populate app-web + add role switcher" phase.
+- Phase 9-13 (API multi-mount, e2e, README, rebuild) **simplifies**: 2 SPA mounts instead of 5.
+
+### Phases 0-3 status (retained)
+- Phase 0 (Playwright diagnostic) ✅
+- Phase 1 (delete static HTML) ✅
+- Phase 1.5 (React mount bug fix) ✅
+- Phase 2 (pnpm workspaces) ✅ — **needs update**: 6 packages → 3 packages (admin-web, app-web, shared-web)
+- Phase 3 (shared-web extraction) ✅ — unchanged
+
+### Phases 4+ (revised plan)
+- **Phase 4.5 (NEW, replaces Phase 4 and inverts Phase 5-8):** Dismantle 4 SPA skeletons; create `app-web` skeleton; restore the 3 portal code dirs (pm/candidate/hunter) from `5-spa-split/phase-0-1` branch via `git checkout` + `git mv` into `app-web/src/`; update pnpm-workspace.yaml and root scripts; verify both SPAs.
+- **Phase 5 (rewritten):** Add role switcher to app-web; refactor auth to use session token + `X-Active-Role`; rewrite App.tsx to gate UI by activeRole (modeled after ow-recruit prototype.html).
+- **Phase 6-13 (deferred):** Only after Phase 5 is in.
+
+### Action items for next session
+- Read the ow-recruit `prototype.html` (line 8384-8660 contains the activeRole + role switcher reference implementation) to inform the Phase 5 design.
+- The `5-spa-split/phase-0-1` branch is the source of truth for the original 3 portal code dirs (pm-portal, candidate-portal, hunter-portal) — `git checkout 5-spa-split/phase-0-1 -- admin-web/src/pages/{pm,candidate,hunter}-portal ...` recovers them.
+- State file session log continues below.
+
+### 2026-07-10 — Session 7 ending: handoff
+
+**Where to start the next session:**
+
+1. **Read this state file** at `docs/superpowers/plans/2026-07-10-five-spa-split-state.md` — focus on the "MAJOR PIVOT" section above this line.
+2. **Read the sub-plan** at `docs/superpowers/plans/2026-07-10-spa-split-phase-4.5.md` — it's the executable spec.
+3. **Verify baseline:**
+   - `git branch --show-current` should be `main` (we're at `5bfb1ab`)
+   - `pnpm -r list --depth -1` should show 6 workspace members (admin-web, pm-web, employer-web, candidate-web, hunter-web, shared-web)
+   - `git status --short` should show ~30+ unrelated M/?? files (other WIP — do not touch)
+4. **Dispatch sub-agent** for Phase 4.5 with the sub-plan as authoritative spec.
+
+**Decisions made this session (frozen, do not re-litigate):**
+- 5-SPA → 2-SPA pivot (admin-web + app-web)
+- PM = employer (drop `employer-portal/` as duplicate)
+- `app-web` is `base: '/'` with SPA-fallback middleware (NOT 3 separate base paths)
+- Role-state model (per ow-recruit): single `activeRole` state, topbar switcher, `X-Active-Role` header on every API call
+- API server's multi-mount (Phase 9 equivalent) will mount `out/app` at multiple base paths (`/pm/*`, `/hr/*`, `/candidate/*`) — but in dev, the SPA-fallback middleware handles this
+
+**What is NOT done yet (queued for future sessions):**
+- Phase 4.5: dismantle 4 SPA skeletons + create app-web + restore portal code
+- Phase 5: rewrite app-web/App.tsx with role switcher + session token + X-Active-Role
+- Phase 6+ (equivalent): API multi-mount, e2e for role switching, README, rebuild out/
+
+**Commits in scope (revert-friendly):**
+- `5bfb1ab` (Phase 4 — admin-web slim + 4 SPA skeletons, **TO BE REVERTED IN PHASE 4.5**)
+- `03dce89`, `f434ac7` (Phase 3 — shared-web extraction, **KEEP**)
+- `030b1d1`, `da5443c` (Phase 2 — pnpm workspaces, **KEEP but 6 → 3 packages in Phase 4.5**)
+- `8f90d53`, `050a508` (Phase 1.5 — React mount fix, **KEEP**)
+- `a500387`, `2df4691`, `bb58223` (Phase 0+1 — diagnostic + cleanup, **KEEP**)
+- `3dc07f5`, `5e7abbf` (gitignore, **KEEP**)
+
+**Sub-plan for next session:** `docs/superpowers/plans/2026-07-10-spa-split-phase-4.5.md` — read FIRST as the authoritative task spec.

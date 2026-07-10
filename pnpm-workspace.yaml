@@ -1,7 +1,4 @@
 packages:
   - 'admin-web'
-  - 'pm-web'
-  - 'employer-web'
-  - 'candidate-web'
-  - 'hunter-web'
+  - 'app-web'
   - 'shared-web'
