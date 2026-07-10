@@ -21,3 +21,7 @@ nul
 config/desensitization.json
 config/commission.json
 fix-nginx-2.py
+
+# Playwright test artifacts (Phase 1.5+)
+admin-web/test-results/
+admin-web/playwright-report/
