@@ -28,7 +28,7 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 |---|---|---|---|---|
 | 0 (Playwright diagnostic) | ✅ done | main (merged) | `a500387` | yes — Root innerHTML length = **0** (real bug, not just cache) |
 | 1 (Delete static HTML) | ✅ done | main (merged) | `2df4691` | yes — both dirs removed, dirs were untracked so commit is empty |
-| **1.5 (React-mount bugfix)** | ✅ done | `5-spa-split/phase-1.5` | pending Phase 1.5 commit | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
+| **1.5 (React-mount bugfix)** | ✅ done | `5-spa-split/phase-1.5` | `050a508` | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
 | 2 (pnpm workspaces) | ⏳ next | — | — | — |
 | 3 (shared-web extract) | ⏸ blocked on 2 | — | — | — |
 | 4 (admin-web slim) | ⏸ blocked on 3 | — | — | — |
