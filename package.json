@@ -22,7 +22,12 @@
     "capabilities:check": "tsx scripts/check-capabilities.ts",
     "capabilities:doc": "tsx scripts/generate-skill-capabilities.ts",
     "conformance:check": "tsx scripts/check-conformance-coverage.ts",
-    "conformance:gen": "tsx scripts/generate-skill-md-scenarios.ts"
+    "conformance:gen": "tsx scripts/generate-skill-md-scenarios.ts",
+    "lint:css": "stylelint \"src/**/*.css.ts\"",
+    "lint:css:fix": "stylelint \"src/**/*.css.ts\" --fix",
+    "build:web": "pnpm -r --filter \"./admin-web\" --filter \"./pm-web\" --filter \"./employer-web\" --filter \"./candidate-web\" --filter \"./hunter-web\" run build",
+    "dev:web": "concurrently -n admin,pm,employer,candidate,hunter -c blue,magenta,green,cyan,yellow \"pnpm --filter admin-web dev\" \"pnpm --filter pm-web dev\" \"pnpm --filter employer-web dev\" \"pnpm --filter candidate-web dev\" \"pnpm --filter hunter-web dev\"",
+    "test:web": "pnpm -r --filter \"./admin-web\" --filter \"./pm-web\" --filter \"./employer-web\" --filter \"./candidate-web\" --filter \"./hunter-web\" --filter \"./shared-web\" run test"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
@@ -40,13 +45,24 @@
     "@types/node": "^22.10.0",
     "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.2",
+    "concurrently": "^10.0.3",
     "node-cron": "^4.3.0",
     "prom-client": "^15.1.3",
+    "stylelint": "^17.14.0",
+    "stylelint-config-standard": "^40.0.0",
     "supertest": "^7.0.0",
     "tsx": "^4.22.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.11",
     "vitest": "^2.1.5"
   },
+  "workspaces": [
+    "admin-web",
+    "pm-web",
+    "employer-web",
+    "candidate-web",
+    "hunter-web",
+    "shared-web"
+  ],
   "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
 }

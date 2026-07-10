@@ -3,7 +3,7 @@
 > **Purpose:** Re-read this at the start of every session executing the 5-SPA split plan. It is the **only** state that survives session/context boundaries. Do not trust your own memory; trust this file.
 
 **Top-level plan:** `docs/superpowers/plans/2026-07-10-five-spa-split.md`
-**Sub-plan in progress:** none — Phase 1.5 complete; Phase 2 is next
+**Sub-plan in progress:** none — Phase 2 complete; Phase 3 is next
 
 ---
 
@@ -28,8 +28,8 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 |---|---|---|---|---|
 | 0 (Playwright diagnostic) | ✅ done | main (merged) | `a500387` | yes — Root innerHTML length = **0** (real bug, not just cache) |
 | 1 (Delete static HTML) | ✅ done | main (merged) | `2df4691` | yes — both dirs removed, dirs were untracked so commit is empty |
-| **1.5 (React-mount bugfix)** | ✅ done | `5-spa-split/phase-1.5` | `050a508` | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
-| 2 (pnpm workspaces) | ⏳ next | — | — | — |
+| **1.5 (React-mount bugfix)** | ✅ done | main (merged) | `050a508` | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
+| **2 (pnpm workspaces)** | ✅ done | `5-spa-split/phase-2-workspaces` | HEAD of branch (single commit; see `git log 5-spa-split/phase-2-workspaces`) | yes — `pnpm install` exit 0, `pnpm -r list` shows 6 workspace members, admin-web e2e `Root innerHTML length: 323` + 1070 unit tests pass + tsc exit 0 |
 | 3 (shared-web extract) | ⏸ blocked on 2 | — | — | — |
 | 4 (admin-web slim) | ⏸ blocked on 3 | — | — | — |
 | 5-8 (4 new SPAs) | ⏸ blocked on 4 | — | — | — |
@@ -53,6 +53,24 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 - **Investigation log:** `docs/superpowers/plans/2026-07-10-phase-1.5-investigation.md`.
 - **Unexpected:** First full unit-suite run had one transient `JobsPage` failure; `JobsPage` passed in isolation and the full suite passed on rerun without changing `JobsPage`.
 - **Next:** Phase 2 (pnpm workspaces initialization).
+
+### 2026-07-10 — Session 5: Phase 2 pnpm workspaces initialization
+- **Branch:** `5-spa-split/phase-2-workspaces` from `main@8f90d53`.
+- **What this session did:**
+  - Created `D:\dev\hunter-platform\pnpm-workspace.yaml` declaring 6 packages (`admin-web`, `pm-web`, `employer-web`, `candidate-web`, `hunter-web`, `shared-web`).
+  - Updated root `D:\dev\hunter-platform\package.json`: added `workspaces` field + 3 root orchestration scripts (`build:web`, `dev:web`, `test:web`). Existing fields/script left intact.
+  - `pnpm add -D -w concurrently` (v10.0.3) added to root devDeps.
+  - Created 5 stub `package.json` files (`shared-web/`, `pm-web/`, `employer-web/`, `candidate-web/`, `hunter-web/`) with minimum fields (`name`, `version: 0.0.0`, `private: true`, `type: module`).
+- **Verification:**
+  - `pnpm install` exit 0. Scope reported "all 7 workspace projects" (root + 6).
+  - `pnpm -r list --depth -1` shows the 6 members: `@qing3a/hunter-platform-admin-web`, `@hunter-platform/candidate-web`, `@hunter-platform/employer-web`, `@hunter-platform/hunter-web`, `@hunter-platform/pm-web`, `@hunter-platform/shared-web`.
+  - `pnpm --filter @qing3a/hunter-platform-admin-web exec tsc --noEmit` exit 0.
+  - `pnpm --filter @qing3a/hunter-platform-admin-web run test:e2e` PASSES — `Root innerHTML length: 323`, `1 passed`.
+  - `pnpm --filter @qing3a/hunter-platform-admin-web run test` PASSES — `1070 passed | 1 skipped`.
+- **Unexpected (concern for Phase 4):** the existing `admin-web/package.json` still has `name: "@qing3a/hunter-platform-admin-web"`, not `@hunter-platform/admin-web`. So the **bare** filter `pnpm --filter admin-web ...` does NOT resolve to admin-web (only path-based `--filter './admin-web'` or full-name `--filter @qing3a/hunter-platform-admin-web` do). The script `dev:web` in root `package.json` uses `pnpm --filter admin-web dev` (no `./`) per the sub-plan; that line will fail silently for admin-web until Phase 4 renames admin-web's package. The other 4 SPA filters (`pm-web`, `employer-web`, `candidate-web`, `hunter-web`) **do** match because their stub names are `@hunter-platform/<spa>`. `build:web` and `test:web` use `--filter "./<dir>"` (path) and work for all 5. Not blocking Phase 2 — Phase 4 fixes this by renaming admin-web.
+- **Artifacts:** single commit on `5-spa-split/phase-2-workspaces` (9 files: `pnpm-workspace.yaml`, `pnpm-lock.yaml`, root `package.json`, 5 stub `package.json` files, state file). Exact hash retrievable via `git rev-parse HEAD 5-spa-split/phase-2-workspaces`.
+- **Working tree at end:** 35 unrelated M/?? files still present, untouched (landing templates, etc.).
+- **Next:** Phase 3 (shared-web extraction).
 
 ### 2026-07-10 — Session 2: Phase 0 + Phase 1 execution
 - **Context for next session:** Sub-agent executed sub-plan #1 end-to-end on branch `5-spa-split/phase-0-1`.
