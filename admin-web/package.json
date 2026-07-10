@@ -1,5 +1,5 @@
 {
-  "name": "@qing3a/hunter-platform-admin-web",
+  "name": "@hunter-platform/admin-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",

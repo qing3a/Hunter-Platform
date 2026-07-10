@@ -26,7 +26,7 @@
     "lint:css": "stylelint \"src/**/*.css.ts\"",
     "lint:css:fix": "stylelint \"src/**/*.css.ts\" --fix",
     "build:web": "pnpm -r --filter \"./admin-web\" --filter \"./pm-web\" --filter \"./employer-web\" --filter \"./candidate-web\" --filter \"./hunter-web\" run build",
-    "dev:web": "concurrently -n admin,pm,employer,candidate,hunter -c blue,magenta,green,cyan,yellow \"pnpm --filter admin-web dev\" \"pnpm --filter pm-web dev\" \"pnpm --filter employer-web dev\" \"pnpm --filter candidate-web dev\" \"pnpm --filter hunter-web dev\"",
+    "dev:web": "concurrently -n admin,pm,employer,candidate,hunter -c blue,magenta,green,cyan,yellow \"pnpm --filter @hunter-platform/admin-web dev\" \"pnpm --filter @hunter-platform/pm-web dev\" \"pnpm --filter @hunter-platform/employer-web dev\" \"pnpm --filter @hunter-platform/candidate-web dev\" \"pnpm --filter @hunter-platform/hunter-web dev\"",
     "test:web": "pnpm -r --filter \"./admin-web\" --filter \"./pm-web\" --filter \"./employer-web\" --filter \"./candidate-web\" --filter \"./hunter-web\" --filter \"./shared-web\" run test"
   },
   "dependencies": {
