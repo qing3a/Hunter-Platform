@@ -31,8 +31,7 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 | **1.5 (React-mount bugfix)** | ✅ done | main (merged) | `050a508` | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
 | **2 (pnpm workspaces)** | ✅ done | `5-spa-split/phase-2-workspaces` | HEAD of branch (single commit; see `git log 5-spa-split/phase-2-workspaces`) | yes — `pnpm install` exit 0, `pnpm -r list` shows 6 workspace members, admin-web e2e `Root innerHTML length: 323` + 1070 unit tests pass + tsc exit 0 |
 | **3 (shared-web extract)** | ✅ done | `5-spa-split/phase-3-shared-web` | HEAD of branch (2 commits; `f434ac7` Part A scaffold + `96985bc` Part B migration; see `git log 5-spa-split/phase-3-shared-web`) | yes — shared-web typecheck+test exit 0; admin-web tsc exit 0, unit 1070 passed + 1 skipped, e2e 1 passed (Root innerHTML length = 323) |
-| 4 (admin-web slim) | ⏸ blocked on 3 | — | — | — |
-| 5-8 (4 new SPAs) | ⏸ blocked on 4 | — | — | — |
+| **4 (admin-web slim + 4 SPA skeletons)** | ✅ done | `5-spa-split/phase-4-admin-slim` | HEAD of branch (single commit; see `git log 5-spa-split/phase-4-admin-slim`) | yes — admin-web tsc exit 0, unit 217 passed + 1 skipped, e2e 1 passed (Root innerHTML length = 323); 4 new SPAs each typecheck/test/build exit 0 with placeholders; out/{pm,employer,candidate,hunter}/ created |
 | 9 (API multi-mount) | ⏸ blocked on 8 | — | — | — |
 | 10 (e2e 5-SPA) | ⏸ blocked on 9 | — | — | — |
 | 11 (README) | ⏸ blocked on 10 | — | — | — |
@@ -70,7 +69,29 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 - **Unexpected (concern for Phase 4):** the existing `admin-web/package.json` still has `name: "@qing3a/hunter-platform-admin-web"`, not `@hunter-platform/admin-web`. So the **bare** filter `pnpm --filter admin-web ...` does NOT resolve to admin-web (only path-based `--filter './admin-web'` or full-name `--filter @qing3a/hunter-platform-admin-web` do). The script `dev:web` in root `package.json` uses `pnpm --filter admin-web dev` (no `./`) per the sub-plan; that line will fail silently for admin-web until Phase 4 renames admin-web's package. The other 4 SPA filters (`pm-web`, `employer-web`, `candidate-web`, `hunter-web`) **do** match because their stub names are `@hunter-platform/<spa>`. `build:web` and `test:web` use `--filter "./<dir>"` (path) and work for all 5. Not blocking Phase 2 — Phase 4 fixes this by renaming admin-web.
 - **Artifacts:** single commit on `5-spa-split/phase-2-workspaces` (9 files: `pnpm-workspace.yaml`, `pnpm-lock.yaml`, root `package.json`, 5 stub `package.json` files, state file). Exact hash retrievable via `git rev-parse HEAD 5-spa-split/phase-2-workspaces`.
 - **Working tree at end:** 35 unrelated M/?? files still present, untouched (landing templates, etc.).
-- **Next:** Phase 3 (shared-web extraction).
+- **Next:** Phase 4 (admin-web slim — remove PM/employer/candidate/hunter route groups).
+
+### 2026-07-10 — Session 7: Phase 4 admin-web slim + 4 SPA skeletons
+- **Branch:** `5-spa-split/phase-4-admin-slim` from `main@03dce89`.
+- **What this session did:**
+  - **admin-web slim:** Rewrote `App.tsx` (210 → 68 lines) to keep admin-only routes. Removed all PM/employer/candidate/hunter route groups. `git rm -r` of `pages/{pm,candidate,hunter,employer}-portal/` and `components/{pm,candidate,hunter,employer}-portal/` (and their `__tests__` subdirs). Also removed `lib/candidate-session.ts` (now unused after portal code went) and 4 orphaned portal API files (`api/{pm-portal,candidate-portal,hunter-portal,employer}.ts`) that were referenced by the deleted Require*Auth/portal subdirs.
+  - **4 SPA skeletons:** Created full config + entry-point files for `pm-web/` (base `/admin/pm`, port 5175, out `out/pm`), `employer-web/` (base `/admin/employer`, port 5176, out `out/employer`), `candidate-web/` (base `/candidate`, port 5177, out `out/candidate`), `hunter-web/` (base `/hunter`, port 5178, out `out/hunter`). Each: `package.json` (with `--passWithNoTests` in test script), `vite.config.ts`, `tsconfig.json` (extends admin-web's, `noEmit: true`), `vitest.config.ts`, `index.html`, `src/main.tsx`, `src/App.tsx` (placeholder div). All 4 are skeletons only — no real code (lands in Phase 5-8).
+- **Verification:**
+  - `pnpm install` exit 0.
+  - `pnpm --filter @hunter-platform/pm-web run typecheck` exit 0; `test` exit 0; `build` exit 0 (out/pm created).
+  - `pnpm --filter @hunter-platform/employer-web run typecheck` exit 0; `test` exit 0; `build` exit 0 (out/employer created).
+  - `pnpm --filter @hunter-platform/candidate-web run typecheck` exit 0; `test` exit 0; `build` exit 0 (out/candidate created).
+  - `pnpm --filter @hunter-platform/hunter-web run typecheck` exit 0; `test` exit 0; `build` exit 0 (out/hunter created).
+  - admin-web `pnpm exec tsc --noEmit` exit 0.
+  - admin-web `pnpm run test` PASSES — `217 passed | 1 skipped` (drops from 1070 baseline — the deleted portal subdirs carried the bulk of unit tests; 853 tests deleted).
+  - admin-web `pnpm run test:e2e` PASSES — `Root innerHTML length: 323`, `1 passed` (matches Phase 1.5 baseline).
+- **Concerns (DONE_WITH_CONCERNS):**
+  - Test count dropped more than the plan's "roughly 600" estimate: actual is 217 passed (1 skipped). The deleted portal subdirs contained most of the unit-test surface; the drop is expected given how many portal tests were deleted.
+  - Added `--passWithNoTests` flag to all 4 new SPAs' test scripts (per Phase 3 finding — vitest 2.x exits 1 on no-tests without it).
+  - Deleted 4 portal-specific API files (`api/{pm-portal,candidate-portal,hunter-portal,employer}.ts`) that the plan's explicit deletion list did not include, but were 100% dead code after the portal subdir deletions (only referenced by files that were deleted). They had to go for `tsc` to pass on admin-web after `lib/candidate-session.ts` was removed.
+- **Artifacts:** single commit on `5-spa-split/phase-4-admin-slim`. Exact hash retrievable via `git rev-parse HEAD 5-spa-split/phase-4-admin-slim`. File count: 185 deletions (portal subdirs + 4 Require*Auth equivalent files via subdirs + 4 portal API files + candidate-session.ts + candidate-session.test.ts), 1 modification (admin-web/src/App.tsx), 28 new files (7 per SPA × 4), state file update, pnpm-lock.yaml.
+- **Working tree at end:** 30+ unrelated landing-template files + portal subdir modified-but-staged state still in working tree, untouched (other people's WIP).
+- **Next:** Phase 5-8 (populating each new SPA with the code that was just deleted from admin-web; plan says `git revert` + new `git mv`).
 
 ### 2026-07-10 — Session 6: Phase 3 shared-web extraction
 - **Branch:** `5-spa-split/phase-3-shared-web` from `main@030b1d1`.
