@@ -1,4 +1,4 @@
-import { useToast } from '../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 const colors: Record<string, { bg: string; border: string }> = {
   success: { bg: '#e6f7ec', border: '#52c41a' },

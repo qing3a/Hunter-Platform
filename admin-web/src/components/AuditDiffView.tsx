@@ -3,7 +3,7 @@
 // - Recursively renders objects/arrays
 // - Masks PII fields (email/name/contact) by default using Sub-B's mask helpers
 import React from 'react';
-import { maskName, maskEmail, maskContact } from '../lib/mask';
+import { maskName, maskEmail, maskContact } from '@hunter-platform/shared-web/lib';
 
 const PII_KEYS = new Set(['email', 'name', 'contact', 'phone']);
 

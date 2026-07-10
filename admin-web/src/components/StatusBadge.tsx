@@ -1,4 +1,4 @@
-import { statusColor } from '../lib/format';
+import { statusColor } from '@hunter-platform/shared-web/lib';
 
 // Maps color name (returned by statusColor) → hex value for inline styling.
 const COLOR_HEX: Record<string, string> = {

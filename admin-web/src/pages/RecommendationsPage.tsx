@@ -9,7 +9,7 @@ import StatusBadge from '../components/StatusBadge';
 import DetailDrawer from '../components/DetailDrawer';
 import CsvButton from '../components/CsvButton';
 import Skeleton from '../components/Skeleton';
-import { relativeTime } from '../lib/format';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 import { listRecommendations, type RecommendationRow, type RecommendationStatus } from '../api/recommendations';
 
 const statusFilters: Filter[] = [

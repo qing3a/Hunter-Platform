@@ -6,8 +6,8 @@ import Skeleton from '../components/Skeleton';
 import ConfirmModal from '../components/ConfirmModal';
 import StatusBadge from '../components/StatusBadge';
 import { listPlacements, markPaid, cancelPlacement, type PlacementRow, type PlacementStatus } from '../api/placements';
-import { useToast } from '../lib/toast';
-import { relativeTime } from '../lib/format';
+import { useToast } from '@hunter-platform/shared-web/lib';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 
 const STATUS_OPTIONS = [
   { value: '', label: '全部 status' },

@@ -6,7 +6,7 @@ import { PMSettingsPage } from '../PMSettingsPage';
 // The ToastProvider only holds state in context (no visual surface),
 // so we mock useToast to assert on push() calls directly.
 const pushSpy = vi.fn();
-vi.mock('../../../lib/toast', async (importOriginal) => {
+vi.mock('@hunter-platform/shared-web/lib', async (importOriginal) => {
   const actual = await importOriginal<any>();
   return { ...actual, useToast: () => ({ toasts: [], push: pushSpy, dismiss: vi.fn() }) };
 });

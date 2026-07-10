@@ -11,7 +11,7 @@ import {
   type SandboxStageBucket,
   type SandboxStage,
 } from '../../../api/pm-portal';
-import { ToastProvider } from '../../../lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 
 // ---- Mocks ----------------------------------------------------------------
 

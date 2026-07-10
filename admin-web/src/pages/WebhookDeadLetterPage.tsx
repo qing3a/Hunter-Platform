@@ -4,8 +4,8 @@ import Layout from '../components/Layout';
 import Pagination from '../components/Pagination';
 import Skeleton from '../components/Skeleton';
 import { listDeadLetter, retryDeadLetter, type DeadLetterRow } from '../api/webhooks';
-import { useToast } from '../lib/toast';
-import { relativeTime } from '../lib/format';
+import { useToast } from '@hunter-platform/shared-web/lib';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 
 const EVENT_TYPE_OPTIONS = [
   { value: '', label: '全部 event_type' },

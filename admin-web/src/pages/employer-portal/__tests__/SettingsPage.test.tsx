@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { SettingsPage } from '../SettingsPage';
 import { setSession } from '../../../lib/candidate-session';
-import { ToastProvider } from '../../../lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 
 // ---- Helpers --------------------------------------------------------------
 

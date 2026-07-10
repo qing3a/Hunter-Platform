@@ -10,7 +10,7 @@ import {
   type Project,
 } from '../../api/pm-portal';
 import { StaffingPlanCard } from '../../components/pm-portal/StaffingPlanCard';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // PlanComparisonPage (S4 / Task 8)

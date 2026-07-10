@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDate, relativeTime, statusColor } from '../../src/lib/format';
+import { formatDate, relativeTime, statusColor } from '@hunter-platform/shared-web/lib';
 
 describe('formatDate', () => {
   it('formats ISO to YYYY-MM-DD HH:MM (local)', () => {

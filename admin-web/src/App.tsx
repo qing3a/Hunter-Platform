@@ -19,7 +19,7 @@ import WebhookDeadLetterPage from './pages/WebhookDeadLetterPage';
 import PlacementsPage from './pages/PlacementsPage';
 import SettingsPage from './pages/SettingsPage';
 import PrivateRoute from './components/PrivateRoute';
-import { ToastProvider } from './lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 import Toast from './components/Toast';
 
 // Candidate Portal pages

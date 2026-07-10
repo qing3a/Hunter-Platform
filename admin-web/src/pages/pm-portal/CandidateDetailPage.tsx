@@ -16,7 +16,7 @@ import { MatchTableRow } from '../../components/pm-portal/MatchTableRow';
 import { PMViewBanner } from '../../components/pm-portal/PMViewBanner';
 import { PrivateNoteCard } from '../../components/pm-portal/PrivateNoteCard';
 import { TierBadgeRow } from '../../components/pm-portal/TierBadgeRow';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // CandidateDetailPage (S5 / Task 10 + Task 13)

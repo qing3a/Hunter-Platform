@@ -9,7 +9,7 @@ import StatusBadge from '../components/StatusBadge';
 import DetailDrawer from '../components/DetailDrawer';
 import CsvButton from '../components/CsvButton';
 import Skeleton from '../components/Skeleton';
-import { relativeTime } from '../lib/format';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 import { listJobs, type JobRow, type JobStatus } from '../api/jobs';
 
 const statusFilters: Filter[] = [

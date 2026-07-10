@@ -25,7 +25,7 @@ import {
   LibraryCandidateRow,
 } from '../../components/pm-portal/LibraryCandidateRow';
 import { ReadOnlyChip } from '../../components/pm-portal/ReadOnlyChip';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // CandidateLibraryPage (Task 14 / S9)

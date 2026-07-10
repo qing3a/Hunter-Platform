@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { ToastProvider } from '../../src/lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 import UserDetailPage from '../../src/pages/UserDetailPage';
 
 vi.mock('../../src/api/users', () => ({ getUser: vi.fn(), suspendUser: vi.fn(), unsuspendUser: vi.fn() }));

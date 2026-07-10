@@ -42,7 +42,7 @@ import {
   pmNotes,
   type UpdatePmPrivateNoteInput,
 } from '../../api/pm-portal';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 interface PrivateNoteCardProps {
   /** candidate_user_id this note is bound to. */

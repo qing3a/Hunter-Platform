@@ -10,7 +10,7 @@ import {
 import { SandboxFunnelCard } from '../../components/pm-portal/SandboxFunnelCard';
 import { OnTrackAlert } from '../../components/pm-portal/OnTrackAlert';
 import { PositionPicker } from '../../components/pm-portal/PositionPicker';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // PipelineSandboxPage (Task 8 / S3)

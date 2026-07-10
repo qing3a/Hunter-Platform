@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PrivateNoteCard } from '../PrivateNoteCard';
 import { pmNotes } from '../../../api/pm-portal';
-import { ToastProvider } from '../../../lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 
 // ---- Mocks ----------------------------------------------------------------
 //

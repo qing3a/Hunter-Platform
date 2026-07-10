@@ -30,7 +30,7 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 | 1 (Delete static HTML) | ✅ done | main (merged) | `2df4691` | yes — both dirs removed, dirs were untracked so commit is empty |
 | **1.5 (React-mount bugfix)** | ✅ done | main (merged) | `050a508` | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
 | **2 (pnpm workspaces)** | ✅ done | `5-spa-split/phase-2-workspaces` | HEAD of branch (single commit; see `git log 5-spa-split/phase-2-workspaces`) | yes — `pnpm install` exit 0, `pnpm -r list` shows 6 workspace members, admin-web e2e `Root innerHTML length: 323` + 1070 unit tests pass + tsc exit 0 |
-| 3 (shared-web extract) | ⏸ blocked on 2 | — | — | — |
+| **3 (shared-web extract)** | ✅ done | `5-spa-split/phase-3-shared-web` | HEAD of branch (2 commits; `f434ac7` Part A scaffold + `96985bc` Part B migration; see `git log 5-spa-split/phase-3-shared-web`) | yes — shared-web typecheck+test exit 0; admin-web tsc exit 0, unit 1070 passed + 1 skipped, e2e 1 passed (Root innerHTML length = 323) |
 | 4 (admin-web slim) | ⏸ blocked on 3 | — | — | — |
 | 5-8 (4 new SPAs) | ⏸ blocked on 4 | — | — | — |
 | 9 (API multi-mount) | ⏸ blocked on 8 | — | — | — |
@@ -71,6 +71,23 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 - **Artifacts:** single commit on `5-spa-split/phase-2-workspaces` (9 files: `pnpm-workspace.yaml`, `pnpm-lock.yaml`, root `package.json`, 5 stub `package.json` files, state file). Exact hash retrievable via `git rev-parse HEAD 5-spa-split/phase-2-workspaces`.
 - **Working tree at end:** 35 unrelated M/?? files still present, untouched (landing templates, etc.).
 - **Next:** Phase 3 (shared-web extraction).
+
+### 2026-07-10 — Session 6: Phase 3 shared-web extraction
+- **Branch:** `5-spa-split/phase-3-shared-web` from `main@030b1d1`.
+- **What this session did:**
+  - **Part A (config scaffold, commit `f434ac7`):** created `shared-web/tsconfig.json` (extends admin-web's, noEmit for typecheck-only, jsx=react-jsx, DOM lib); `shared-web/vitest.config.ts` (jsdom + @vitejs/plugin-react, @ alias); `shared-web/package.json` (main/exports map, scripts test/test:watch/typecheck, React 18 + TanStack Query 5 deps, vitest/jsdom/@vitejs/plugin-react devDeps); empty barrel `shared-web/src/index.ts`. Added `--passWithNoTests` to the test script because vitest 2.x exits 1 when no tests exist (the plan's "expected exit 0" implied that flag). `pnpm install` resolves the new package; typecheck and test both succeed with no errors.
+  - **Part B (code migration, commit `96985bc`):** classified every file in `admin-web/src/{api,lib,hooks}/`. SHARABLE: `lib/format.ts` (formatDate/relativeTime/statusColor — pure helpers), `lib/mask.ts` (maskName/maskEmail/maskContact — pure PII helpers), `lib/toast.tsx` (ToastProvider/useToast — React context, no React Router). KEEP: `lib/auth.ts` (admin-specific `hunter_admin_api_key` token), `lib/candidate-session.ts` (candidate-portal session shape, portal-specific), `hooks/{useTimelineFilters,useUrlParam}.ts` (both `react-router-dom` consumers), all `api/*.ts` (admin-specific `/v1/admin/` + bearer token, or portal-specific BASE + candidate-session). Created `shared-web/src/lib/index.ts` barrel (`export * from format; mask; toast`). Updated 32 admin-web source files + 13 test files to import from `@hunter-platform/shared-web/lib`. Added `@hunter-platform/shared-web: workspace:*` to admin-web/package.json and ran `pnpm install`.
+  - **Test fix (minor, in Part B commit):** `admin-web/src/pages/pm-portal/__tests__/PMSettingsPage.test.tsx` updated its `vi.mock('../../../lib/toast', ...)` path to `vi.mock('@hunter-platform/shared-web/lib', ...)` so the mock continues to intercept the now-moved `useToast` import. Without this fix, the 7 PMSettingsPage tests fail with "useToast must be used within <ToastProvider>". This is the only file outside the plan's "admin-web/tests/**" path list that needed editing — but it was unavoidable because the mock's target moved.
+- **Verification:**
+  - `pnpm --filter @hunter-platform/shared-web run typecheck` exit 0.
+  - `pnpm --filter @hunter-platform/shared-web run test` exit 0 ("No test files found, exiting with code 0" — `--passWithNoTests`).
+  - `pnpm exec tsc --noEmit` (admin-web, via its own tsconfig) exit 0.
+  - `pnpm --filter @hunter-platform/admin-web run test` PASSES — `1070 passed | 1 skipped` (matches Phase 1.5 baseline).
+  - `pnpm --filter @hunter-platform/admin-web run test:e2e` PASSES — `Root innerHTML length: 323`, `1 passed` (matches Phase 1.5 baseline).
+- **Artifacts:** 2 commits on `5-spa-split/phase-3-shared-web`. `f434ac7` (Part A: 5 files, 87+/3-) and `96985bc` (Part B: 51 files, 65+/54-, 3 renames + 1 new barrel + 32 src edits + 13 test edits + lockfile).
+- **Files in working tree at end:** 30+ unrelated landing-template files still present, untouched. Plan's working-tree rules respected: only shared-web/, admin-web/src/lib/{format,mask,toast} (moved), admin-web/src/ pages/components (import paths), admin-web/src/pages/pm-portal/__tests__/PMSettingsPage.test.tsx (mock path), admin-web/tests/** (import paths), admin-web/package.json (workspace dep), pnpm-lock.yaml, state file.
+- **Classification rationale:** Phase 3 is intentionally conservative. The admin-web API client (`api/client.ts`, `api/raw.ts`) hardcodes `/v1/admin/` paths and a `/admin/login` redirect on 401 — moving it would require a base-path + redirect-URL parameterization refactor that is out of scope here. The 4 portal clients (`api/{candidate-portal,employer,pm-portal,hunter-portal}.ts`) each own their own BASE + auth wiring and belong in their respective SPA packages (Phases 5-8). Phase 3 sets up the shared-web package and proves the migration mechanics with 3 unambiguous pure-utility files; subsequent phases can iterate on the more entangled pieces.
+- **Next:** Phase 4 (admin-web slim — remove PM/employer/candidate/hunter route groups).
 
 ### 2026-07-10 — Session 2: Phase 0 + Phase 1 execution
 - **Context for next session:** Sub-agent executed sub-plan #1 end-to-end on branch `5-spa-split/phase-0-1`.

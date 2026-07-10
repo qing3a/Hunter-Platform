@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { ToastProvider, useToast } from '../../src/lib/toast';
+import { ToastProvider, useToast } from '@hunter-platform/shared-web/lib';
 import Toast from '../../src/components/Toast';
 
 function TriggerButton() {

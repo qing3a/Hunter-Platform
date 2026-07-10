@@ -3,7 +3,7 @@ import { useUrlParam } from '../hooks/useUrlParam';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { listAdminLog, listActionHistory, listLoginEvents, type AdminLogRow, type ActionHistoryRow, type LoginEventRow } from '../api/audit';
-import { formatDate } from '../lib/format';
+import { formatDate } from '@hunter-platform/shared-web/lib';
 import StatusBadge from '../components/StatusBadge';
 import Pagination from '../components/Pagination';
 import AuditJsonDrawer from '../components/AuditJsonDrawer';

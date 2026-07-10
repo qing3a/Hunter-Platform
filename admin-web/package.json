@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@hunter-platform/shared-web": "workspace:*",
     "@tanstack/react-query": "^5.101.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

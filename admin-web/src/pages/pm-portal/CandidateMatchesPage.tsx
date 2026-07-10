@@ -10,7 +10,7 @@ import {
 import { MatchCard } from '../../components/pm-portal/MatchCard';
 import { PositionPicker } from '../../components/pm-portal/PositionPicker';
 import { SortPills, type SortKey } from '../../components/pm-portal/SortPills';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // CandidateMatchesPage (Task 11 / S6)

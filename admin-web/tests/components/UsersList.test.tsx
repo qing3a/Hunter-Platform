@@ -9,7 +9,7 @@ vi.mock('../../src/api/users', () => ({
 
 import { listUsers, adjustQuota } from '../../src/api/users';
 import UsersPage from '../../src/pages/UsersPage';
-import { ToastProvider } from '../../src/lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 
 const renderPage = () => render(
   <MemoryRouter>

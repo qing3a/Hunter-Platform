@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { maskName, maskEmail } from '../../src/lib/mask';
+import { maskName, maskEmail } from '@hunter-platform/shared-web/lib';
 
 describe('maskName', () => {
   it('masks long names with first + *** + last2', () => {

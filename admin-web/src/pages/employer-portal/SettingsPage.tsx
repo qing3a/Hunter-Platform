@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getSession } from '../../lib/candidate-session';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 // ============================================================================
 // SettingsPage (Employer Portal — Task 9)

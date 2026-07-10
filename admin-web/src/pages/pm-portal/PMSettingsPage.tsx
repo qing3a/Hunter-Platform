@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ErpConnectionForm, type ErpConfig, type ErpBackend } from '../../components/pm-portal/ErpConnectionForm';
 import { ErpStatusTable } from '../../components/pm-portal/ErpStatusTable';
 import { ErpCallLog, type CallLogEntry } from '../../components/pm-portal/ErpCallLog';
-import { useToast } from '../../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 const STORAGE_KEY = 'pm.settings.erp';
 

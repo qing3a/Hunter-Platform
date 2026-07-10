@@ -3,8 +3,8 @@ import Layout from '../components/Layout';
 import Skeleton from '../components/Skeleton';
 import ConfigEditModal from '../components/ConfigEditModal';
 import { listConfig, updateConfig, type ConfigEntry } from '../api/config';
-import { useToast } from '../lib/toast';
-import { relativeTime } from '../lib/format';
+import { useToast } from '@hunter-platform/shared-web/lib';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 
 export default function SettingsPage() {
   const toast = useToast();

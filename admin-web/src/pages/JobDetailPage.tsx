@@ -4,8 +4,8 @@ import Layout from '../components/Layout';
 import StatusBadge from '../components/StatusBadge';
 import Skeleton from '../components/Skeleton';
 import { getJob, type JobRow } from '../api/jobs';
-import { useToast } from '../lib/toast';
-import { relativeTime } from '../lib/format';
+import { useToast } from '@hunter-platform/shared-web/lib';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 
 type DataState<T> = { loading: true } | { loading: false; data: T } | { loading: false; error: string };
 

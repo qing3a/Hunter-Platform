@@ -6,7 +6,7 @@ import Table, { type Column } from '../components/Table';
 import Pagination from '../components/Pagination';
 import SearchBar, { type Filter } from '../components/SearchBar';
 import StatusBadge from '../components/StatusBadge';
-import { relativeTime } from '../lib/format';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 import { listCandidates, type CandidateRow } from '../api/candidates';
 
 export default function CandidatesPage() {

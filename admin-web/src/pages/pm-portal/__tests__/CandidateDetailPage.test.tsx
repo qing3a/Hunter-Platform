@@ -13,7 +13,7 @@ import {
   type Position,
   type ProjectSummary,
 } from '../../../api/pm-portal';
-import { ToastProvider } from '../../../lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 
 // ---- Mocks ----------------------------------------------------------------
 

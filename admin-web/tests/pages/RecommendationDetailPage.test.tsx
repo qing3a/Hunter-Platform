@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { ToastProvider } from '../../src/lib/toast';
+import { ToastProvider } from '@hunter-platform/shared-web/lib';
 import RecommendationDetailPage from '../../src/pages/RecommendationDetailPage';
 
 vi.mock('../../src/api/recommendations', () => ({ getRecommendation: vi.fn() }));

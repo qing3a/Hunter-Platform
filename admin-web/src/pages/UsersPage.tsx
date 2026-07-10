@@ -7,9 +7,9 @@ import Pagination from '../components/Pagination';
 import SearchBar, { type Filter } from '../components/SearchBar';
 import StatusBadge from '../components/StatusBadge';
 import QuotaModal from '../components/QuotaModal';
-import { relativeTime } from '../lib/format';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 import { listUsers, adjustQuota, type UserRow } from '../api/users';
-import { useToast } from '../lib/toast';
+import { useToast } from '@hunter-platform/shared-web/lib';
 
 export default function UsersPage() {
   const [rows, setRows] = useState<UserRow[]>([]);

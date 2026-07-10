@@ -5,8 +5,8 @@ import StatusBadge from '../components/StatusBadge';
 import Skeleton from '../components/Skeleton';
 import ConfirmModal from '../components/ConfirmModal';
 import { getUser, suspendUser, unsuspendUser, type UserRow } from '../api/users';
-import { useToast } from '../lib/toast';
-import { relativeTime } from '../lib/format';
+import { useToast } from '@hunter-platform/shared-web/lib';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 
 type DataState<T> = { loading: true } | { loading: false; data: T } | { loading: false; error: string };
 type ConfirmState =

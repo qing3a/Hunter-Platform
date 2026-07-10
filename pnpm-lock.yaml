@@ -81,6 +81,9 @@ importers:
 
   admin-web:
     dependencies:
+      '@hunter-platform/shared-web':
+        specifier: workspace:*
+        version: link:../shared-web
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.2(react@18.3.1)

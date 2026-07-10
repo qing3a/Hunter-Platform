@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import AuditJsonDrawer from './AuditJsonDrawer';
-import { relativeTime } from '../lib/format';
+import { relativeTime } from '@hunter-platform/shared-web/lib';
 import type { TimelineItem } from '../api/timeline';
 
 const SOURCE_COLORS: Record<string, { bg: string; fg: string }> = {
