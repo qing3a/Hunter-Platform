@@ -3,7 +3,7 @@
 > **Purpose:** Re-read this at the start of every session executing the 5-SPA split plan. It is the **only** state that survives session/context boundaries. Do not trust your own memory; trust this file.
 
 **Top-level plan:** `docs/superpowers/plans/2026-07-10-five-spa-split.md`
-**Sub-plan in progress:** `docs/superpowers/plans/2026-07-10-spa-split-phase-0-1.md`
+**Sub-plan in progress:** none — Phase 1.5 complete; Phase 2 is next
 
 ---
 
@@ -26,23 +26,33 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 
 | Phase | Status | Branch | Last commit | Verified |
 |---|---|---|---|---|
-| 0 (Playwright diagnostic) | ✅ done | `5-spa-split/phase-0-1` | `a500387` | yes — Root innerHTML length = **0** (real bug, not just cache) |
-| 1 (Delete static HTML) | ✅ done | `5-spa-split/phase-0-1` | `2df4691` | yes — both dirs removed, grep returned 0 source-code refs |
-| 2 (pnpm workspaces) | ⏸ not started | — | — | — |
-| 3 (shared-web extract) | ⏸ not started | — | — | — |
-| 4 (admin-web slim) | ⏸ not started | — | — | — |
-| 5-8 (4 new SPAs) | ⏸ not started | — | — | — |
-| 9 (API multi-mount) | ⏸ not started | — | — | — |
-| 10 (e2e 5-SPA) | ⏸ not started | — | — | — |
-| 11 (README) | ⏸ not started | — | — | — |
-| 12 (rebuild out/) | ⏸ not started | — | — | — |
-| 13 (final verify) | ⏸ not started | — | — | — |
+| 0 (Playwright diagnostic) | ✅ done | main (merged) | `a500387` | yes — Root innerHTML length = **0** (real bug, not just cache) |
+| 1 (Delete static HTML) | ✅ done | main (merged) | `2df4691` | yes — both dirs removed, dirs were untracked so commit is empty |
+| **1.5 (React-mount bugfix)** | ✅ done | `5-spa-split/phase-1.5` | pending Phase 1.5 commit | yes — `/admin/login` root innerHTML length **323**, e2e 1 passed, unit 1070 passed (+1 skipped Playwright-only guard), tsc exit 0 |
+| 2 (pnpm workspaces) | ⏳ next | — | — | — |
+| 3 (shared-web extract) | ⏸ blocked on 2 | — | — | — |
+| 4 (admin-web slim) | ⏸ blocked on 3 | — | — | — |
+| 5-8 (4 new SPAs) | ⏸ blocked on 4 | — | — | — |
+| 9 (API multi-mount) | ⏸ blocked on 8 | — | — | — |
+| 10 (e2e 5-SPA) | ⏸ blocked on 9 | — | — | — |
+| 11 (README) | ⏸ blocked on 10 | — | — | — |
+| 12 (rebuild out/) | ⏸ blocked on 11 | — | — | — |
+| 13 (final verify) | ⏸ blocked on 12 | — | — | — |
 
 ## Open questions / blockers
 
 - None at this point.
 
 ## Session log
+
+### 2026-07-10 — Session 4: Phase 1.5 React mount bugfix
+- **Branch:** `5-spa-split/phase-1.5` from `main@5e7abbf`.
+- **Root cause:** `admin-web/src/App.tsx` mounted `AdminApp` under outer route `/admin/*`, but `AdminApp` used absolute `/admin/...` descendant route paths. React Router matched the outer route but no inner child route for `/admin/login`, so the page rendered an empty React tree without throwing.
+- **Fix:** Changed `AdminApp` child route paths to be relative to `/admin/*` (`login`, index route, `users`, `jobs/:id`, etc.; catch-all `*`). Enhanced `admin-web/tests/e2e/admin-login.spec.ts` with pageerror/unhandledrejection/final URL/warning/body diagnostics and a Vitest guard for the Playwright-only spec.
+- **Verification:** `pnpm -C admin-web test:e2e` passes (`Root innerHTML length: 323`, `1 passed`). `pnpm -C admin-web test` passes (`1070 passed`, plus `1 skipped` Playwright-only guard). `npx tsc --noEmit` exits 0.
+- **Investigation log:** `docs/superpowers/plans/2026-07-10-phase-1.5-investigation.md`.
+- **Unexpected:** First full unit-suite run had one transient `JobsPage` failure; `JobsPage` passed in isolation and the full suite passed on rerun without changing `JobsPage`.
+- **Next:** Phase 2 (pnpm workspaces initialization).
 
 ### 2026-07-10 — Session 2: Phase 0 + Phase 1 execution
 - **Context for next session:** Sub-agent executed sub-plan #1 end-to-end on branch `5-spa-split/phase-0-1`.
@@ -51,6 +61,13 @@ When committing, use `git add <exact-path>...` (NEVER `git add -A` or `git add .
 - **Phase 1 result:** Both `hunter-platform-landing/` and `hunter-platform-landing-draft/` directories removed. Directories were never tracked by git (untracked working tree artifacts), so the Phase 1 commit is empty (`2df4691`) — the deletion itself has no git history.
 - **Phase 1 grep note:** `grep -rn "hunter-platform-landing" --include="*.{ts,tsx,json,mjs,js,html,css,md}"` found matches ONLY in the deleted directories' own `orchestration-summary.json` files plus `docs/superpowers/plans/*.md` plan documents describing the deletion. README.md has 0 references. No source code (TS/JS/HTML/CSS) referenced the directories.
 - **Working tree at end:** 30 unrelated M/?? files still present, untouched (landing templates, .gitignore, pnpm-lock, etc.).
+
+### 2026-07-10 — Session 3: merge to main + .gitignore + plan for Phase 1.5
+- **Decision (user):** Insert Phase 1.5 (React-mount bugfix) before Phase 2; merge Phase 0-1 to main now; add `.gitignore` entry for Playwright artifacts.
+- **Merge:** `5-spa-split/phase-0-1` fast-forwarded to main (`d7d398c` → `bb58223`, 3 commits).
+- **`.gitignore`:** Committed `3dc07f5` adding `admin-web/test-results/` and `admin-web/playwright-report/`. Stash-pop conflict with another developer's `.worktrees/` entry resolved and committed as `5e7abbf` (keeps both).
+- **Main is now at `5e7abbf`** (5 commits ahead of `origin/main`). 30 unrelated M/?? files still in working tree (other people's landing-template WIP).
+- **Next:** Sub-plan for Phase 1.5 to be created and dispatched. Will run from a fresh branch `5-spa-split/phase-1.5` based on `main@5e7abbf`.
 
 ### 2026-07-10 — Session 1: planning + Phase 0-1 dispatch
 - **Context for next session:** The plan was written and 4 user decisions were captured (Playwright diagnostic, server-side template as single source, 5-SPA split, code+README+rebuild).

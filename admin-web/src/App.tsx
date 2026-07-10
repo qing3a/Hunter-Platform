@@ -75,32 +75,32 @@ import { SettingsPage as EmployerSettingsPage } from './pages/employer-portal/Se
 import { RequireEmployerAuth } from './components/employer-portal/RequireEmployerAuth';
 import { EmployerMobileLayout } from './components/employer-portal/EmployerMobileLayout';
 
-// Admin sub-app: all admin routes live under /admin/* (no nested router).
-// The single outer BrowserRouter in main.tsx owns the routing context.
+// Admin sub-app: all admin routes live under /admin/* through the
+// outer route in App. Descendant routes here must stay relative to
+// that parent route so React Router can match the remaining splat.
 function AdminApp() {
   return (
     <Routes>
-      <Route path="/admin/login" element={<LoginPage />} />
-      <Route path="/admin" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-      <Route path="/admin/" element={<Navigate to="/admin" replace />} />
-      <Route path="/admin/users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
-      <Route path="/admin/users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
-      <Route path="/admin/users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
-      <Route path="/admin/candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
-      <Route path="/admin/candidates/:id" element={<PrivateRoute><AdminCandidateDetailPage /></PrivateRoute>} />
-      <Route path="/admin/candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
-      <Route path="/admin/jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
-      <Route path="/admin/jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
-      <Route path="/admin/jobs/:id/timeline" element={<PrivateRoute><JobTimelinePage /></PrivateRoute>} />
-      <Route path="/admin/recommendations" element={<PrivateRoute><RecommendationsPage /></PrivateRoute>} />
-      <Route path="/admin/recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
-      <Route path="/admin/recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
-      <Route path="/admin/webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
-      <Route path="/admin/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-      <Route path="/admin/placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
-      <Route path="/admin/audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
-      <Route path="/admin/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-      <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
+      <Route path="login" element={<LoginPage />} />
+      <Route index element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+      <Route path="users" element={<PrivateRoute><UsersPage /></PrivateRoute>} />
+      <Route path="users/:id" element={<PrivateRoute><UserDetailPage /></PrivateRoute>} />
+      <Route path="users/:id/timeline" element={<PrivateRoute><UserTimelinePage /></PrivateRoute>} />
+      <Route path="candidates" element={<PrivateRoute><CandidatesPage /></PrivateRoute>} />
+      <Route path="candidates/:id" element={<PrivateRoute><AdminCandidateDetailPage /></PrivateRoute>} />
+      <Route path="candidates/:id/timeline" element={<PrivateRoute><CandidateTimelinePage /></PrivateRoute>} />
+      <Route path="jobs" element={<PrivateRoute><JobsPage /></PrivateRoute>} />
+      <Route path="jobs/:id" element={<PrivateRoute><JobDetailPage /></PrivateRoute>} />
+      <Route path="jobs/:id/timeline" element={<PrivateRoute><JobTimelinePage /></PrivateRoute>} />
+      <Route path="recommendations" element={<PrivateRoute><RecommendationsPage /></PrivateRoute>} />
+      <Route path="recommendations/:id" element={<PrivateRoute><RecommendationDetailPage /></PrivateRoute>} />
+      <Route path="recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
+      <Route path="webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
+      <Route path="settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
+      <Route path="audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
+      <Route path="profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+      <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
 }
