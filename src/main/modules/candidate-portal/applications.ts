@@ -69,7 +69,7 @@ export function createCandidatePortalApplications(db: DB): ApplicationsModule {
 
   /** Look up active headhunters (excludes suspended / deleted). */
   const listActiveHuntersStmt = db.prepare(
-    "SELECT id FROM users WHERE user_type = 'headhunter' AND status = 'active'",
+    "SELECT id FROM users WHERE user_type = 'hr' AND status = 'active'",
   );
 
   /**

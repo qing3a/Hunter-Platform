@@ -15,7 +15,7 @@ describe('GET /v1/headhunter/candidates', () => {
   it('returns the headhunter\'s uploaded candidates with anonymized_id', async () => {
     const app = createApp();
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'MyCandHH', contact: 'mycand@h.com' });
+      .send({ user_type: 'hr', name: 'MyCandHH', contact: 'mycand@h.com' });
     const cand = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'X', contact: 'x@c.com' });
 
@@ -42,7 +42,7 @@ describe('GET /v1/headhunter/candidates', () => {
   it('returns empty array for headhunter with no uploads', async () => {
     const app = createApp();
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'EmptyHH', contact: 'empty@h.com' });
+      .send({ user_type: 'hr', name: 'EmptyHH', contact: 'empty@h.com' });
 
     const res = await request(app).get('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${hh.body.data.api_key}`);
@@ -53,7 +53,7 @@ describe('GET /v1/headhunter/candidates', () => {
   it('returns 403 when called by an employer (not headhunter)', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'EmpE', contact: 'e@e.com' });
+      .send({ user_type: 'pm', name: 'EmpE', contact: 'e@e.com' });
     const res = await request(app).get('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`);
     expect(res.status).toBe(403);

@@ -1,5 +1,7 @@
 // src/shared/types.ts
-export type UserType = 'candidate' | 'headhunter' | 'employer';
+// R1.C2: renamed 'hr'→'hr', 'pm'→'pm' (matches ow-recruit).
+// Migration v031 remaps existing rows; legacy values should not appear post-migration.
+export type UserType = 'candidate' | 'hr' | 'pm';
 
 export type UserStatus = 'active' | 'suspended' | 'deleted';
 

@@ -9,20 +9,20 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
   let jobId: string;
 
   beforeAll(async () => {
-    const f = await freshApp('headhunter');
+    const f = await freshApp('hr');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'H', 'h@x.com');
-    eKey = await client.register('employer', 'E', 'e@x.com');
+    hKey = await client.register('hr', 'H', 'h@x.com');
+    eKey = await client.register('pm', 'E', 'e@x.com');
     await client.register('candidate', 'C', 'c@x.com');
     candidateId = client.ids.get('candidate')!;
     // Setup a job via headhunter (so employer_id is null, employer can claim)
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'HJob', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'HJob', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     jobId = jobRes.data.data.id;
   });
-  afterAll(() => cleanupDb('headhunter'));
+  afterAll(() => cleanupDb('hr'));
 
   it('POST /v1/headhunter/candidates uploads a candidate', async () => {
     const r = await client.request({
@@ -100,7 +100,7 @@ describe('skill.md: headhunter (scenarios 3-5)', () => {
   it('POST /v1/headhunter/jobs (headhunter.create_job)', async () => {
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'HJ2', description: 'd2', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'HJ2', description: 'd2', create_for_employer_id: client.ids.get('pm') },
     });
     expect(r.status).toBe(200);
   });

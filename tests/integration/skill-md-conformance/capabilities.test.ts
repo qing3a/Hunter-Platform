@@ -33,7 +33,7 @@ describe('skill.md: capabilities (Phase 4)', () => {
     const r = await client.request({ method: 'GET', path: '/v1/capabilities' });
     const roles = r.data.data.sets.map((s: any) => s.role);
     expect(roles).toEqual(expect.arrayContaining([
-      'headhunter', 'employer', 'candidate', 'admin', 'auth',
+      'hr', 'pm', 'candidate', 'admin', 'auth',
     ]));
   });
 
@@ -43,13 +43,13 @@ describe('skill.md: capabilities (Phase 4)', () => {
   });
 
   it('GET /v1/capabilities/me returns this user\'s available capabilities', async () => {
-    const key = await client.register('headhunter', 'CapTester', 'cap@x.com');
+    const key = await client.register('hr', 'CapTester', 'cap@x.com');
     const r = await client.request({
       method: 'GET', path: '/v1/capabilities/me', auth: key,
       schema: MeCapabilitiesResponseSchema,
     });
     expect(r.status).toBe(200);
-    expect(r.data.data.user_type).toBe('headhunter');
+    expect(r.data.data.user_type).toBe('hr');
     expect(r.data.data.capabilities.length).toBeGreaterThanOrEqual(5);
     // All headhunter caps should be available initially (quota fresh)
     for (const c of r.data.data.capabilities) {
@@ -58,7 +58,7 @@ describe('skill.md: capabilities (Phase 4)', () => {
   });
 
   it('GET /v1/capabilities/me marks caps unavailable when quota exhausted (Phase 4 canInvoke)', async () => {
-    const key = await client.register('headhunter', 'QuotaTester', 'qt@x.com');
+    const key = await client.register('hr', 'QuotaTester', 'qt@x.com');
 
     // Directly set quota_used = quota_per_day in the DB. upload_candidate
     // requires an existing candidate_user_id and 10 real uploads would

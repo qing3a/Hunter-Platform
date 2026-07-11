@@ -26,7 +26,7 @@ describe('quota manager', () => {
   function seedUser(id: string, used: number, perDay: number) {
     const users = (globalThis as any).__quotaTestUsers;
     users.insert({
-      id, user_type: 'headhunter', name: id, contact: null, agent_endpoint: null,
+      id, user_type: 'hr', name: id, contact: null, agent_endpoint: null,
       api_key_hash: `h-${id}`, api_key_prefix: 'hp_live_', quota_per_day: perDay,
       quota_used: used, quota_reset_at: '2026-06-18T00:00:00Z',
       reputation: 50, status: 'active',

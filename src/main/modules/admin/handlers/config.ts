@@ -67,7 +67,7 @@ export function createAdminConfigHandler(db: DB) {
     // Sub-G: read all per-tier rate-limit thresholds from config (TTL=0, always fresh)
     async getRateLimits(): Promise<RateLimitsResponse> {
       const cache = createConfigCache(db);
-      const tiers = ['candidate', 'headhunter', 'employer'] as const;
+      const tiers = ['candidate', 'hr', 'pm'] as const;
       const result: Record<string, Record<string, number>> = {};
       for (const tier of tiers) {
         result[tier] = {

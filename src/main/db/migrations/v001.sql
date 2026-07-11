@@ -2,7 +2,7 @@
 
 CREATE TABLE users (
   id              TEXT PRIMARY KEY,
-  user_type       TEXT NOT NULL CHECK (user_type IN ('candidate', 'headhunter', 'employer')),
+  user_type       TEXT NOT NULL CHECK (user_type IN ('candidate', 'hr', 'pm')),
   name            TEXT NOT NULL,
   contact         TEXT,
   agent_endpoint  TEXT,

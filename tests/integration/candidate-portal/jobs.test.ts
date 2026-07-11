@@ -163,7 +163,7 @@ function seedCandidateProfile(opts: {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'headhunter', 'H', NULL, NULL,
+    VALUES (?, 'hr', 'H', NULL, NULL,
       'h_hash', 'h_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -211,7 +211,7 @@ function seedEmployer(employerId: string, name = 'Test Employer'): void {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'employer', ?, NULL, NULL,
+    VALUES (?, 'pm', ?, NULL, NULL,
       ?, 'e_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -656,7 +656,7 @@ describe('candidate-portal: jobs (handler integration)', () => {
     it('browse rejects headhunter User with FORBIDDEN', () => {
       const headhunter: User = {
         id: 'h_x',
-        user_type: 'headhunter',
+        user_type: 'hr',
         name: 'H',
         contact: null,
         agent_endpoint: null,
@@ -681,7 +681,7 @@ describe('candidate-portal: jobs (handler integration)', () => {
     it('recommended rejects employer User with FORBIDDEN', () => {
       const employer: User = {
         id: 'e_x',
-        user_type: 'employer',
+        user_type: 'pm',
         name: 'E',
         contact: null,
         agent_endpoint: null,
@@ -706,7 +706,7 @@ describe('candidate-portal: jobs (handler integration)', () => {
     it('detail rejects headhunter User with FORBIDDEN', () => {
       const headhunter: User = {
         id: 'h_x',
-        user_type: 'headhunter',
+        user_type: 'hr',
         name: 'H',
         contact: null,
         agent_endpoint: null,

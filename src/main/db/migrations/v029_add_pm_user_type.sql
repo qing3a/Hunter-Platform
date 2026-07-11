@@ -3,7 +3,7 @@
 -- ============================================================================
 -- Phase 2 of the PM Workbench plan: unblock PM user creation. Task 2
 -- (Projects Repository) inserts rows via `INSERT INTO users (..., 'pm', ...)`;
--- the v008 user_type CHECK (`'candidate' | 'headhunter' | 'employer'`) would
+-- the v008 user_type CHECK (`'candidate' | 'hr' | 'pm'`) would
 -- reject those with a CHECK constraint violation.
 --
 -- Pattern: SQLite cannot drop a CHECK constraint without rebuilding the
@@ -24,7 +24,7 @@ PRAGMA foreign_keys = OFF;
 -- preserved byte-for-byte from v008.
 CREATE TABLE users_new (
   id                       TEXT PRIMARY KEY,
-  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'headhunter', 'employer', 'pm')),
+  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'hr', 'pm', 'pm')),
   name                     TEXT,
   contact                  TEXT,
   agent_endpoint           TEXT,

@@ -70,7 +70,7 @@ export function createCandidatePortalRouter(
       // Re-shape to satisfy exactOptionalPropertyTypes on OtpRequestInput —
       // only set `user_type` when the client actually provided one. The auth
       // module defaults undefined to 'candidate' so legacy callers keep working.
-      const requestInput: { email: string; user_type?: 'candidate' | 'headhunter' | 'pm'; ip: string } = {
+      const requestInput: { email: string; user_type?: 'candidate' | 'hr' | 'pm'; ip: string } = {
         email: parsed.data.email,
         ip,
       };
@@ -96,7 +96,7 @@ export function createCandidatePortalRouter(
       // Re-shape to satisfy exactOptionalPropertyTypes on OtpVerifyInput —
       // only set `user_type` when defined. The auth module defaults missing
       // to 'candidate' so existing candidate login flows are unaffected.
-      const verifyInput: { email: string; code: string; user_type?: 'candidate' | 'headhunter' | 'pm' } = {
+      const verifyInput: { email: string; code: string; user_type?: 'candidate' | 'hr' | 'pm' } = {
         email: parsed.data.email,
         code: parsed.data.code,
       };

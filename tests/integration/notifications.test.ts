@@ -40,8 +40,8 @@ describe('notifications HTTP endpoints', () => {
     const k2 = generateApiKey();
     u1Key = k1.key;
     u2Key = k2.key;
-    users.insert({ id: 'u1', user_type: 'headhunter', name: 'u1', contact: null, agent_endpoint: null, api_key_hash: k1.hash, api_key_prefix: k1.prefix, quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
-    users.insert({ id: 'u2', user_type: 'employer', name: 'u2', contact: null, agent_endpoint: null, api_key_hash: k2.hash, api_key_prefix: k2.prefix, quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
+    users.insert({ id: 'u1', user_type: 'hr', name: 'u1', contact: null, agent_endpoint: null, api_key_hash: k1.hash, api_key_prefix: k1.prefix, quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
+    users.insert({ id: 'u2', user_type: 'pm', name: 'u2', contact: null, agent_endpoint: null, api_key_hash: k2.hash, api_key_prefix: k2.prefix, quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
   });
 
   afterAll(() => {

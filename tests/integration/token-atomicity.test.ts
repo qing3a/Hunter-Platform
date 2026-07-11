@@ -15,7 +15,7 @@ describe('view token atomicity', () => {
     app = createApp();
 
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@h.com' });
     const cand = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'C', contact: 'c@c.com' });
     const upload = await request(app).post('/v1/headhunter/candidates')

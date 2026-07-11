@@ -9,7 +9,7 @@ import {
 import { QUOTA_COSTS } from '../../shared/constants.js';
 
 export const employerCapabilities = defineCapabilitySet({
-  role: 'employer',
+  role: 'pm',  // R1.C2: was 'employer'
   capabilities: [
     {
       name: 'employer.create_placement',

@@ -17,7 +17,7 @@ describe('webhook_delivery_queue repository', () => {
     users = createUsersRepo(db);
     wh = createWebhookQueueRepo(db);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'u1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'u1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
   });
   afterEach(() => { db.close(); try { fs.unlinkSync(testDb); } catch {} });
 

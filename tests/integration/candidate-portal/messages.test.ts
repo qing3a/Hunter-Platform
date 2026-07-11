@@ -40,7 +40,7 @@ import type { User } from '../../../src/shared/types.js';
 /** Seed a headhunter or employer recipient in the DB; returns the user id. */
 function seedRecipient(opts: {
   id: string;
-  userType: 'headhunter' | 'employer';
+  userType: 'hr' | 'pm';
   name?: string;
 }): void {
   const db = getTestDb();
@@ -280,7 +280,7 @@ describe('candidate-portal: messages (handler + repo integration)', () => {
 
     it('POST /messages creates a message and returns its id', async () => {
       const { apiKey } = await makeCandidate(`send-${Date.now()}@example.com`);
-      seedRecipient({ id: 'h_target', userType: 'headhunter', name: 'Hunter One' });
+      seedRecipient({ id: 'h_target', userType: 'hr', name: 'Hunter One' });
 
       const app = buildAppWithMessagesRouter();
       const res = await request(app)
@@ -402,7 +402,7 @@ describe('candidate-portal: messages (handler + repo integration)', () => {
   describe('content validation', () => {
     it('POST /messages returns 400 for empty content', async () => {
       const { apiKey } = await makeCandidate(`empty-${Date.now()}@example.com`);
-      seedRecipient({ id: 'h_empty', userType: 'headhunter' });
+      seedRecipient({ id: 'h_empty', userType: 'hr' });
 
       const app = buildAppWithMessagesRouter();
       const res = await request(app)
@@ -416,7 +416,7 @@ describe('candidate-portal: messages (handler + repo integration)', () => {
 
     it('POST /messages returns 400 for whitespace-only content', async () => {
       const { apiKey } = await makeCandidate(`ws-${Date.now()}@example.com`);
-      seedRecipient({ id: 'h_ws', userType: 'headhunter' });
+      seedRecipient({ id: 'h_ws', userType: 'hr' });
 
       const app = buildAppWithMessagesRouter();
       const res = await request(app)
@@ -429,7 +429,7 @@ describe('candidate-portal: messages (handler + repo integration)', () => {
 
     it('POST /messages returns 400 for content over 2000 chars', async () => {
       const { apiKey } = await makeCandidate(`long-${Date.now()}@example.com`);
-      seedRecipient({ id: 'h_long', userType: 'headhunter' });
+      seedRecipient({ id: 'h_long', userType: 'hr' });
 
       const app = buildAppWithMessagesRouter();
       const res = await request(app)
@@ -467,7 +467,7 @@ describe('candidate-portal: messages (handler + repo integration)', () => {
 
     it('POST /messages rejects unknown body fields (strict whitelist)', async () => {
       const { apiKey } = await makeCandidate(`strict-${Date.now()}@example.com`);
-      seedRecipient({ id: 'h_strict', userType: 'headhunter' });
+      seedRecipient({ id: 'h_strict', userType: 'hr' });
 
       const app = buildAppWithMessagesRouter();
       const res = await request(app)

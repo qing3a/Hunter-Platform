@@ -17,8 +17,8 @@ describe('未认领的 job 在公开页隐藏', () => {
 
   it('landing page 不显示 employer_id=NULL 的 job', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
 
     // employer 直发 1 个
     await request(app).post('/v1/employer/jobs').set('Authorization', `Bearer ${emp.api_key}`).send({ title: 'DirectJob' });
@@ -38,8 +38,8 @@ describe('未认领的 job 在公开页隐藏', () => {
 
   it('GET /v1/market/jobs 不返回未认领的', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
 
     await request(app).post('/v1/employer/jobs').set('Authorization', `Bearer ${emp.api_key}`).send({ title: 'DirectJob' });
     await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'UnclaimedJob', created_for_employer_id: emp.id });

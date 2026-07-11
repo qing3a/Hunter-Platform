@@ -24,7 +24,7 @@ describe('auth middleware', () => {
   function seedUser(id: string, hash: string, prefix: string) {
     const users = (globalThis as any).__authTestUsers;
     users.insert({
-      id, user_type: 'headhunter', name: id, contact: null, agent_endpoint: null,
+      id, user_type: 'hr', name: id, contact: null, agent_endpoint: null,
       api_key_hash: hash, api_key_prefix: prefix, quota_per_day: 100, quota_used: 0,
       quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active',
       created_at: '2026-06-17T00:00:00Z', updated_at: '2026-06-17T00:00:00Z',

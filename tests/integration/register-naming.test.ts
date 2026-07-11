@@ -16,7 +16,7 @@ describe('POST /v1/auth/register — field naming convention', () => {
   it('returns data.id (not data.user_id) for self-ID convention', async () => {
     const app = createApp();
     const res = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Convention Test', contact: 'conv@c.com' });
+      .send({ user_type: 'hr', name: 'Convention Test', contact: 'conv@c.com' });
 
     expect(res.status).toBe(200);
     expect(res.body.data.id).toMatch(/^user_/);
@@ -26,7 +26,7 @@ describe('POST /v1/auth/register — field naming convention', () => {
   it('data.id matches the id returned by GET /v1/users/{id}/status', async () => {
     const app = createApp();
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Conv Test', contact: 'ct@c.com' });
+      .send({ user_type: 'hr', name: 'Conv Test', contact: 'ct@c.com' });
     const { id, api_key } = reg.body.data;
 
     const status = await request(app).get(`/v1/users/${id}/status`)

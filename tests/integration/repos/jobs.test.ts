@@ -17,7 +17,7 @@ describe('jobs repository', () => {
     users = createUsersRepo(db);
     jobs = createJobsRepo(db);
     users.insert({
-      id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null,
+      id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: null,
       api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0,
       quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active',
       created_at: '2026-06-17T00:00:00Z', updated_at: '2026-06-17T00:00:00Z',

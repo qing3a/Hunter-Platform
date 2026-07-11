@@ -2,7 +2,7 @@ import { SHARED_CSS } from './shared-css.js';
 
 export interface UserQuotaViewData {
   userId: string;
-  userType: 'candidate' | 'headhunter' | 'employer';
+  userType: 'candidate' | 'hr' | 'pm';  // R1.C2: renamed from 'hr'/'pm'
   name: string;
   quotaPerDay: number;
   quotaUsed: number;

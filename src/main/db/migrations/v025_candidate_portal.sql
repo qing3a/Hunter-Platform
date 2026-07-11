@@ -54,8 +54,8 @@ CREATE INDEX idx_app_candidate ON candidate_applications(candidate_user_id, crea
 CREATE INDEX idx_app_pickup    ON candidate_applications(pickup_headhunter_id, created_at DESC);
 
 -- ALTER existing tables
-ALTER TABLE recommendations ADD COLUMN source_type TEXT NOT NULL DEFAULT 'headhunter';
-  -- 'headhunter' | 'candidate_self_apply' | 'system'
+ALTER TABLE recommendations ADD COLUMN source_type TEXT NOT NULL DEFAULT 'hr';
+  -- 'hr' | 'candidate_self_apply' | 'system'
 ALTER TABLE recommendations ADD COLUMN pickup_headhunter_id TEXT REFERENCES users(id);
 ALTER TABLE recommendations ADD COLUMN candidate_note TEXT;
 

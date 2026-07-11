@@ -11,8 +11,8 @@ describe('skill.md: candidate (scenarios 10-12)', () => {
     const f = await freshApp('candidate');
     client = new ConformanceClient(f.app);
     cKey = await client.register('candidate', 'C', 'c@x.com');
-    hKey = await client.register('headhunter', 'H', 'h@x.com');
-    eKey = await client.register('employer', 'E', 'e@x.com');
+    hKey = await client.register('hr', 'H', 'h@x.com');
+    eKey = await client.register('pm', 'E', 'e@x.com');
   });
   afterAll(() => cleanupDb('candidate'));
 
@@ -43,7 +43,7 @@ describe('skill.md: candidate (scenarios 10-12)', () => {
     });
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'CuJob', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'CuJob', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     const jid = jobRes.data.data.id;
     // Employer must claim the job before recommendation (v009)
@@ -72,7 +72,7 @@ describe('skill.md: candidate (scenarios 10-12)', () => {
     });
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'RejJob', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'RejJob', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     const jid = jobRes.data.data.id;
     await client.request({ method: 'POST', path: `/v1/employer/claim-jobs/${jid}`, auth: eKey });

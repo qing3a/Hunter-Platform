@@ -9,8 +9,8 @@ describe('skill.md: view tokens (scenario 13, one-time HTML)', () => {
   beforeAll(async () => {
     const f = await freshApp('view-tokens');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'H', 'h@x.com');
-    eKey = await client.register('employer', 'E', 'e@x.com');
+    hKey = await client.register('hr', 'H', 'h@x.com');
+    eKey = await client.register('pm', 'E', 'e@x.com');
   });
   afterAll(() => cleanupDb('view-tokens'));
 
@@ -20,7 +20,7 @@ describe('skill.md: view tokens (scenario 13, one-time HTML)', () => {
   // with the exact expected payload from plan).
   it('POST /v1/views/audit/:user_id endpoint exists and responds', async () => {
     const r = await client.request({
-      method: 'POST', path: `/v1/views/audit/${client.ids.get('headhunter')}`, auth: hKey,
+      method: 'POST', path: `/v1/views/audit/${client.ids.get('hr')}`, auth: hKey,
     });
     // Accept any non-404 (endpoint exists). 403/400/200 all indicate it's wired up.
     expect(r.status).not.toBe(404);

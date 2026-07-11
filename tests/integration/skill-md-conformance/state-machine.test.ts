@@ -12,8 +12,8 @@ describe('skill.md: state machine invalid transitions (Phase 3)', () => {
   beforeAll(async () => {
     const f = await freshApp('state-machine');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'H', 'h@x.com');
-    eKey = await client.register('employer', 'E', 'e@x.com');
+    hKey = await client.register('hr', 'H', 'h@x.com');
+    eKey = await client.register('pm', 'E', 'e@x.com');
     cKey = await client.register('candidate', 'C', 'c@x.com');
   });
   afterAll(() => cleanupDb('state-machine'));
@@ -59,7 +59,7 @@ describe('skill.md: state machine invalid transitions (Phase 3)', () => {
     // starts null), then employer claims it, then rejects → 409.
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'ClaimTest', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'ClaimTest', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     const jid = jobRes.data.data.id;
     const claim = await client.request({

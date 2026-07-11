@@ -29,8 +29,8 @@ describe('commission handler', () => {
     places = createPlacementsRepo(db);
     handler = createCommissionHandler(db, Buffer.alloc(32, 1));
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    users.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'h1', user_type: 'hr', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'c1', user_type: 'candidate', name: 'C', contact: null, agent_endpoint: null, api_key_hash: 'h3', api_key_prefix: 'hp_live_', quota_per_day: 50, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     priv.insert({ id: 'cp_1', headhunter_id: 'h1', candidate_user_id: 'c1', name_enc: 'n', phone_enc: 'p', email_enc: 'e', current_company_raw: null, current_title_raw: null, expected_salary: null, years_experience: null, education_school: null, resume_url: null, skills_json: null, raw_payload_json: null, created_at: now, updated_at: now });
     anon.insert({ id: 'ca_1', source_private_id: 'cp_1', source_headhunter_id: 'h1', industry: '互联网', title_level: 'P6', years_experience: 8, salary_range: '60-80万', education_tier: '985', skills_json: '[]', is_public_pool: 0, unlock_status: 'unlocked', created_at: now, updated_at: now });
@@ -40,18 +40,18 @@ describe('commission handler', () => {
   afterEach(() => { db.close(); try { fs.unlinkSync(testDb); } catch {} try { fs.unlinkSync(testDb + '-wal') } catch {} try { fs.unlinkSync(testDb + '-shm') } catch {} });
 
   it('createPlacement requires employer role', async () => {
-    const h: any = { id: 'h1', user_type: 'headhunter' };
+    const h: any = { id: 'h1', user_type: 'hr' };
     await expect(handler.createPlacement(h, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).rejects.toThrow();
   });
 
   it('createPlacement requires recommendation in unlocked status', async () => {
     db.prepare("UPDATE recommendations SET status = 'pending' WHERE id = 'r1'").run();
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     await expect(handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).rejects.toThrow(/Invalid state/);
   });
 
   it('createPlacement computes commission and inserts', async () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     const p = await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 1_000_000 });
     // Sub-G: platform_fee_rate is read from config (default 0.1 = 10%)
     expect(p.platform_fee).toBe(100_000);
@@ -66,7 +66,7 @@ describe('commission handler', () => {
     const notif = createNotificationTrigger(db);
     const notifsRepo = createNotificationsRepo(db);
     const hWithNotif = cch(db, Buffer.alloc(32, 1), notif);
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     await hWithNotif.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 1_000_000 });
     // h1 is primary_headhunter in this fixture
     const list = notifsRepo.listByUser({ user_id: 'h1' });
@@ -75,7 +75,7 @@ describe('commission handler', () => {
   });
 
   it('createPlacement rejects duplicate (P1#4)', async () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     await expect(handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).rejects.toThrow();
   });
@@ -84,7 +84,7 @@ describe('commission handler', () => {
   // After createPlacement, the primary headhunter should receive a webhook so their
   // agent knows to expect a commission / next step.
   it('createPlacement enqueues placement_created webhook for primary headhunter', async () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     const p = await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     const rows = db.prepare(
       "SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h1'"
@@ -103,9 +103,9 @@ describe('commission handler', () => {
   it('createPlacement also enqueues webhook for referrer headhunter when present', async () => {
     // Insert a referrer headhunter and update the recommendation to point at them
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'h2', user_type: 'headhunter', name: 'H2', contact: null, agent_endpoint: null, api_key_hash: 'h2b', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'h2', user_type: 'hr', name: 'H2', contact: null, agent_endpoint: null, api_key_hash: 'h2b', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     db.prepare("UPDATE recommendations SET referrer_headhunter_id = 'h2' WHERE id = 'r1'").run();
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     const h1Rows = db.prepare("SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h1'").all() as any[];
     const h2Rows = db.prepare("SELECT * FROM webhook_delivery_queue WHERE event_type = 'placement_created' AND target_user_id = 'h2'").all() as any[];
@@ -116,7 +116,7 @@ describe('commission handler', () => {
   it('createPlacement rolls back webhook on UNIQUE constraint failure', async () => {
     // If placement insert fails (duplicate), the webhook must NOT be enqueued —
     // otherwise the headhunter would be told about a non-existent placement.
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     await expect(handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 })).rejects.toThrow();
     // Still only 1 row from the first (successful) call
@@ -125,7 +125,7 @@ describe('commission handler', () => {
   });
 
   it('markPaid transitions pending_payment → paid', async () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     const p = await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     handler.markPaid('admin', p.id);
     expect(places.findById(p.id)?.status).toBe('paid');
@@ -138,7 +138,7 @@ describe('commission handler', () => {
     const notif = createNotificationTrigger(db);
     const notifsRepo = createNotificationsRepo(db);
     const hWithNotif = cch(db, Buffer.alloc(32, 1), notif);
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     const p = await hWithNotif.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     hWithNotif.markPaid('admin', p.id);
     // h1 is primary_headhunter
@@ -148,7 +148,7 @@ describe('commission handler', () => {
   });
 
   it('markPaid rejects when status is not pending_payment', async () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     const p = await handler.createPlacement(e, { anonymized_candidate_id: 'ca_1', job_id: 'j1', annual_salary: 600000 });
     handler.markPaid('admin', p.id);
     expect(() => handler.markPaid('admin', p.id)).toThrow(/Invalid state/);

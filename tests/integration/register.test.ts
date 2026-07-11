@@ -23,7 +23,7 @@ describe('POST /v1/auth/register', () => {
     const res = await request(app)
       .post('/v1/auth/register')
       .send({
-        user_type: 'headhunter',
+        user_type: 'hr',
         name: '猎头-Bob',
         contact: 'bob@example.com',
         agent_endpoint: 'https://bob.example.com/webhook',
@@ -45,7 +45,7 @@ describe('POST /v1/auth/register', () => {
   });
 
   it('rejects missing required fields', async () => {
-    const res = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter' });
+    const res = await request(app).post('/v1/auth/register').send({ user_type: 'hr' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_PARAMS');
   });
@@ -56,8 +56,20 @@ describe('POST /v1/auth/register', () => {
     const prodApp = createApp();
     const res = await request(prodApp)
       .post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'A', contact: 'a@x.com', agent_endpoint: 'http://insecure.example.com' });
+      .send({ user_type: 'hr', name: 'A', contact: 'a@x.com', agent_endpoint: 'http://insecure.example.com' });
     expect(res.status).toBe(400);
     process.env.NODE_ENV = 'test';
+  });
+
+  // R1.C2 / T5 — every new register auto-grants all 3 roles; the registered
+  // role becomes user_type, and available_roles surfaces the full set so the
+  // client can render a role-switch UI after login.
+  it('returns available_roles with all 3 enum values (R1.C2/T5)', async () => {
+    const res = await request(app)
+      .post('/v1/auth/register')
+      .send({ user_type: 'pm', name: 'Mul-Role', contact: 'multi@example.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.user_type).toBe('pm');
+    expect([...res.body.data.available_roles].sort()).toEqual(['candidate', 'hr', 'pm']);
   });
 });

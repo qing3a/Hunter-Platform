@@ -35,7 +35,7 @@ import type { User } from '../../../src/shared/types.js';
  */
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'candidate' | 'employer';
+  userType: 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -121,7 +121,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
   describe('create', () => {
     it('inserts a row with auto-generated id and defaults', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
 
       const row = createHunterTasks(getTestDb()).create(hunter, { title: 'follow up with Acme' });
 
@@ -140,7 +140,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('accepts all optional fields', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
 
       const dueAt = Date.now() + 86_400_000;
@@ -162,14 +162,14 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('rejects an empty title with INVALID_PARAMS', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       expectErrorCode(() => tasks.create(hunter, { title: '' }), 'INVALID_PARAMS');
       expectErrorCode(() => tasks.create(hunter, { title: '   ' }), 'INVALID_PARAMS');
     });
 
     it('rejects a title over 200 chars with INVALID_PARAMS', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const long = 'x'.repeat(201);
       expectErrorCode(
         () => createHunterTasks(getTestDb()).create(hunter, { title: long }),
@@ -179,7 +179,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
     it('rejects non-headhunter callers with FORBIDDEN', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
       const tasks = createHunterTasks(getTestDb());
       expectErrorCode(() => tasks.create(candidate, { title: 'no' }), 'FORBIDDEN');
       expectErrorCode(() => tasks.create(employer, { title: 'no' }), 'FORBIDDEN');
@@ -190,8 +190,8 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
   describe('list', () => {
     it('returns only the caller hunter rows (ownership scoped)', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
 
       const tasks = createHunterTasks(getTestDb());
       tasks.create(h1, { title: 'h1 task A' });
@@ -206,7 +206,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('filters by status=pending / completed / all', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const a = tasks.create(hunter, { title: 'A' });
       await tick();
@@ -225,7 +225,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('default status is pending', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const a = tasks.create(hunter, { title: 'A' });
       await tick();
@@ -237,7 +237,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('orders by due_at ASC NULLS LAST, then created_at DESC', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const t1 = tasks.create(hunter, { title: 'no due, oldest' });
       await tick();
@@ -252,7 +252,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('respects limit and offset', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       for (let i = 0; i < 5; i++) {
         tasks.create(hunter, { title: `t${i}` });
@@ -266,7 +266,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('clamps limit to max 100', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       tasks.create(hunter, { title: 'a' });
       // Asking for limit=999 should not error; repo clamps to 100 internally.
@@ -281,7 +281,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
   describe('update', () => {
     it('patches fields and bumps updated_at', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(hunter, { title: 'original', priority: 'low' });
 
@@ -304,7 +304,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('throws NOT_FOUND for a non-existent task', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       expectErrorCode(
         () => createHunterTasks(getTestDb()).update(hunter, 'task_doesnotexist', { title: 'x' }),
         'NOT_FOUND',
@@ -312,8 +312,8 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('throws NOT_FOUND for a task owned by another hunter', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(h1, { title: 'mine' });
 
@@ -328,7 +328,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
   describe('complete / reopen', () => {
     it('complete sets completed_at and returns the row', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(hunter, { title: 'finish me' });
       expect(created.completed_at).toBeNull();
@@ -341,7 +341,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('reopen clears completed_at and returns the row', async () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(hunter, { title: 'finish me' });
       await tick();
@@ -354,8 +354,8 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('complete throws NOT_FOUND for a task owned by another hunter', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(h1, { title: 'mine' });
 
@@ -368,7 +368,7 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
 
   describe('delete', () => {
     it('removes the row', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(hunter, { title: 'delete me' });
 
@@ -380,14 +380,14 @@ describe('hunter-portal: tasks (handler + repo integration)', () => {
     });
 
     it('delete on a non-existent id throws NOT_FOUND', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       expectErrorCode(() => tasks.delete(hunter, 'task_doesnotexist'), 'NOT_FOUND');
     });
 
     it('delete on another hunter row throws NOT_FOUND and the row survives', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
       const tasks = createHunterTasks(getTestDb());
       const created = tasks.create(h1, { title: 'mine' });
 

@@ -79,8 +79,8 @@ export function createCandidatePortalMessages(db: DB): MessagesModule {
     if (!recipient) throw Errors.notFound('Recipient not found');
     if (
       recipient.user_type !== 'candidate' &&
-      recipient.user_type !== 'headhunter' &&
-      recipient.user_type !== 'employer'
+      recipient.user_type !== 'hr' &&
+      recipient.user_type !== 'pm'
     ) {
       throw Errors.invalidParams('Recipient user type cannot receive messages');
     }
@@ -96,8 +96,8 @@ export function createCandidatePortalMessages(db: DB): MessagesModule {
     list(user: User, opts: MessagesListQuery = {}): MessagesListResult {
       if (
         user.user_type !== 'candidate' &&
-        user.user_type !== 'headhunter' &&
-        user.user_type !== 'employer'
+        user.user_type !== 'hr' &&
+        user.user_type !== 'pm'
       ) {
         throw Errors.forbidden('Invalid user type for messaging');
       }
@@ -125,8 +125,8 @@ export function createCandidatePortalMessages(db: DB): MessagesModule {
     send(user: User, input: MessageSendInput): { message_id: number } {
       if (
         user.user_type !== 'candidate' &&
-        user.user_type !== 'headhunter' &&
-        user.user_type !== 'employer'
+        user.user_type !== 'hr' &&
+        user.user_type !== 'pm'
       ) {
         throw Errors.forbidden('Invalid user type for messaging');
       }
@@ -166,8 +166,8 @@ export function createCandidatePortalMessages(db: DB): MessagesModule {
     detail(user: User, messageId: number): MessageListItem {
       if (
         user.user_type !== 'candidate' &&
-        user.user_type !== 'headhunter' &&
-        user.user_type !== 'employer'
+        user.user_type !== 'hr' &&
+        user.user_type !== 'pm'
       ) {
         throw Errors.forbidden('Invalid user type for messaging');
       }
@@ -195,8 +195,8 @@ export function createCandidatePortalMessages(db: DB): MessagesModule {
     markRead(user: User, messageId: number): { message_id: number; read_at: number } {
       if (
         user.user_type !== 'candidate' &&
-        user.user_type !== 'headhunter' &&
-        user.user_type !== 'employer'
+        user.user_type !== 'hr' &&
+        user.user_type !== 'pm'
       ) {
         throw Errors.forbidden('Invalid user type for messaging');
       }

@@ -15,12 +15,12 @@ describe('GET /v1/market/leaderboard', () => {
   it('returns 200 with top headhunters sorted by reputation DESC', async () => {
     const app = createApp();
     // Register 3 headhunters with different reputation by direct DB updates
-    const hh1 = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'Top HH', contact: 'top@h.com' });
-    const hh2 = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'Mid HH', contact: 'mid@h.com' });
-    const hh3 = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'Low HH', contact: 'low@h.com' });
+    const hh1 = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'Top HH', contact: 'top@h.com' });
+    const hh2 = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'Mid HH', contact: 'mid@h.com' });
+    const hh3 = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'Low HH', contact: 'low@h.com' });
 
     // Use anyone to read leaderboard (auth required, not headhunter-specific)
-    const viewer = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'Viewer', contact: 'viewer@e.com' });
+    const viewer = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'Viewer', contact: 'viewer@e.com' });
 
     const res = await request(app).get('/v1/market/leaderboard')
       .set('Authorization', `Bearer ${viewer.body.data.api_key}`);
@@ -41,8 +41,8 @@ describe('GET /v1/market/leaderboard', () => {
   it('only includes headhunters (not candidates/employers)', async () => {
     const app = createApp();
     await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'Cand', contact: 'cand@c.com' });
-    await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'Emp', contact: 'emp@e.com' });
-    const viewer = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'HH', contact: 'hh@h.com' });
+    await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'Emp', contact: 'emp@e.com' });
+    const viewer = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'HH', contact: 'hh@h.com' });
 
     const res = await request(app).get('/v1/market/leaderboard')
       .set('Authorization', `Bearer ${viewer.body.data.api_key}`);

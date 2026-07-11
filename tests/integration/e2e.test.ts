@@ -23,7 +23,7 @@ describe('M1 end-to-end', () => {
     const { createApp } = await import('../../src/main/server');
     app = createApp();
 
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'E2E Hunter', contact: 'e2e-h@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'E2E Hunter', contact: 'e2e-h@x.com' });
     headhunterKey = h.body.data.api_key;
     headhunterId = h.body.data.id;
 

@@ -20,8 +20,8 @@ describe('gatherLandingData - industryNav (SQL A)', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
       VALUES
-        ('u_e1', 'employer', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now')),
-        ('u_h1', 'headhunter', 'H1', 'h@h.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now'));
+        ('u_e1', 'pm', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now')),
+        ('u_h1', 'hr', 'H1', 'h@h.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, industry, created_at, updated_at)
       VALUES
         ('j1', 'u_e1', 'J1', 'open', 'AI', datetime('now'), datetime('now')),
@@ -38,7 +38,7 @@ describe('gatherLandingData - industryNav (SQL A)', () => {
   it('excludes jobs with NULL industry', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, industry, created_at, updated_at)
       VALUES ('j1', 'u_e1', 'J1', 'open', NULL, datetime('now'), datetime('now'));
     `);
@@ -49,7 +49,7 @@ describe('gatherLandingData - industryNav (SQL A)', () => {
   it('excludes non-open jobs', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, industry, created_at, updated_at)
       VALUES
         ('j1', 'u_e1', 'J1', 'closed', 'AI', datetime('now'), datetime('now')),
@@ -75,7 +75,7 @@ describe('gatherLandingData - featuredJobs (SQL B)', () => {
   it('returns 10 open jobs sorted by priority ASC then created_at DESC', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'Boss Inc', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'Boss Inc', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, priority, industry, salary_min, salary_max, required_skills_json, created_at, updated_at)
       VALUES
         ('j_normal', 'u_e1', 'Normal Job', 'open', 'normal', 'AI', 100000, 200000, '["Java"]', datetime('now', '-1 day'), datetime('now', '-1 day')),
@@ -91,7 +91,7 @@ describe('gatherLandingData - featuredJobs (SQL B)', () => {
   it('LEFT JOIN handles orphan job (employer_id NULL) — excluded', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_h1', 'headhunter', 'H1', 'h@h.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_h1', 'hr', 'H1', 'h@h.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, source_headhunter_id, title, status, priority, created_at, updated_at)
       VALUES ('j_orphan', 'u_h1', 'Orphan', 'open', 'normal', datetime('now'), datetime('now'));
     `);
@@ -102,7 +102,7 @@ describe('gatherLandingData - featuredJobs (SQL B)', () => {
   it('parses NULL required_skills_json as empty array', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'E1', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, priority, required_skills_json, created_at, updated_at)
       VALUES ('j1', 'u_e1', 'J1', 'open', 'normal', NULL, datetime('now'), datetime('now'));
     `);
@@ -127,9 +127,9 @@ describe('gatherLandingData - hotCompanies (SQL C)', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
       VALUES
-        ('u_e1', 'employer', 'Boss Inc', 'e1@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now')),
-        ('u_e2', 'employer', 'Acme',     'e2@e.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now')),
-        ('u_e3', 'employer', 'OldCo',    'e3@e.com', 'suspended', 50, 'h3', 'p3', datetime('now'), datetime('now'), datetime('now'));
+        ('u_e1', 'pm', 'Boss Inc', 'e1@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now')),
+        ('u_e2', 'pm', 'Acme',     'e2@e.com', 'active', 50, 'h2', 'p2', datetime('now'), datetime('now'), datetime('now')),
+        ('u_e3', 'pm', 'OldCo',    'e3@e.com', 'suspended', 50, 'h3', 'p3', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, created_at, updated_at)
       VALUES
         ('j_e1_a', 'u_e1', 'J1A', 'open', datetime('now'), datetime('now')),
@@ -156,7 +156,7 @@ describe('gatherLandingData - hotCompanies (SQL C)', () => {
   it('each hot company includes up to 3 most recent open jobs', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'Boss Inc', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'Boss Inc', 'e@e.com', 'active', 50, 'h1', 'p1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, salary_min, salary_max, created_at, updated_at)
       VALUES
         ('j1', 'u_e1', 'Newest',  'open', 100000, 200000, datetime('now'),                       datetime('now')),
@@ -187,8 +187,8 @@ describe('gatherLandingData - demo data isolation (prod mode)', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
       VALUES
-        ('real_emp',   'employer',   'Real Co',  'r@r.com', 'active', 50, 'h_r', 'p_r', datetime('now'), datetime('now'), datetime('now')),
-        ('demo_emp',   'employer',   'Demo Co',  'd@d.com', 'active', 50, 'h_d', 'p_d', datetime('now'), datetime('now'), datetime('now'));
+        ('real_emp',   'pm',   'Real Co',  'r@r.com', 'active', 50, 'h_r', 'p_r', datetime('now'), datetime('now'), datetime('now')),
+        ('demo_emp',   'pm',   'Demo Co',  'd@d.com', 'active', 50, 'h_d', 'p_d', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, industry, salary_min, salary_max, required_skills_json, created_at, updated_at)
       VALUES
         ('real_j1', 'real_emp', 'Real Job',   'open', 'AI', 100000, 200000, '["Java"]',      datetime('now'), datetime('now')),
@@ -259,7 +259,7 @@ describe('gatherLandingData - demo data isolation (dev mode)', () => {
   it('shows demo data in dev mode (no filter)', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('demo_emp', 'employer', 'Demo Co', 'd@d.com', 'active', 50, 'h_d', 'p_d', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('demo_emp', 'pm', 'Demo Co', 'd@d.com', 'active', 50, 'h_d', 'p_d', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, industry, created_at, updated_at)
       VALUES ('demo_j1', 'demo_emp', 'Demo Job', 'open', 'AI', datetime('now'), datetime('now'));
     `);

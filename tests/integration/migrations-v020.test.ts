@@ -72,7 +72,7 @@ describe('migrations v020', () => {
     expect(recColNames).toContain('kanban_position');
 
     const migs = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(migs.map((m: any) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]);
+    expect(migs.map((m: any) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]);
   });
 
   it('hunter_tasks defaults: priority=normal and timestamps set via unixepoch()*1000', async () => {
@@ -84,7 +84,7 @@ describe('migrations v020', () => {
     // Insert a user to satisfy FK
     db.prepare(
       `INSERT INTO users (id, user_type, name, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-       VALUES ('u-t1', 'headhunter', 'h1', 'k-t1', 'pre-t1', '2026-01-01', '2026-01-01', '2026-01-01')`
+       VALUES ('u-t1', 'hr', 'h1', 'k-t1', 'pre-t1', '2026-01-01', '2026-01-01', '2026-01-01')`
     ).run();
 
     // unixepoch() returns seconds, * 1000 = ms at second precision,
@@ -116,8 +116,8 @@ describe('migrations v020', () => {
     // a candidate_anonymized row, and a job.
     db.prepare(
       `INSERT INTO users (id, user_type, name, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-       VALUES ('u-t2h', 'headhunter', 'h', 'k-t2h', 'p-t2h', '2026-01-01', '2026-01-01', '2026-01-01'),
-              ('u-t2e', 'employer',   'e', 'k-t2e', 'p-t2e', '2026-01-01', '2026-01-01', '2026-01-01')`
+       VALUES ('u-t2h', 'hr', 'h', 'k-t2h', 'p-t2h', '2026-01-01', '2026-01-01', '2026-01-01'),
+              ('u-t2e', 'pm',   'e', 'k-t2e', 'p-t2e', '2026-01-01', '2026-01-01', '2026-01-01')`
     ).run();
 
     db.prepare(

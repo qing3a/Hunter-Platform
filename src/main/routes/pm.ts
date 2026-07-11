@@ -34,6 +34,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { roleGate } from '../modules/auth/role-gate.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
 import type { User } from '../../shared/types.js';
@@ -76,6 +77,9 @@ import {
 export function createPmRouter(db: DB): Router {
   const router = Router();
   router.use(authMiddleware(db));
+  // R1.C2 / T10 — layered defense per spec §7.2: only pm active_role.
+  // The handler modules' assertPm() checks remain the source of truth.
+  router.use(roleGate('pm'));
 
   const projects = createProjectsHandler(db);
   const positions = createPositionsHandler(db);

@@ -24,7 +24,7 @@ describe('notifications repo', () => {
     // fixture: 3 users
     for (const id of ['u1', 'u2', 'u3']) {
       users.insert({
-        id, user_type: 'headhunter', name: id, contact: null, agent_endpoint: null,
+        id, user_type: 'hr', name: id, contact: null, agent_endpoint: null,
         api_key_hash: `hash_${id}`, api_key_prefix: 'p_', quota_per_day: 100, quota_used: 0,
         quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active',
         created_at: NOW, updated_at: NOW,

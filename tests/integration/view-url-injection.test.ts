@@ -18,7 +18,7 @@ describe('view_url injection', () => {
 
   it('POST /v1/headhunter/candidates success response includes view_url', async () => {
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@h.com' });
     const apiKey = reg.body.data.api_key;
     const candReg = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'C', contact: 'c@c.com' });
@@ -38,7 +38,7 @@ describe('view_url injection', () => {
 
   it('GET /v1/users/{id}/status response includes view_url', async () => {
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@h.com' });
     const res = await request(app).get(`/v1/users/${reg.body.data.id}/status`)
       .set('Authorization', `Bearer ${reg.body.data.api_key}`);
     expect(res.body.data.view_url).toMatch(/^https?:\/\/[^/]+\/view\/user-quota\//);
@@ -51,7 +51,7 @@ describe('view_url injection', () => {
 
   it('400 validation error does NOT include view_url', async () => {
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@h.com' });
     const res = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${reg.body.data.api_key}`)
       .send({ invalid: 'body' });
@@ -60,7 +60,7 @@ describe('view_url injection', () => {
 
   it('unmapped endpoint does NOT include view_url', async () => {
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@h.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@h.com' });
     const res = await request(app).get('/v1/config/industries')
       .set('Authorization', `Bearer ${reg.body.data.api_key}`);
     expect(res.body.data?.view_url).toBeUndefined();

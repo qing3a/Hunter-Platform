@@ -20,7 +20,7 @@ describe('notification cleanup cron', () => {
     runMigrations(localDb);
     repo = createNotificationsRepo(localDb);
     const users = createUsersRepo(localDb);
-    users.insert({ id: 'u1', user_type: 'headhunter', name: 'u1', contact: null, agent_endpoint: null, api_key_hash: 'h_cron', api_key_prefix: 'p_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
+    users.insert({ id: 'u1', user_type: 'hr', name: 'u1', contact: null, agent_endpoint: null, api_key_hash: 'h_cron', api_key_prefix: 'p_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-25T00:00:00.000Z', reputation: 50, status: 'active', created_at: NOW, updated_at: NOW });
   });
   afterEach(() => {
     try { if (localDb) localDb.close(); } catch {}

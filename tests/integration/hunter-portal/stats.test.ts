@@ -40,7 +40,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'candidate' | 'employer';
+  userType: 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -91,7 +91,7 @@ function seedUser(opts: {
 function seedJob(opts: { id: string; employerId?: string }): string {
   const db = getTestDb();
   const employerId = opts.employerId ?? `emp_${opts.id}`;
-  seedUser({ id: employerId, userType: 'employer' });
+  seedUser({ id: employerId, userType: 'pm' });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO jobs (id, employer_id, source_headhunter_id, created_for_employer_id,
@@ -179,7 +179,7 @@ function seedRecommendation(opts: SeedRecOpts): void {
                                  pipeline_stage, kanban_position,
                                  created_at, updated_at)
     VALUES (?, ?, ?, ?, ?,
-            ?, 'headhunter', NULL,
+            ?, 'hr', NULL,
             NULL, ?, NULL,
             ?, NULL,
             ?, ?)
@@ -243,7 +243,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
 
   describe('overview', () => {
     it('returns all-zero counts when the hunter has no recommendations', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const ov = createHunterStats(getTestDb()).overview(hunter);
       expect(ov.active_recommendations).toBe(0);
       expect(ov.placements_count).toBe(0);
@@ -253,7 +253,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('sums up active / placed / rejected counts across mixed recs', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       seedJob({ id: 'job2' });
       // Each rec gets its own (anonId, jobId) pair to satisfy the
@@ -291,7 +291,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('active_recommendations excludes the terminal stages onboarded + rejected', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       seedJob({ id: 'job2' });
       // 6 distinct (anonId, jobId) pairs to satisfy the UNIQUE constraint.
@@ -313,7 +313,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('onboards_this_month only counts recs whose updated_at is in this calendar month', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       const cs = Array.from({ length: 4 }, (_, i) =>
         seedCandidate({ userId: `c${i}`, headhunterId: 'h1' }),
@@ -346,7 +346,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('conversion_rate is placements / total_recs, 2-dp rounded, 0 when total=0', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       // No recs yet — conversion is 0.
       expect(createHunterStats(getTestDb()).overview(h1).conversion_rate).toBe(0);
@@ -374,8 +374,8 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('pending_pickup_count is hunter-agnostic (counts unclaimed recs across all hunters)', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
       seedJob({ id: 'job1' });
       const c1 = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       const c2 = seedCandidate({ userId: 'c2', headhunterId: 'h2' });
@@ -404,7 +404,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
 
   describe('funnel', () => {
     it('returns zero counts + 1.0 conversions for the first stage when there are no recs', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       const funnel = createHunterStats(getTestDb()).funnel(h1);
       // Always 5 stages in submitted → onboarded order.
       expect(funnel.map((s) => s.stage)).toEqual([
@@ -421,7 +421,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('computes counts and conversion ratios across mixed recs', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       // We need 20 + 10 + 5 + 2 + 1 = 38 distinct (anonId, jobId) pairs.
       // Use one job per rec to keep this simple and the seed readable.
       const cs = Array.from({ length: 38 }, (_, i) =>
@@ -480,7 +480,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('respects the date range — counts only recs with created_at in [from, to]', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       const cs = Array.from({ length: 4 }, (_, i) =>
         seedCandidate({ userId: `c${i}`, headhunterId: 'h1' }),
@@ -528,7 +528,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('funnel ordering is always submitted → screen_passed → interview → offer → onboarded', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       const funnel = createHunterStats(getTestDb()).funnel(h1);
       expect(funnel.map((s) => s.stage)).toEqual([
         'submitted',
@@ -545,7 +545,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
   describe('auth', () => {
     it('rejects non-headhunter callers with FORBIDDEN on overview + funnel', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
       const stats = createHunterStats(getTestDb());
       expectErrorCode(() => stats.overview(candidate), 'FORBIDDEN');
       expectErrorCode(() => stats.overview(employer), 'FORBIDDEN');
@@ -554,7 +554,7 @@ describe('hunter-portal: stats (handler + repo integration)', () => {
     });
 
     it('allows headhunter callers (no FORBIDDEN thrown)', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       const stats = createHunterStats(getTestDb());
       expect(() => stats.overview(h1)).not.toThrow();
       expect(() => stats.funnel(h1)).not.toThrow();

@@ -34,12 +34,12 @@ describe('GET /v1/admin/placements (Sub-D3 Plan 1)', () => {
 
     // Seed users (FK requirement for placements)
     for (const [id, userType] of [
-      ['emp_1', 'employer'],
+      ['emp_1', 'pm'],
       ['u_1', 'candidate'],
       ['u_2', 'candidate'],
       ['u_3', 'candidate'],
       ['u_4', 'candidate'],
-      ['hh_1', 'headhunter'],
+      ['hh_1', 'hr'],
     ] as const) {
       db.prepare(`INSERT OR IGNORE INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
         quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)

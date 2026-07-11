@@ -17,7 +17,7 @@ describe('view endpoints — happy path', () => {
 
     // Register a headhunter (will be the authenticated user for viewable actions)
     const hhReg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Test HH', contact: 'h@x.com' });
+      .send({ user_type: 'hr', name: 'Test HH', contact: 'h@x.com' });
     userId = hhReg.body.data.id;
     apiKey = hhReg.body.data.api_key;
   });
@@ -84,7 +84,7 @@ describe('view endpoints — happy path', () => {
 
     // Register employer + post job
     const empReg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'Test Emp', contact: 'rec-e@e.com' });
+      .send({ user_type: 'pm', name: 'Test Emp', contact: 'rec-e@e.com' });
     const empKey = empReg.body.data.api_key;
     const job = await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${empKey}`)

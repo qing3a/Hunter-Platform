@@ -28,7 +28,7 @@ export function createMarketRouter(db: DB): Router {
        WHERE user_type = ? AND status = ?
        ORDER BY reputation DESC, created_at ASC
        LIMIT 10`
-    ).all('headhunter', 'active') as { id: string; name: string; reputation: number }[];
+    ).all('hr', 'active') as { id: string; name: string; reputation: number }[];
 
     const data = rows.map((row, idx) => ({
       rank: idx + 1,

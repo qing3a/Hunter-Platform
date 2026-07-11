@@ -1,5 +1,6 @@
 import type { DB } from '../../db/connection.js';
 import { createUsersRepo } from '../../db/repositories/users.js';
+import { userRolesRepo } from '../../db/repositories/user-roles.js';
 import { createRegisterIpRateLimiter } from '../rate-limit/register-limiter.js';
 import { generateApiKey } from '../auth/api-key.js';
 import { QUOTA_PER_DAY } from '../../../shared/constants.js';
@@ -81,6 +82,11 @@ export function createRegisterHandler(db: DB) {
         updated_at: now,
       };
       users.insert(user);
+
+      // R1.C2 / T5 — bootstrap a new user with all 3 roles; the user can later
+      // 'switch' via X-Active-Role on session auth. The role they registered
+      // as becomes the default `active_role` on their first session login.
+      userRolesRepo.grantAll(db, userId, now);
 
       return { ...user, api_key: key };
     },

@@ -40,7 +40,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -233,8 +233,11 @@ describe('pm: decompose (handler + repo integration)', () => {
       const pm = seedUser({ id: 'pm1', userType: 'pm' });
       const project = makeProject(pm, 'pm-only', 'vue');
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      // R1.C2: 'pm' is the merged employer role — seed an hr (legacy
+      // employer-equivalent) and a separate hr user to assert both are
+      // blocked from PM-only endpoints. Real PM users must NOT be.
+      const nonPmHr = seedUser({ id: 'e1', userType: 'hr' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const handler = createDecomposeHandler(getTestDb());
 
       await expectErrorCode(
@@ -242,7 +245,7 @@ describe('pm: decompose (handler + repo integration)', () => {
         'FORBIDDEN',
       );
       await expectErrorCode(
-        handler.decomposeProject(employer, project.id, {}),
+        handler.decomposeProject(nonPmHr, project.id, {}),
         'FORBIDDEN',
       );
       await expectErrorCode(

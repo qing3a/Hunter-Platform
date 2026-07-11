@@ -61,7 +61,7 @@ async function bootApp(): Promise<void> {
 /** Insert a user row with a known API key. api_key_prefix must be 12 chars. */
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'employer' | 'candidate';
+  userType: 'hr' | 'pm' | 'candidate';
   apiKey: string;
   name?: string;
   contact?: string | null;
@@ -100,7 +100,7 @@ function seedJob(opts: {
   headhunterId?: string;
   title?: string;
 }): void {
-  seedUser({ id: opts.employerId, userType: 'employer', apiKey: opts.employerApiKey });
+  seedUser({ id: opts.employerId, userType: 'pm', apiKey: opts.employerApiKey });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO jobs (id, employer_id, title, description, requirements,
@@ -142,7 +142,7 @@ function seedCandidate(opts: {
     new Date().toISOString(),
     new Date().toISOString(),
   );
-  seedUser({ id: opts.headhunterId, userType: 'headhunter', apiKey: `hp_live_${opts.headhunterId}` });
+  seedUser({ id: opts.headhunterId, userType: 'hr', apiKey: `hp_live_${opts.headhunterId}` });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO candidates_private (id, headhunter_id, candidate_user_id, name_enc, phone_enc, email_enc,
@@ -200,8 +200,8 @@ describe('GET /v1/headhunter/recommendations/pending-pickup', () => {
   });
 
   it('returns the pickup queue for an authenticated headhunter', async () => {
-    seedUser({ id: 'h_a', userType: 'headhunter', apiKey: 'hp_live_h_a_long' });
-    seedUser({ id: 'h_b', userType: 'headhunter', apiKey: 'hp_live_h_b_long' });
+    seedUser({ id: 'h_a', userType: 'hr', apiKey: 'hp_live_h_a_long' });
+    seedUser({ id: 'h_b', userType: 'hr', apiKey: 'hp_live_h_b_long' });
     seedJob({ jobId: 'job_ppu_1', employerId: 'emp_ppu_1', employerApiKey: 'hp_live_emp_ppu_1' });
     seedJob({ jobId: 'job_ppu_2', employerId: 'emp_ppu_2', employerApiKey: 'hp_live_emp_ppu_2' });
     seedCandidate({ userId: 'cand_1', anonId: 'anon_1', privateId: 'priv_1', headhunterId: 'h_anon_1' });
@@ -229,7 +229,7 @@ describe('GET /v1/headhunter/recommendations/pending-pickup', () => {
   });
 
   it('returns empty list when no applications are awaiting pickup', async () => {
-    seedUser({ id: 'h_empty', userType: 'headhunter', apiKey: 'hp_live_h_empty' });
+    seedUser({ id: 'h_empty', userType: 'hr', apiKey: 'hp_live_h_empty' });
     const res = await request(app)
       .get('/v1/headhunter/recommendations/pending-pickup')
       .set('Authorization', 'Bearer hp_live_h_empty');
@@ -238,7 +238,7 @@ describe('GET /v1/headhunter/recommendations/pending-pickup', () => {
   });
 
   it('excludes applications that have already been picked up', async () => {
-    seedUser({ id: 'h_filt', userType: 'headhunter', apiKey: 'hp_live_h_filt_a' });
+    seedUser({ id: 'h_filt', userType: 'hr', apiKey: 'hp_live_h_filt_a' });
     seedJob({ jobId: 'job_filt_1', employerId: 'emp_filt_1', employerApiKey: 'hp_live_emp_filt_1' });
     seedJob({ jobId: 'job_filt_2', employerId: 'emp_filt_2', employerApiKey: 'hp_live_emp_filt_2' });
     seedCandidate({ userId: 'cand_filt_1', anonId: 'anon_filt_1', privateId: 'priv_filt_1', headhunterId: 'h_afilt_1' });
@@ -273,7 +273,7 @@ describe('POST /v1/headhunter/recommendations/:id/pickup', () => {
   });
 
   it('returns 404 when the recommendation does not exist', async () => {
-    seedUser({ id: 'h_404', userType: 'headhunter', apiKey: 'hp_live_h_404_a' });
+    seedUser({ id: 'h_404', userType: 'hr', apiKey: 'hp_live_h_404_a' });
     const res = await request(app)
       .post('/v1/headhunter/recommendations/rec_does_not_exist/pickup')
       .set('Authorization', 'Bearer hp_live_h_404_a');
@@ -296,8 +296,8 @@ describe('POST /v1/headhunter/recommendations/:id/pickup', () => {
   });
 
   it('returns 409 when the application is no longer awaiting pickup', async () => {
-    seedUser({ id: 'h_409', userType: 'headhunter', apiKey: 'hp_live_h_409_a' });
-    seedUser({ id: 'h_409_other', userType: 'headhunter', apiKey: 'hp_live_h_409_b' });
+    seedUser({ id: 'h_409', userType: 'hr', apiKey: 'hp_live_h_409_a' });
+    seedUser({ id: 'h_409_other', userType: 'hr', apiKey: 'hp_live_h_409_b' });
     seedJob({ jobId: 'job_409', employerId: 'emp_409', employerApiKey: 'hp_live_emp_409_a' });
     seedCandidate({ userId: 'cand_409', anonId: 'anon_409', privateId: 'priv_409', headhunterId: 'h_409a' });
     const recId = seedPendingPickupApplication({
@@ -320,7 +320,7 @@ describe('POST /v1/headhunter/recommendations/:id/pickup', () => {
   });
 
   it('happy path: headhunter picks up a pending_pickup application', async () => {
-    seedUser({ id: 'h_ok', userType: 'headhunter', apiKey: 'hp_live_h_ok_aaaa' });
+    seedUser({ id: 'h_ok', userType: 'hr', apiKey: 'hp_live_h_ok_aaaa' });
     seedUser({ id: 'cand_ok', userType: 'candidate', apiKey: 'hp_live_cand_ok_aa', contact: 'cand_ok@x.com' });
     seedJob({ jobId: 'job_ok', employerId: 'emp_ok', employerApiKey: 'hp_live_emp_ok_aaa' });
     seedCandidate({ userId: 'cand_ok', anonId: 'anon_ok', privateId: 'priv_ok', headhunterId: 'h_aok' });

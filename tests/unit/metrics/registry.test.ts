@@ -32,8 +32,8 @@ describe('metrics registry', () => {
   it('quota_used gauge updates per user_type', async () => {
     const { getRegistry, getHunterMetrics } = await import('../../../src/main/modules/metrics/registry');
     const m = getHunterMetrics();
-    m.quotaUsed.labels('headhunter').set(150);
+    m.quotaUsed.labels('hr').set(150);
     const text = await getRegistry().metrics();
-    expect(text).toMatch(/hunter_quota_used\{[^}]*user_type="headhunter"[^}]*\} 150/);
+    expect(text).toMatch(/hunter_quota_used\{[^}]*user_type="hr"[^}]*\} 150/);
   });
 });

@@ -37,7 +37,7 @@ describe('templates — render & escape', () => {
   it('user-quota renders quota table and recent actions', () => {
     const html = renderUserQuota({
       userId: 'u_1',
-      userType: 'headhunter',
+      userType: 'hr',
       name: 'Test',
       quotaPerDay: 200,
       quotaUsed: 50,

@@ -33,8 +33,8 @@ describe('employer handler - unlockContact', () => {
     localAudit = createUnlockAuditLogRepo(localDb);
     localEmployer = createEmployerHandler(localDb);
     const now = '2026-06-17T00:00:00Z';
-    localUsers.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    localUsers.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    localUsers.insert({ id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: 'https://e.example.com/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    localUsers.insert({ id: 'h1', user_type: 'hr', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     localUsers.insert({ id: 'c1', user_type: 'candidate', name: 'C', contact: null, agent_endpoint: 'https://c.example.com/wh', api_key_hash: 'h3', api_key_prefix: 'hp_live_', quota_per_day: 50, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     const nameEnc = encrypt(encryptionKey, '张三');
     const phoneEnc = encrypt(encryptionKey, '13800138000');
@@ -48,12 +48,12 @@ describe('employer handler - unlockContact', () => {
 
   it('unlockContact requires candidate_approved state', () => {
     localRecs.updateStatus('rec_1', 'employer_interested');
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     expect(() => localEmployer.unlockContact(e, { recommendation_id: 'rec_1' }, { encryptionKey })).toThrow(/Invalid state/);
   });
 
   it('unlockContact enqueues deliver_contact webhook with encrypted PII', () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     localEmployer.unlockContact(e, { recommendation_id: 'rec_1' }, { encryptionKey });
     const pending = localWebhooks.fetchPending(new Date().toISOString());
     expect(pending.length).toBe(1);
@@ -64,7 +64,7 @@ describe('employer handler - unlockContact', () => {
   });
 
   it('unlockContact audit log records unlock_delivery', () => {
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     localEmployer.unlockContact(e, { recommendation_id: 'rec_1' }, { encryptionKey, ip: '1.2.3.4' });
     const entries = localAudit.listByRecommendation('rec_1');
     expect(entries.some((e: any) => e.action === 'unlock_delivery')).toBe(true);
@@ -77,7 +77,7 @@ describe('employer handler - unlockContact', () => {
     const notif = createNotificationTrigger(localDb);
     const notifsRepo = createNotificationsRepo(localDb);
     const employerWithNotif = createEH(localDb, notif);
-    const e: any = { id: 'e1', user_type: 'employer' };
+    const e: any = { id: 'e1', user_type: 'pm' };
     employerWithNotif.unlockContact(e, { recommendation_id: 'rec_1' }, { encryptionKey });
     const list = notifsRepo.listByUser({ user_id: 'c1' });
     expect(list.length).toBe(1);

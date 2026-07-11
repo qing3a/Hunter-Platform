@@ -5,7 +5,7 @@
 // Mounted by server.ts at `/v1/employer-panel`.
 //
 //   - All endpoints require a Bearer-token session (`router.use(authMiddleware(db))`).
-//   - The handler module re-checks `user_type === 'employer'` via
+//   - The handler module re-checks `user_type === 'pm'` via
 //     `assertEmployer(user)` so non-employer callers receive 403 FORBIDDEN
 //     from the underlying function — same pattern as the headhunter-workspace
 //     router.

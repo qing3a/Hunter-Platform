@@ -42,7 +42,7 @@ export interface CandidateAuditEntry {
   created_at: string;
   action: string;
   actor_user_id: string;
-  viewer_type: 'candidate' | 'headhunter' | 'employer' | null;
+  viewer_type: 'candidate' | 'hr' | 'pm' | null;
   viewer_name: string | null;
 }
 
@@ -181,7 +181,7 @@ export function createCandidatePortalProfileRepo(db: DB) {
         created_at: string;
         action: string;
         actor_user_id: string;
-        viewer_type: 'candidate' | 'headhunter' | 'employer' | null;
+        viewer_type: 'candidate' | 'hr' | 'pm' | null;
         viewer_name: string | null;
       }>;
       return rows;

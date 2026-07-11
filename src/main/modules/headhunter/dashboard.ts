@@ -13,7 +13,7 @@
 //                                              (≤5 most-recent, non-rejected)
 //
 // Authorization:
-//   - All paths require user_type === 'headhunter'. Non-headhunters
+//   - All paths require user_type === 'hr'. Non-headhunters
 //     receive FORBIDDEN. Centralized via `assertHeadhunter(user)`,
 //     identical to stats / tasks / kanban.
 //
@@ -107,7 +107,7 @@ export function createHunterDashboard(db: DB): HunterDashboardModule {
 
   /** Throw unless the caller is a headhunter. Centralizes the check. */
   function assertHeadhunter(user: User): void {
-    if (user.user_type !== 'headhunter') {
+    if (user.user_type !== 'hr') {
       throw Errors.forbidden('Only headhunters can view their dashboard');
     }
   }

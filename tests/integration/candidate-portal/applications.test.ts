@@ -141,7 +141,7 @@ function seedCandidateProfile(opts: {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'headhunter', 'H', NULL, NULL,
+    VALUES (?, 'hr', 'H', NULL, NULL,
       ?, 'h_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -189,7 +189,7 @@ function seedEmployer(employerId: string, name = 'Test Employer'): void {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'employer', ?, NULL, NULL,
+    VALUES (?, 'pm', ?, NULL, NULL,
       ?, 'e_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -207,7 +207,7 @@ function seedHeadhunter(id: string, name = 'Test Hunter'): void {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'headhunter', ?, NULL, NULL,
+    VALUES (?, 'hr', ?, NULL, NULL,
       ?, 'h_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -467,7 +467,7 @@ describe('candidate-portal: applications (handler integration)', () => {
     it('forbids non-candidate user types from applying (handler-level)', () => {
       const headhunter: User = {
         id: 'h_x',
-        user_type: 'headhunter',
+        user_type: 'hr',
         name: 'H',
         contact: null,
         agent_endpoint: null,

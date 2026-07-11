@@ -49,7 +49,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'candidate' | 'employer';
+  userType: 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -104,7 +104,7 @@ function seedJob(opts: {
 }): string {
   const db = getTestDb();
   const employerId = opts.employerId ?? `emp_${opts.id}`;
-  seedUser({ id: employerId, userType: 'employer' });
+  seedUser({ id: employerId, userType: 'pm' });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO jobs (id, employer_id, title, description, requirements,
@@ -193,7 +193,7 @@ function seedRecommendation(opts: SeedRecOpts): void {
                                  pipeline_stage, kanban_position,
                                  created_at, updated_at)
     VALUES (?, ?, ?, ?, ?,
-            ?, 'headhunter', NULL,
+            ?, 'hr', NULL,
             NULL, NULL, NULL,
             ?, NULL,
             ?, ?)
@@ -268,7 +268,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
 
   describe('empty dashboard', () => {
     it('returns all-zero KPI, empty top_tasks, 5 zero-count kanban entries, empty recent_recs', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const dash = createHunterDashboard(getTestDb()).getDashboard(hunter);
 
       // KPI — every field zero.
@@ -301,7 +301,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
 
   describe('populated dashboard', () => {
     it('sums up KPI counts across mixed recs', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       seedJob({ id: 'job2' });
       const cs = Array.from({ length: 7 }, (_, i) =>
@@ -331,7 +331,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('kanban_summary: one entry per non-terminal stage with the correct card count', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       // Touch getBoard() at least once (via dashboard or directly) to seed
       // the 5 default columns. The dashboard impl calls seedDefaultColumns
       // internally so this isn't required, but seed via kanban repo to be
@@ -368,7 +368,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('top_tasks: returns at most 5 pending tasks ordered by due_at ASC NULLS LAST', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       // 7 pending tasks + 2 completed. Seeded in mixed order to exercise
       // the sort (no due_at, due_at=tomorrow, due_at=next-week, etc.)
       const now = Date.now();
@@ -399,7 +399,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('top_tasks: when tasks have no due_at, they sort by created_at DESC, then by the NULLS-LAST tiebreak', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       const seedAt = (suffix: string, now: number) =>
         seedTask({ id: `t_${suffix}`, hunterId: 'h1', createdAt: now });
       const base = Date.now();
@@ -412,7 +412,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('recent_recommendations: at most 5 most-recent non-rejected, ordered by updated_at DESC', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       const now = Date.now();
       const day = 86_400_000;
       seedJob({ id: 'job1' });
@@ -445,7 +445,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('recent_recommendations: candidate_name is the desensitized (masked) user name', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       const c1 = seedCandidate({ userId: 'c1', headhunterId: 'h1', name: '张三' });
       const c2 = seedCandidate({ userId: 'c2', headhunterId: 'h1', name: 'Alice' });
@@ -464,7 +464,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('recent_recommendations: job_title is sourced from the joined jobs row', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1', title: 'Staff Engineer' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({ id: 'r1', headhunterId: 'h1', jobId: 'job1', anonId: c.anonId, pipelineStage: 'submitted' });
@@ -479,7 +479,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
 
   describe('filter semantics', () => {
     it('top_tasks: only pending tasks are returned (completed tasks are excluded)', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedTask({ id: 't_a', hunterId: 'h1', title: 'A' });
       seedTask({ id: 't_b', hunterId: 'h1', title: 'B', completedAt: Date.now() });
       seedTask({ id: 't_c', hunterId: 'h1', title: 'C' });
@@ -495,7 +495,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('top_tasks: when only completed tasks exist, the array is empty', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedTask({ id: 't_done1', hunterId: 'h1', title: 'done 1', completedAt: Date.now() });
       seedTask({ id: 't_done2', hunterId: 'h1', title: 'done 2', completedAt: Date.now() });
 
@@ -504,10 +504,10 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('recent_recommendations: rejected recs are excluded', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       // Seed h2 so we can build a candidate that points to h2 as the
       // headhunter (candidates_private.headhunter_id is FK→users.id).
-      seedUser({ id: 'h2', userType: 'headhunter' });
+      seedUser({ id: 'h2', userType: 'hr' });
       seedJob({ id: 'job1' });
       seedJob({ id: 'job2' });
       const cs = Array.from({ length: 3 }, (_, i) =>
@@ -535,7 +535,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
     });
 
     it('recent_recommendations: when only rejected recs exist, the array is empty', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
       seedJob({ id: 'job1' });
       const c1 = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -553,7 +553,7 @@ describe('hunter-portal: dashboard (handler integration)', () => {
   describe('auth', () => {
     it('rejects non-headhunter callers with FORBIDDEN', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
       const dash = createHunterDashboard(getTestDb());
       expectErrorCode(() => dash.getDashboard(candidate), 'FORBIDDEN');
       expectErrorCode(() => dash.getDashboard(employer), 'FORBIDDEN');

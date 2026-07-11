@@ -33,7 +33,7 @@ describe('candidate endpoints — opportunities + access_log', () => {
     const candId = cand.body.data.id;
 
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'OppHH', contact: 'opphh@h.com' });
+      .send({ user_type: 'hr', name: 'OppHH', contact: 'opphh@h.com' });
 
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${hh.body.data.api_key}`)
@@ -45,7 +45,7 @@ describe('candidate endpoints — opportunities + access_log', () => {
         education_school: 'S', skills: [],
       });
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'OppE', contact: 'oppe@e.com' });
+      .send({ user_type: 'pm', name: 'OppE', contact: 'oppe@e.com' });
     const job = await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
       .send({ title: 'Test Job' });
@@ -76,7 +76,7 @@ describe('candidate endpoints — opportunities + access_log', () => {
   it('GET /v1/candidate/access-log rejects non-candidate user (403)', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'AccE', contact: 'acce@e.com' });
+      .send({ user_type: 'pm', name: 'AccE', contact: 'acce@e.com' });
 
     const res = await request(app).get('/v1/candidate/access-log')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`);

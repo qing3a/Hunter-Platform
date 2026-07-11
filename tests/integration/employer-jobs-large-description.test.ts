@@ -18,7 +18,7 @@ describe('POST /v1/employer/jobs — body limit allows large description', () =>
     const { createApp } = await import('../../src/main/server');
     app = createApp();
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E', contact: 'e@x.com' });
+      .send({ user_type: 'pm', name: 'E', contact: 'e@x.com' });
     empKey = reg.body.data.api_key;
   });
   afterAll(() => { try { fs.unlinkSync(testDb); } catch {} });

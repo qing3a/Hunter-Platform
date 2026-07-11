@@ -1,14 +1,14 @@
 // src/shared/constants.ts
 export const QUOTA_PER_DAY = {
   candidate: 50,
-  headhunter: 200,
-  employer: 100,
+  hr: 200,        // was: headhunter (renamed R1.C2)
+  pm: 100,        // was: employer (renamed R1.C2)
 } as const;
 
 export const RATE_LIMIT_BURSTS = {
   candidate:  { second: 10, minute: 50,  hour: 300 },
-  headhunter: { second: 20, minute: 100, hour: 750 },
-  employer:   { second: 30, minute: 200, hour: 1200 },
+  hr:         { second: 20, minute: 100, hour: 750 },   // was: headhunter
+  pm:         { second: 30, minute: 200, hour: 1200 },  // was: employer
 } as const;
 
 /** Trigger soft warning when remaining / limit falls below this ratio. */

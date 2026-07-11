@@ -18,9 +18,9 @@ describe('POST /v1/headhunter/jobs', () => {
   it('headhunter 创建成功 + employer_id=NULL + source_headhunter_id=me', async () => {
     const app = createApp();
     const emp = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E1', contact: 'e@e.com' })).body.data;
+      .send({ user_type: 'pm', name: 'E1', contact: 'e@e.com' })).body.data;
     const hh = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H1', contact: 'h@h.com' })).body.data;
+      .send({ user_type: 'hr', name: 'H1', contact: 'h@h.com' })).body.data;
     const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${hh.api_key}`)
@@ -35,7 +35,7 @@ describe('POST /v1/headhunter/jobs', () => {
   it('不指定 created_for_employer_id 也允许 (任何 employer 可 claim)', async () => {
     const app = createApp();
     const hh = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H1', contact: 'h@h.com' })).body.data;
+      .send({ user_type: 'hr', name: 'H1', contact: 'h@h.com' })).body.data;
     const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${hh.api_key}`)
@@ -47,7 +47,7 @@ describe('POST /v1/headhunter/jobs', () => {
   it('employer 调 POST /v1/headhunter/jobs → 403', async () => {
     const app = createApp();
     const emp = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E1', contact: 'e@e.com' })).body.data;
+      .send({ user_type: 'pm', name: 'E1', contact: 'e@e.com' })).body.data;
     const res = await request(app)
       .post('/v1/headhunter/jobs')
       .set('Authorization', `Bearer ${emp.api_key}`)
@@ -63,11 +63,11 @@ describe('GET /v1/headhunter/jobs (my created)', () => {
   it('只返回 source_headhunter_id=me 的 job', async () => {
     const app = createApp();
     const emp1 = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
+      .send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
     const hh1 = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+      .send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const hh2 = (await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H2', contact: 'h2@h.com' })).body.data;
+      .send({ user_type: 'hr', name: 'H2', contact: 'h2@h.com' })).body.data;
 
     // hh1 建 2 个, hh2 建 1 个
     await request(app).post('/v1/headhunter/jobs')

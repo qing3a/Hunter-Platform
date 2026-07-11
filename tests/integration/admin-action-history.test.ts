@@ -45,13 +45,13 @@ describe('admin /v1/admin/action-history', () => {
     db.prepare(`
       INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
         quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)
-      VALUES ('u_alice', 'employer', 'Alice', 'a@x', 'h', 'hp_live_',
+      VALUES ('u_alice', 'pm', 'Alice', 'a@x', 'h', 'hp_live_',
         100, 0, datetime('now', '+1 day'), 50, 'active', '2026-06-17T00:00:00Z', '2026-06-17T00:00:00Z')
     `).run();
     db.prepare(`
       INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
         quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)
-      VALUES ('u_bob', 'headhunter', 'Bob', 'b@x', 'h2', 'hp_live_',
+      VALUES ('u_bob', 'hr', 'Bob', 'b@x', 'h2', 'hp_live_',
         200, 0, datetime('now', '+1 day'), 50, 'active', '2026-06-17T00:00:00Z', '2026-06-17T00:00:00Z')
     `).run();
     db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u_alice', 'employer.create_job', 'job', 'j1', 'success', '2026-06-17T00:00:01Z');

@@ -3,7 +3,7 @@
 // Hunter Workspace (Phase 3a, Task 4) — per-headhunter kanban board.
 //
 // Authorization model:
-//   - All methods require user_type === 'headhunter'. Non-headhunters get
+//   - All methods require user_type === 'hr'. Non-headhunters get
 //     FORBIDDEN. Centralized via `assertHeadhunter(user)`.
 //   - Card mutations scope by `caller.id` via the repo (SQL guards
 //     ownership). "Not owned" maps to NOT_FOUND so we don't leak the
@@ -44,7 +44,7 @@ export function createHunterKanban(db: DB): HunterKanbanModule {
 
   /** Throw unless the caller is a headhunter. */
   function assertHeadhunter(user: User): void {
-    if (user.user_type !== 'headhunter') {
+    if (user.user_type !== 'hr') {
       throw Errors.forbidden('Only headhunters can use the kanban');
     }
   }

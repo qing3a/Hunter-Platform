@@ -17,7 +17,7 @@ describe('rate-limit reads from config (Sub-F)', () => {
 
   async function registerHeadhunter(apiName: string): Promise<{ apiKey: string }> {
     const res = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: apiName, contact: `${apiName}@x.com` });
+      .send({ user_type: 'hr', name: apiName, contact: `${apiName}@x.com` });
     return { apiKey: res.body.data.api_key };
   }
 
@@ -63,10 +63,10 @@ describe('rate-limit reads from config (Sub-F)', () => {
 
   it('2. admin puts a new minute limit, config row exists', async () => {
     await request(app)
-      .put('/v1/admin/config/rate_limit.tier.headhunter.limit_per_minute')
+      .put('/v1/admin/config/rate_limit.tier.hr.limit_per_minute')
       .set('Authorization', adminAuth)
       .send({ value: 5, reason: 'sub-f integration test' });
-    const row = db.prepare('SELECT value_json FROM config WHERE key = ?').get('rate_limit.tier.headhunter.limit_per_minute') as { value_json: string };
+    const row = db.prepare('SELECT value_json FROM config WHERE key = ?').get('rate_limit.tier.hr.limit_per_minute') as { value_json: string };
     expect(JSON.parse(row.value_json)).toBe(5);
   });
 
@@ -81,11 +81,11 @@ describe('rate-limit reads from config (Sub-F)', () => {
 
   it('4. config row with non-numeric value: middleware still applies (string cast, no 500)', async () => {
     await request(app)
-      .put('/v1/admin/config/rate_limit.tier.employer.limit_per_minute')
+      .put('/v1/admin/config/rate_limit.tier.pm.limit_per_minute')
       .set('Authorization', adminAuth)
       .send({ value: 'not a number', reason: 'sub-f bad value test' });
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'BadVal', contact: 'badval@x.com' });
+      .send({ user_type: 'pm', name: 'BadVal', contact: 'badval@x.com' });
     const apiKey = reg.body.data.api_key;
     const res = await request(app).get('/v1/employer/talent')
       .set('Authorization', `Bearer ${apiKey}`);

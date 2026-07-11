@@ -45,7 +45,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -155,7 +155,7 @@ function seedCandidate(opts: { id: string; userName?: string }): {
       INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
                          quota_per_day, quota_used, quota_reset_at, reputation, status,
                          created_at, updated_at)
-      VALUES ('hh_default', 'headhunter', 'Default Hunter', NULL, 'hash_hh_default', 'hp',
+      VALUES ('hh_default', 'hr', 'Default Hunter', NULL, 'hash_hh_default', 'hp',
               200, 0, ?, 50, 'active',
               ?, ?)
     `).run(now, now, now);
@@ -165,7 +165,7 @@ function seedCandidate(opts: { id: string; userName?: string }): {
       INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
                          quota_per_day, quota_used, quota_reset_at, reputation, status,
                          created_at, updated_at)
-      VALUES ('emp_default', 'employer', 'Default Employer', NULL, 'hash_emp_default', 'hp',
+      VALUES ('emp_default', 'pm', 'Default Employer', NULL, 'hash_emp_default', 'hp',
               100, 0, ?, 50, 'active',
               ?, ?)
     `).run(now, now, now);
@@ -242,7 +242,7 @@ function seedRecommendation(opts: {
     anonymized_candidate_id: opts.anonymizedCandidateId,
     job_id: 'job_default',
     status: 'pending',
-    source_type: 'headhunter',
+    source_type: 'hr',
     pickup_headhunter_id: opts.pickupHeadhunterId ?? null,
     candidate_note: null,
     commission_split_json: null,
@@ -303,7 +303,7 @@ describe('pm: snapshot (handler + aggregation)', () => {
 
   describe('auth', () => {
     it('rejects non-PM callers with FORBIDDEN', () => {
-      const hh = seedUser({ id: 'hh1', userType: 'headhunter' });
+      const hh = seedUser({ id: 'hh1', userType: 'hr' });
       const handler = createSnapshotHandler(getTestDb());
       expectErrorCode(() => handler.getSnapshot(hh), 'FORBIDDEN');
     });
@@ -798,7 +798,7 @@ describe('pm: snapshot (handler + aggregation)', () => {
           INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
                              quota_per_day, quota_used, quota_reset_at, reputation, status,
                              created_at, updated_at)
-          VALUES ('hh_default', 'headhunter', 'Default Hunter', NULL, 'hash_hh_default', 'hp',
+          VALUES ('hh_default', 'hr', 'Default Hunter', NULL, 'hash_hh_default', 'hp',
                   200, 0, ?, 50, 'active',
                   ?, ?)
         `).run(new Date().toISOString(), new Date().toISOString(), new Date().toISOString());
@@ -808,7 +808,7 @@ describe('pm: snapshot (handler + aggregation)', () => {
           INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix,
                              quota_per_day, quota_used, quota_reset_at, reputation, status,
                              created_at, updated_at)
-          VALUES ('emp_default', 'employer', 'Default Employer', NULL, 'hash_emp_default', 'hp',
+          VALUES ('emp_default', 'pm', 'Default Employer', NULL, 'hash_emp_default', 'hp',
                   100, 0, ?, 50, 'active',
                   ?, ?)
         `).run(new Date().toISOString(), new Date().toISOString(), new Date().toISOString());
@@ -833,7 +833,7 @@ describe('pm: snapshot (handler + aggregation)', () => {
           anonymized_candidate_id: 'cand_ghost', // missing — simulates a deleted profile
           job_id: 'job_default',
           status: 'pending',
-          source_type: 'headhunter',
+          source_type: 'hr',
           pickup_headhunter_id: null,
           candidate_note: null,
           commission_split_json: null,

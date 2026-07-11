@@ -9,8 +9,8 @@ describe('skill.md: admin endpoints', () => {
     const f = await freshApp('admin');
     client = new ConformanceClient(f.app);
     // Register some users so admin endpoints have data
-    await client.register('headhunter', 'H1', 'h1@x.com');
-    await client.register('employer', 'E1', 'e1@x.com');
+    await client.register('hr', 'H1', 'h1@x.com');
+    await client.register('pm', 'E1', 'e1@x.com');
   });
   afterAll(() => cleanupDb('admin'));
 
@@ -29,7 +29,7 @@ describe('skill.md: admin endpoints', () => {
   });
 
   it('GET /v1/admin/ping with non-admin (headhunter) key returns 401 (Phase 0 fix)', async () => {
-    const key = await client.register('headhunter', 'WrongUser', 'w@x.com');
+    const key = await client.register('hr', 'WrongUser', 'w@x.com');
     const r = await client.request({ method: 'GET', path: '/v1/admin/ping', auth: key });
     expect(r.status).toBe(401);
   });

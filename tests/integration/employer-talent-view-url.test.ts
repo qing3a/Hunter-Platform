@@ -24,13 +24,13 @@ describe('GET /v1/employer/talent — view_url injection (Bug #11)', () => {
 
     // Setup: headhunter, candidate, employer
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
+      .send({ user_type: 'hr', name: 'H', contact: 'h@x.com' });
     hhKey = hh.body.data.api_key;
     const cand = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
     candId = cand.body.data.id;
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'E', contact: 'e@x.com' });
+      .send({ user_type: 'pm', name: 'E', contact: 'e@x.com' });
     empKey = emp.body.data.api_key;
   });
 

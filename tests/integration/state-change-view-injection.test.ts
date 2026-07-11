@@ -28,11 +28,11 @@ describe('state-change endpoints — view_url injection + render', () => {
     const app = createApp();
 
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'StHH', contact: 'sthh@state.com' });
+      .send({ user_type: 'hr', name: 'StHH', contact: 'sthh@state.com' });
     const cand = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'StC', contact: 'stc@state.com' });
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'StE', contact: 'ste@state.com' });
+      .send({ user_type: 'pm', name: 'StE', contact: 'ste@state.com' });
 
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${hh.body.data.api_key}`)

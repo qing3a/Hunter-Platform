@@ -29,10 +29,10 @@ describe('M4 E2E: placement + GDPR + admin billing', () => {
     app = createApp();
 
     // Setup: 3 users + candidate + job + recommendation + 4-step unlock
-    const e = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E', contact: 'e@x.com' });
+    const e = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E', contact: 'e@x.com' });
     employerKey = e.body.data.api_key;
     employerId = e.body.data.id;
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H', contact: 'h@x.com' });
     headhunterKey = h.body.data.api_key;
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
     candidateKey = c.body.data.api_key;

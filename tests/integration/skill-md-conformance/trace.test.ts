@@ -21,7 +21,7 @@ describe('skill.md: trace_id propagation (Phase 2)', () => {
   it('action_history has a trace_id column written by the request that caused the action', async () => {
     // Register a candidate so headhunter can upload on behalf of them.
     await client.register('candidate', 'TraceC', 'tc@x.com');
-    const key = await client.register('headhunter', 'TraceTester', 'tt@x.com');
+    const key = await client.register('hr', 'TraceTester', 'tt@x.com');
     // Trigger an action that writes to action_history (auth/register doesn't, but headhunter/candidates does)
     const r = await client.request({
       method: 'POST', path: '/v1/headhunter/candidates', auth: key,

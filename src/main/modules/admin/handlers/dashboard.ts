@@ -7,7 +7,7 @@ import { createCandidatesAnonymizedRepo } from '../../../db/repositories/candida
 import { createWebhookQueueRepo } from '../../../db/repositories/webhook-delivery-queue.js';
 
 export interface DashboardStats {
-  users: { total: number; candidate: number; headhunter: number; employer: number };
+  users: { total: number; candidate: number; hr: number; pm: number };  // R1.C2: headhunter→hr, employer→pm
   jobs: { total: number; open: number; paused: number; closed: number; filled: number };
   recommendations: { total: number; pending: number; unlocked: number };
   candidates: { in_pool: number };
@@ -31,12 +31,12 @@ export function makeAdminDashboardHandler(db: DB) {
       const userRows = db.prepare(
         "SELECT user_type, COUNT(*) as cnt FROM users WHERE status != 'deleted' GROUP BY user_type"
       ).all() as { user_type: string; cnt: number }[];
-      const userCounts: { total: number; candidate: number; headhunter: number; employer: number } = {
-        total: 0, candidate: 0, headhunter: 0, employer: 0,
+      const userCounts: { total: number; candidate: number; hr: number; pm: number } = {
+        total: 0, candidate: 0, hr: 0, pm: 0,
       };
       for (const r of userRows) {
         userCounts.total += r.cnt;
-        if (r.user_type === 'candidate' || r.user_type === 'headhunter' || r.user_type === 'employer') {
+        if (r.user_type === 'candidate' || r.user_type === 'hr' || r.user_type === 'pm') {
           userCounts[r.user_type] = r.cnt;
         }
       }

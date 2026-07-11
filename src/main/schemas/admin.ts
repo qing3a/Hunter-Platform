@@ -214,8 +214,8 @@ export const ListAdminLogResponseSchema = z.object({
 const ListRateLimitsResponseSchema = EnvelopeSchema(z.object({
   tiers: z.object({
     candidate:  z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
-    headhunter: z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
-    employer:   z.object({ second: z.number(), minute: z.number(), hour: z.number() }),
+    hr:         z.object({ second: z.number(), minute: z.number(), hour: z.number() }),  // R1.C2: was 'headhunter'
+    pm:         z.object({ second: z.number(), minute: z.number(), hour: z.number() }),  // R1.C2: was 'employer'
   }),
   windows: z.array(z.enum(['second', 'minute', 'hour'])),
 }));

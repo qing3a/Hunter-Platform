@@ -24,7 +24,7 @@ describe('users repository', () => {
   it('inserts and finds by id', () => {
     const users = (globalThis as any).__usersTestRepo;
     users.insert({
-      id: 'user_1', user_type: 'headhunter', name: 'Bob', contact: 'b@x.com',
+      id: 'user_1', user_type: 'hr', name: 'Bob', contact: 'b@x.com',
       agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_',
       quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z',
       reputation: 50, status: 'active',

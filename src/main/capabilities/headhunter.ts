@@ -7,7 +7,7 @@ import {
 import { QUOTA_COSTS } from '../../shared/constants.js';
 
 export const headhunterCapabilities = defineCapabilitySet({
-  role: 'headhunter',
+  role: 'hr',
   capabilities: [
     {
       name: 'headhunter.upload_candidate',

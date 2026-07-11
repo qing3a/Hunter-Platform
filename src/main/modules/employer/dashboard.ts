@@ -57,7 +57,7 @@ export function createEmployerDashboardHandler(db: DB): EmployerDashboardHandler
    * semantics with one rule.
    */
   function assertEmployer(user: User): void {
-    if (user.user_type !== 'employer') {
+    if (user.user_type !== 'pm') {
       throw Errors.forbidden('Only employers can view their dashboard');
     }
   }

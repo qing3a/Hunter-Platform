@@ -16,7 +16,7 @@ describe('POST /v1/views/audit/:id', () => {
     app = createApp();
 
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Audit Test HH', contact: 'audit@h.com' });
+      .send({ user_type: 'hr', name: 'Audit Test HH', contact: 'audit@h.com' });
     userId = reg.body.data.id;
     apiKey = reg.body.data.api_key;
   });

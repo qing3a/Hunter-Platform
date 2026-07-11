@@ -17,9 +17,9 @@ describe('GET /v1/employer/pending-claims', () => {
 
   it('返回 created_for_employer_id=me 的待认领 job', async () => {
     const app = createApp();
-    const emp1 = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const emp2 = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E2', contact: 'e2@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp1 = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const emp2 = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E2', contact: 'e2@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
 
     // hh 给 emp1 建一个，给 emp2 建一个，没指定的建一个
     await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp1.id });
@@ -40,8 +40,8 @@ describe('POST /v1/employer/claim-jobs/:id', () => {
 
   it('雇主认领属于自己的待领 → 200, employer_id 填上', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     const res = await request(app).post(`/v1/employer/claim-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`);
@@ -52,9 +52,9 @@ describe('POST /v1/employer/claim-jobs/:id', () => {
 
   it('雇主认领不属于自己 (created_for_employer_id=其他 employer) → 403', async () => {
     const app = createApp();
-    const emp1 = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const emp2 = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E2', contact: 'e2@e.com' })).body.data;
-    const hh   = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp1 = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const emp2 = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E2', contact: 'e2@e.com' })).body.data;
+    const hh   = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job  = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp1.id })).body.data;
 
     const res = await request(app).post(`/v1/employer/claim-jobs/${job.id}`).set('Authorization', `Bearer ${emp2.api_key}`);
@@ -63,8 +63,8 @@ describe('POST /v1/employer/claim-jobs/:id', () => {
 
   it('同一 employer 重复 claim 自己的 job → 200 idempotent', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     await request(app).post(`/v1/employer/claim-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`);
@@ -79,8 +79,8 @@ describe('POST /v1/employer/reject-jobs/:id', () => {
 
   it('雇主拒绝 → status=closed', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     const res = await request(app).post(`/v1/employer/reject-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`).send({ reason: 'not my job' });
@@ -90,8 +90,8 @@ describe('POST /v1/employer/reject-jobs/:id', () => {
 
   it('拒绝后 GET /pending-claims 不再返回', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     await request(app).post(`/v1/employer/reject-jobs/${job.id}`).set('Authorization', `Bearer ${emp.api_key}`).send({});
@@ -101,8 +101,8 @@ describe('POST /v1/employer/reject-jobs/:id', () => {
 
   it('claim 之后 status=claimed, 拒绝同一 job → 409 INVALID_STATE (regression: Bug 3)', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     // 1. claim the job
@@ -123,8 +123,8 @@ describe('POST /v1/employer/pending-claims/:id/claim', () => {
 
   it('matches the documented pending-claims claim route shape', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     const res = await request(app)
@@ -145,8 +145,8 @@ describe('POST /v1/employer/pending-claims/:id/reject', () => {
 
   it('matches the documented pending-claims reject route shape', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hh  = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' })).body.data;
     const job = (await request(app).post('/v1/headhunter/jobs').set('Authorization', `Bearer ${hh.api_key}`).send({ title: 'J1', created_for_employer_id: emp.id })).body.data;
 
     const res = await request(app)

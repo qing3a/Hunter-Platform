@@ -21,7 +21,7 @@ import { Errors } from '../../errors.js';
  * auth path (admin login). If a caller passes anything outside this union,
  * the request schema rejects it with a 400.
  */
-export type OtpUserType = 'candidate' | 'headhunter' | 'pm';
+export type OtpUserType = 'candidate' | 'hr' | 'pm';
 
 export interface OtpRequestInput {
   email: string;
@@ -145,7 +145,7 @@ export function createCandidatePortalAuth(
       let user: User | null;
       let profileComplete = false;
 
-      if (userType === 'headhunter') {
+      if (userType === 'hr') {
         user = users.findHeadhunterByEmail(input.email);
         if (!user) {
           const id = `hunter_${randomUUID().slice(0, 12)}`;
