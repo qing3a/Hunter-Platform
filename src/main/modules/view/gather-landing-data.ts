@@ -132,7 +132,17 @@ function relativeTime(iso: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-export function gatherLandingData(db: DB): LandingData {
+export interface GatherLandingDataOptions {
+  /** Override the process uptime used for the `uptimeSec` / `uptimePercent`
+   *  computation. Tests inject a fixed value to keep assertions deterministic;
+   *  production callers omit this and use `process.uptime()`.
+   *
+   *  Unit: seconds. Semantics: same as `process.uptime()` — wall-clock seconds
+   *  since the Node process started. */
+  uptimeSec?: number;
+}
+
+export function gatherLandingData(db: DB, opts: GatherLandingDataOptions = {}): LandingData {
   // Demo data policy:
   // - In dev (NODE_ENV !== 'production'): landing shows ALL data including demo_*
   // - In prod (NODE_ENV === 'production'): landing hides demo_* data
@@ -431,9 +441,9 @@ export function gatherLandingData(db: DB): LandingData {
     // - Steady state: percent = 100 - (incidents / uptime_days), but we don't track incidents.
     //   Show 99.9 as a conservative estimate that improves with longer uptime.
     // - uptimeSec is exposed for the stats card hint label.
-    uptimeSec: Math.floor(process.uptime()),
+    uptimeSec: Math.floor(opts.uptimeSec ?? process.uptime()),
     uptimePercent: (() => {
-      const sec = process.uptime();
+      const sec = opts.uptimeSec ?? process.uptime();
       if (sec < 60) return 100;            // fresh boot, no data → optimistic
       const days = sec / 86400;
       if (days < 1) return 99.9;          // < 1 day stable

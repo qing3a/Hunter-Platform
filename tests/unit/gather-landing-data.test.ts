@@ -12,7 +12,10 @@ describe('gatherLandingData - basic fields', () => {
   });
 
   it('returns zeros and empty arrays for empty DB', () => {
-    const data = gatherLandingData(db);
+    // Inject uptimeSec=0 to assert the cold-start branch deterministically.
+    // Without this, the assertion `uptimePercent === 100` depends on whether
+    // the test process has been alive for <60s — flaky in long-running suites.
+    const data = gatherLandingData(db, { uptimeSec: 0 });
     expect(data.openJobsCount).toBe(0);
     expect(data.publicCandidatesCount).toBe(0);
     expect(data.industryGroups).toEqual([]);
@@ -24,12 +27,30 @@ describe('gatherLandingData - basic fields', () => {
     expect(data.totalCandidates).toBe(0);
     expect(data.activeEmployerCount).toBe(0);
     expect(data.activeHeadhunterCount).toBe(0);
-    expect(data.uptimePercent).toBe(100); // A1: cold-start (<60s) shows 100; longer uptime rounds to 99.9
+    expect(data.uptimePercent).toBe(100); // cold-start (<60s) shows 100
+    expect(data.uptimeSec).toBe(0);
     expect(data.healthStatus).toBe('healthy');
     expect(data.serverTime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(data.industryNav).toEqual([]);
     expect(data.featuredJobs).toEqual([]);
     expect(data.hotCompanies).toEqual([]);
+  });
+
+  it('uptimePercent rounds to 99.9 after 60s of process uptime', () => {
+    // Mid-life: <1 day, expect the 99.9 floor.
+    const data = gatherLandingData(db, { uptimeSec: 3600 });
+    expect(data.uptimePercent).toBe(99.9);
+    expect(data.uptimeSec).toBe(3600);
+  });
+
+  it('uptimePercent rounds to 99.95 after 1-7 days', () => {
+    const data = gatherLandingData(db, { uptimeSec: 3 * 86400 });
+    expect(data.uptimePercent).toBe(99.95);
+  });
+
+  it('uptimePercent floors at 99.99 after 7+ days', () => {
+    const data = gatherLandingData(db, { uptimeSec: 14 * 86400 });
+    expect(data.uptimePercent).toBe(99.99);
   });
 });
 
