@@ -6,7 +6,10 @@ export const RegisterResponseSchema = EnvelopeSchema(
     id: IdString,
     api_key: z.string().regex(/^hp_live_/),
     quota_per_day: z.number().int().positive(),
-    user_type: z.enum(['candidate', 'headhunter', 'employer']),
+    user_type: z.enum(['candidate', 'hr', 'pm']),
+    // R1.C2 / T5 — every new user is bootstrapped with all 3 roles; the
+    // registered role becomes the default `active_role` on first login.
+    available_roles: z.array(z.enum(['candidate', 'hr', 'pm'])).min(1),
   })
 );
 

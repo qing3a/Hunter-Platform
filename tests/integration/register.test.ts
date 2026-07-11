@@ -60,4 +60,16 @@ describe('POST /v1/auth/register', () => {
     expect(res.status).toBe(400);
     process.env.NODE_ENV = 'test';
   });
+
+  // R1.C2 / T5 — every new register auto-grants all 3 roles; the registered
+  // role becomes user_type, and available_roles surfaces the full set so the
+  // client can render a role-switch UI after login.
+  it('returns available_roles with all 3 enum values (R1.C2/T5)', async () => {
+    const res = await request(app)
+      .post('/v1/auth/register')
+      .send({ user_type: 'pm', name: 'Mul-Role', contact: 'multi@example.com' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.user_type).toBe('pm');
+    expect([...res.body.data.available_roles].sort()).toEqual(['candidate', 'hr', 'pm']);
+  });
 });

@@ -6,6 +6,7 @@ import { authMiddleware } from '../modules/auth/middleware.js';
 import { generateApiKey } from '../modules/auth/api-key.js';
 import { createQuotaManager } from '../modules/quota/manager.js';
 import { rotateApiKey } from '../db/repositories/users.js';
+import { userRolesRepo } from '../db/repositories/user-roles.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
 import { RegisterResponseSchema, RotateKeyResponseSchema } from '../schemas/auth.js';
@@ -42,6 +43,9 @@ export function createAuthRouter(db: DB, isProduction: boolean): Router {
           api_key: user.api_key,
           quota_per_day: user.quota_per_day,
           user_type: user.user_type,
+          // R1.C2 / T5 — every registered user is bootstrapped with all 3
+          // roles; surface them so the client can render role-switch UI.
+          available_roles: userRolesRepo.list(db, user.id),
         },
       });
     } catch (e) { next(e); }
