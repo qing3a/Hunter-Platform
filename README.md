@@ -75,7 +75,8 @@ Claude / 其他 Agent 通过以下 endpoint 接入：
 
 ```bash
 pnpm test            # vitest run (unit + integration)
-npx tsx examples/reference-agent/src/index.ts   # 37 端点冒烟
+# 冒烟客户端示例（详见 examples/README.md）
+npx tsx examples/hunter-client.ts
 ```
 
 ## 构建产物（生产部署）
