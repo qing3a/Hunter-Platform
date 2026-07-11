@@ -28,7 +28,7 @@ export function createAdminUsersHandler(db: DB) {
 
   return {
     list(filter: { user_type?: string; status?: string; keyword?: string; limit?: number; offset?: number }): { rows: Array<{
-      id: string; user_type: 'candidate' | 'headhunter' | 'employer'; name: string;
+      id: string; user_type: 'candidate' | 'hr' | 'pm'; name: string;
       quota_per_day: number; quota_used: number; quota_reset_at: string;
       reputation: number; status: 'active' | 'suspended' | 'deleted';
       created_at: string;
@@ -128,7 +128,7 @@ export function createAdminUsersHandler(db: DB) {
       return { user_id, previous_quota: previousQuota, new_quota, reason };
     },
     get(id: string): {
-      id: string; user_type: 'candidate' | 'headhunter' | 'employer'; name: string;
+      id: string; user_type: 'candidate' | 'hr' | 'pm'; name: string;
       quota_per_day: number; quota_used: number; quota_reset_at: string;
       reputation: number; status: 'active' | 'suspended' | 'deleted';
       created_at: string;

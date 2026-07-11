@@ -204,14 +204,14 @@ export function gatherLandingData(db: DB): LandingData {
   // 5) Active users by type
   const userRows = db.prepare(`
     SELECT user_type, COUNT(*) as c FROM users
-    WHERE status = 'active' AND user_type IN ('headhunter', 'employer') ${demoUsersFilter}
+    WHERE status = 'active' AND user_type IN ('hr', 'pm') ${demoUsersFilter}
     GROUP BY user_type
   `).all() as Array<{ user_type: string; c: number }>;
   let activeEmployerCount = 0;
   let activeHeadhunterCount = 0;
   for (const r of userRows) {
-    if (r.user_type === 'employer') activeEmployerCount = r.c;
-    if (r.user_type === 'headhunter') activeHeadhunterCount = r.c;
+    if (r.user_type === 'pm') activeEmployerCount = r.c;
+    if (r.user_type === 'hr') activeHeadhunterCount = r.c;
   }
 
   // 6) Today unlocks
@@ -235,7 +235,7 @@ export function gatherLandingData(db: DB): LandingData {
   // 9) Top 3 headhunters
   const topHeadhunterRows = db.prepare(
     `SELECT id, name, reputation FROM users
-     WHERE user_type = 'headhunter' AND status = 'active' ${demoUsersFilter}
+     WHERE user_type = 'hr' AND status = 'active' ${demoUsersFilter}
      ORDER BY reputation DESC LIMIT 3`
   ).all() as Array<{ id: string; name: string; reputation: number }>;
   const topHeadhunters: HeadhunterRanking[] = topHeadhunterRows.map((r, i) => ({
@@ -270,7 +270,7 @@ export function gatherLandingData(db: DB): LandingData {
       SELECT u.id, u.name, COUNT(r.id) AS rec_count
       FROM users u
       LEFT JOIN recommendations r ON r.employer_id = u.id
-      WHERE u.user_type = 'employer' AND u.status = 'active'
+      WHERE u.user_type = 'pm' AND u.status = 'active'
         ${isProd ? "AND u.id NOT LIKE 'demo_%'" : ''}
       GROUP BY u.id
       ORDER BY rec_count DESC, COALESCE(u.reputation, 0) DESC
@@ -391,7 +391,7 @@ export function gatherLandingData(db: DB): LandingData {
       SELECT u.id, u.name, COUNT(j.id) AS open_job_count
       FROM users u
       INNER JOIN jobs j ON j.employer_id = u.id
-      WHERE u.user_type = 'employer'
+      WHERE u.user_type = 'pm'
         AND u.status = 'active'
         AND j.status IN ('open','claimed')
         ${isProd ? "AND u.id NOT LIKE 'demo_%' AND j.id NOT LIKE 'demo_%'" : ''}

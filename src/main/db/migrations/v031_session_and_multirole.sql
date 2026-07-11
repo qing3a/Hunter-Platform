@@ -24,8 +24,8 @@ CREATE INDEX idx_session_user    ON session(user_id);
 CREATE INDEX idx_session_expires ON session(expires_at);
 
 -- Remap legacy user_type values
-UPDATE users SET user_type = 'hr' WHERE user_type = 'headhunter';
-UPDATE users SET user_type = 'pm' WHERE user_type = 'employer';
+UPDATE users SET user_type = 'hr' WHERE user_type = 'hr';
+UPDATE users SET user_type = 'pm' WHERE user_type = 'pm';
 
 -- Backfill: every existing user gets all 3 roles
 INSERT INTO user_role (user_id, role, granted_at)

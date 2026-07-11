@@ -44,7 +44,7 @@ CREATE TABLE recommendations_new (
                               )),
   commission_split_json       TEXT,
   referrer_headhunter_id      TEXT REFERENCES users(id),
-  source_type                 TEXT NOT NULL DEFAULT 'headhunter',
+  source_type                 TEXT NOT NULL DEFAULT 'hr',
   pickup_headhunter_id        TEXT REFERENCES users(id),
   candidate_note              TEXT,
   created_at                  TEXT NOT NULL,
@@ -60,7 +60,7 @@ INSERT INTO recommendations_new (
 SELECT
   id, headhunter_id, employer_id, anonymized_candidate_id, job_id, status,
   commission_split_json, referrer_headhunter_id,
-  COALESCE(source_type, 'headhunter'),
+  COALESCE(source_type, 'hr'),
   pickup_headhunter_id, candidate_note, created_at, updated_at
 FROM recommendations;
 

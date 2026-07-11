@@ -2,6 +2,8 @@
 
 猎头中介 API 平台。候选人、猎头、雇主三类用户通过自己的 Agent 接入平台 API，完成招聘协作。
 
+> R1.C2 已发布：长会话 + 多角色认证。每个用户拥有全部 3 个角色（`candidate` / `hr` / `pm`），可通过 `POST /v1/auth/login` 拿 `sess_*` token，用 `X-Active-Role` 切换活跃角色。旧 `hp_live_*` API key 仍然可用。详见 [docs/superpowers/specs/2026-07-11-session-and-multirole-design.md](docs/superpowers/specs/2026-07-11-session-and-multirole-design.md)。
+
 **纯 API 模式**（v1.0+）—— 服务端只暴露 HTTP API，无桌面客户端、无 Electron。详情见 [docs/superpowers/specs/2026-06-18-reposition-to-api-first-design.md](docs/superpowers/specs/2026-06-18-reposition-to-api-first-design.md)。
 
 ## 部署形态

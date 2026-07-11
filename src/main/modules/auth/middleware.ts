@@ -145,7 +145,7 @@ export function authMiddleware(db: DB, usersRepo = createUsersRepo(db)): Request
           // user_type from the users row is already remapped (pm/hr/candidate).
           // We still set it explicitly for clarity and to satisfy the narrower
           // `Role` type — defensive in case a future migration stores a raw
-          // 'hr'/'pm' value.
+          // 'headhunter'/'employer' value.
           user_type: remapLegacyUserType(user.user_type),
           roles: resolved.available_roles,
           active_role: resolved.active_role,
@@ -261,8 +261,8 @@ function readActiveRoleHeader(req: Request): string | undefined {
  */
 function remapLegacyUserType(raw: string): Role {
   if (raw === 'pm' || raw === 'hr' || raw === 'candidate') return raw;
-  if (raw === 'hr') return 'hr';
-  if (raw === 'pm') return 'pm';
+  if (raw === 'headhunter') return 'hr';
+  if (raw === 'employer') return 'pm';
   // Unknown value — fall back to 'candidate' as a safe default rather than
   // crashing the request. Handlers with strict role checks will reject.
   return 'candidate';

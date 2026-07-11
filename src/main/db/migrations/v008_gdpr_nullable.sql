@@ -21,7 +21,7 @@ PRAGMA foreign_keys = OFF;
 -- `api_key_expires_at`; v007 added `prev_api_key_hash/prefix/expires_at`.
 CREATE TABLE users_new (
   id                       TEXT PRIMARY KEY,
-  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'headhunter', 'employer')),
+  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'hr', 'pm')),
   -- name and contact are now nullable so a soft-deleted account can have its
   -- PII wiped. The unique-per-role invariant for `contact` is enforced in
   -- application code (register handler) — we cannot keep the column-level

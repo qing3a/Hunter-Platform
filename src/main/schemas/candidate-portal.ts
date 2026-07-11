@@ -24,7 +24,7 @@ import { z } from 'zod';
  * `employer` is intentionally absent because the employer portal uses a
  * separate auth path.
  */
-const UserTypeSchema = z.enum(['candidate', 'headhunter', 'pm']);
+const UserTypeSchema = z.enum(['candidate', 'hr', 'pm']);
 
 /** POST /v1/candidate-portal/auth/otp/request */
 export const OtpRequestSchema = z.object({

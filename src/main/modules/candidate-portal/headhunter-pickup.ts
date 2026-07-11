@@ -93,7 +93,7 @@ export function createHeadhunterPickup(db: DB): HeadhunterPickupModule {
      * not set) cannot leak.
      */
     pickup(user: User, recommendationId: string): PickupResult {
-      if (user.user_type !== 'headhunter') {
+      if (user.user_type !== 'hr') {
         throw Errors.forbidden('Only headhunters can pick up applications');
       }
       if (!recommendationId || typeof recommendationId !== 'string') {

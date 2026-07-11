@@ -8,7 +8,7 @@ export function createRecommendationsRepo(db: DB) {
                                  commission_split_json, referrer_headhunter_id,
                                  created_at, updated_at)
     VALUES (@id, @headhunter_id, @employer_id, @anonymized_candidate_id, @job_id,
-            @status, COALESCE(@source_type, 'headhunter'),
+            @status, COALESCE(@source_type, 'hr'),
             @pickup_headhunter_id, @candidate_note,
             @commission_split_json, @referrer_headhunter_id,
             @created_at, @updated_at)

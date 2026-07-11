@@ -46,21 +46,21 @@ UPDATE action_history SET capability_name = 'headhunter.withdraw_recommendation'
 UPDATE action_history
 SET capability_name = 'headhunter.create_job'
 WHERE capability_name = 'create_job'
-  AND user_id IN (SELECT id FROM users WHERE user_type = 'headhunter');
+  AND user_id IN (SELECT id FROM users WHERE user_type = 'hr');
 UPDATE action_history
 SET capability_name = 'employer.create_job'
 WHERE capability_name = 'create_job'
-  AND user_id IN (SELECT id FROM users WHERE user_type = 'employer');
+  AND user_id IN (SELECT id FROM users WHERE user_type = 'pm');
 
 -- Ambiguous: `list_my_jobs` exists for both headhunter and employer.
 UPDATE action_history
 SET capability_name = 'headhunter.list_jobs'
 WHERE capability_name = 'list_my_jobs'
-  AND user_id IN (SELECT id FROM users WHERE user_type = 'headhunter');
+  AND user_id IN (SELECT id FROM users WHERE user_type = 'hr');
 UPDATE action_history
 SET capability_name = 'employer.list_jobs'
 WHERE capability_name = 'list_my_jobs'
-  AND user_id IN (SELECT id FROM users WHERE user_type = 'employer');
+  AND user_id IN (SELECT id FROM users WHERE user_type = 'pm');
 
 UPDATE action_history SET capability_name = 'employer.talent'                WHERE capability_name = 'browse_talent';
 UPDATE action_history SET capability_name = 'employer.express_interest'     WHERE capability_name = 'express_interest';

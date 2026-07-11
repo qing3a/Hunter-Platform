@@ -55,7 +55,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
         'placement.annual_salary': input.annual_salary,
         'commission.platform_rate': platformRate,
       }, (span) => {
-      if (employer.user_type !== 'employer') throw Errors.forbidden('Only employers can create placements');
+      if (employer.user_type !== 'pm') throw Errors.forbidden('Only employers can create placements');
 
       const rec = recs.findByCandidateAndJob(input.anonymized_candidate_id, input.job_id);
       if (!rec) throw Errors.notFound('No recommendation for this candidate + job');
@@ -198,7 +198,7 @@ export function createCommissionHandler(db: DB, encryptionKey: Buffer, notifTrig
     },
 
     listPlacements(employer: User, opts: { status?: 'pending_payment' | 'paid' | 'cancelled' } = {}): Placement[] {
-      if (employer.user_type !== 'employer') throw Errors.forbidden('Only employers');
+      if (employer.user_type !== 'pm') throw Errors.forbidden('Only employers');
       return places.listByEmployer(employer.id, opts);
     },
   };

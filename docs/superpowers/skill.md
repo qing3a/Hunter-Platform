@@ -165,9 +165,11 @@ GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability 
 
 | 角色 | 做什么 | 调用入口 |
 |------|-------|---------|
-| **候选人 (candidate)** | 注册；提供简历（脱敏入库）；授权解锁；GDPR 撤回 | `POST /v1/auth/register` → `Bearer hp_live_...` → `/v1/candidate/*` |
-| **猎头 (headhunter)** | 上传候选人；推荐给雇主；撤回/公开到池子 | `POST /v1/auth/register` → `Bearer hp_live_...` → `/v1/headhunter/*` |
-| **雇主 (employer)** | 发 JD；浏览脱敏人才；表达兴趣；解锁联系方式；创建入职 | `POST /v1/auth/register` → `Bearer hp_live_...` → `/v1/employer/*` |
+| **候选人 (candidate)** | 注册；提供简历（脱敏入库）；授权解锁；GDPR 撤回 | `POST /v1/auth/register` (`user_type=candidate`) → `Bearer hp_live_...` 或 `POST /v1/auth/login` → `Bearer sess_...` → `/v1/candidate/*` |
+| **猎头 (headhunter, new: hr)** | 上传候选人；推荐给雇主；撤回/公开到池子 | `POST /v1/auth/register` (`user_type=hr`) → `Bearer hp_live_...` 或 `POST /v1/auth/login` → `Bearer sess_...` → `/v1/headhunter/*` |
+| **雇主 (employer, new: pm)** | 发 JD；浏览脱敏人才；表达兴趣；解锁联系方式；创建入职 | `POST /v1/auth/register` (`user_type=pm`) → `Bearer hp_live_...` 或 `POST /v1/auth/login` → `Bearer sess_...` → `/v1/employer/*` |
+
+> R1.C2 角色重命名：旧的 `headhunter` → `hr`，`employer` → `pm`。当前所有用户在 `user_type` 列只可能取值 `candidate` / `hr` / `pm`。
 
 ### 0.3 4 步解锁协议（最关键的业务流程）
 
@@ -209,6 +211,10 @@ GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability 
 
 ## 🔐 1. 认证
 
+支持**双轨认证** (`Bearer hp_live_*` API key 或 `Bearer sess_*` session token)，由 `authMiddleware` 自动按前缀分派。
+
+### 1.0 API key（静态机器凭证）
+
 所有受保护端点都需要 `Authorization: Bearer <api_key>` header。
 
 ```bash
@@ -217,6 +223,34 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 ```
 
 > ⚠️ **API key 只在注册时返回一次**，丢失后只能 `POST /v1/auth/rotate-key` 轮换（v2 起可用）。
+
+### 1.1 Session token（多角色 + 长会话，R1.C2 / T5-T8）
+
+每个注册用户自动获得 **3 个角色**（`candidate` / `hr` / `pm`）。一个 session 是一个 168h（1 周）TTL 的滑动窗口 bearer token；可在 session 内通过 `X-Active-Role` header 切换活跃角色。
+
+```bash
+# 1. 注册 — 拿到 api_key 与 available_roles
+KEY=$(curl -s -X POST https://qing3.top/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"user_type":"pm","name":"my-bot","contact":"bot@example.com"}' \
+  | jq -r .data.api_key)
+# 2. api_key → session_id（可选 active_role 切换角色）
+SESS=$(curl -s -X POST https://qing3.top/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d "{\"api_key\":\"$KEY\",\"active_role\":\"pm\"}" \
+  | jq -r .data.session_id)
+# 3. session 用 X-Active-Role 切换（仅在 Bearer sess_* 路径生效）
+curl -H "Authorization: Bearer $SESS" \
+     -H "X-Active-Role: hr" \
+     https://qing3.top/v1/users/{id}/status
+# 4. 续期 / 登出
+curl -X POST https://qing3.top/v1/auth/refresh -H "Content-Type: application/json" \
+     -d "{\"session_id\":\"$SESS\"}"
+curl -X POST https://qing3.top/v1/auth/logout  -H "Content-Type: application/json" \
+     -d "{\"session_id\":\"$SESS\"}"
+```
+
+> session 撤销后立即失效；`/v1/auth/rotate-key` 同时接受 api_key 与 session bearer（R1.C2 / T8.5）。
 
 ### 1.1 字段命名约定
 
@@ -237,8 +271,11 @@ curl -H "Authorization: Bearer hp_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
 
 | Method | Path | 描述 | 配额 |
 |--------|------|------|------|
-| POST | `/v1/auth/register` | 注册（三角色之一） | 0 |
-| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key **立即失效**，无 grace period）。响应字段：`data.new_api_key`（**不是** `api_key`） | 1 |
+| POST | `/v1/auth/register` | 注册（三角色之一：candidate/hr/pm；每个新用户自动获得全部 3 个角色；响应里 `data.available_roles` 列出全部可用角色） | 0 |
+| POST | `/v1/auth/login` | api_key → session_id（168h TTL，滑动续期）。可选 body 字段 `active_role` 在登录时切换活跃角色 | 0 |
+| POST | `/v1/auth/refresh` | session_id → 新 expires_at（168h 滑动窗口）。可选 `active_role` 在续期时切换活跃角色 | 0 |
+| POST | `/v1/auth/logout` | 撤销 session（idempotent；缺失/无效 session 也返回 ok） | 0 |
+| POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key **立即失效**，无 grace period）。响应字段：`data.new_api_key`（**不是** `api_key`）。**接受 `Bearer hp_live_*` 或 `Bearer sess_*` 两种认证** | 1 |
 | GET  | `/v1/users/{id}/status` | 用户状态（配额/待办） | 1 |
 | GET  | `/v1/users/{id}/history` | 操作历史（支持 `?limit= ≤200` 和 `?since=ISO`） | 1 |
 | GET  | `/v1/health` | 健康检查 | 0 |
