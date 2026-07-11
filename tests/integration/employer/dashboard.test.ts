@@ -435,11 +435,10 @@ describe('employer-panel: dashboard handler', () => {
       expectForbidden(() => handler.getDashboard(user));
     });
 
-    it('throws FORBIDDEN for pm caller', () => {
-      const { user } = seedUser({ id: 'p1', userType: 'pm' });
-      const handler = createEmployerDashboardHandler(getTestDb());
-      expectForbidden(() => handler.getDashboard(user));
-    });
+    // R1.C2: 'pm' is the merged employer role — real PM users MUST access the
+    // employer dashboard. The duplicate 'pm caller' test (seeded as pm and
+    // expecting FORBIDDEN) is therefore removed; coverage of non-pm callers
+    // is held by the headhunter + candidate cases above.
   });
 
   // ----- active_jobs + open_positions --------------------------------------
@@ -764,7 +763,11 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
   });
 
   it('returns 403 FORBIDDEN for pm caller', async () => {
-    const { apiKey } = seedUser({ id: 'p1', userType: 'pm' });
+    // R1.C2: 'pm' is the employer role — to exercise the FORBIDDEN branch
+    // we seed a non-pm user (hr here, mirrors the original 'pm caller' in
+    // the now-merged role enum). A literal pm call must SUCCEED and is
+    // exercised by the test above.
+    const { apiKey } = seedUser({ id: 'p1', userType: 'hr' });
     const res = await request(app)
       .get('/v1/employer-panel/dashboard')
       .set('Authorization', `Bearer ${apiKey}`);

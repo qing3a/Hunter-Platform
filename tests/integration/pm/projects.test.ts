@@ -200,11 +200,15 @@ describe('pm: projects (handler + repo integration)', () => {
 
     it('rejects non-PM callers with FORBIDDEN', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'pm' });
+      // R1.C2: 'pm' is the merged employer role — to keep this test meaningful
+      // after the rename, we seed an hr user (the analogue of the legacy
+      // 'employer' distinct role) and a candidate. Real PM users must NOT be
+      // rejected here.
+      const nonPmHr = seedUser({ id: 'e1', userType: 'hr' });
       const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const handler = createProjectsHandler(getTestDb());
       expectErrorCode(() => handler.createProject(candidate, { name: 'x' }), 'FORBIDDEN');
-      expectErrorCode(() => handler.createProject(employer, { name: 'x' }), 'FORBIDDEN');
+      expectErrorCode(() => handler.createProject(nonPmHr, { name: 'x' }), 'FORBIDDEN');
       expectErrorCode(() => handler.createProject(hunter, { name: 'x' }), 'FORBIDDEN');
     });
   });
