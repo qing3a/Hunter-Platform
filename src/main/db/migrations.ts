@@ -40,6 +40,7 @@ const MIGRATIONS: { version: number; description: string; file: string }[] = [
   { version: 21, description: 'PM Workbench (projects, positions, plans, decompositions, matches, notes)', file: 'migrations/v028_pm_workbench.sql' },
   { version: 22, description: 'Extend users.user_type CHECK to allow pm (PM Workbench /pm/* portal)', file: 'migrations/v029_add_pm_user_type.sql' },
   { version: 23, description: 'PM Sandbox: link recommendations to project_positions + stage_entered_at', file: 'migrations/v030_pm_sandbox.sql' },
+  { version: 24, description: 'R1.C2: session table + user_role multi-role + role enum rename (headhunter→hr, employer→pm)', file: 'migrations/v031_session_and_multirole.sql' },
 ];
 
 export function runMigrations(db: DB, schemaDir: string = path.join(__dirname)): void {
