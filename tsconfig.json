@@ -3,7 +3,6 @@
   "references": [
     { "path": "./tsconfig.node.json" },
     { "path": "./admin-web" },
-    { "path": "./app-web" },
     { "path": "./shared-web" }
   ]
 }

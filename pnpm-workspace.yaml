@@ -1,4 +1,3 @@
 packages:
   - 'admin-web'
-  - 'app-web'
   - 'shared-web'
