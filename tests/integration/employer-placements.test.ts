@@ -18,9 +18,9 @@ describe('POST /v1/employer/placements', () => {
     const { createApp } = await import('../../src/main/server');
     app = createApp();
 
-    const e = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E', contact: 'e@x.com' });
+    const e = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E', contact: 'e@x.com' });
     employerKey = e.body.data.api_key;
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H', contact: 'h@x.com' });
     headhunterKey = h.body.data.api_key;
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
     candidateId = c.body.data.id;

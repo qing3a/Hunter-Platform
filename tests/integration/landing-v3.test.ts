@@ -72,7 +72,7 @@ describe('GET / - v3 features', () => {
   it('does not leak PII (emails, user IDs)', async () => {
     const app = createApp();
     await request(app).post('/v1/auth/register').send({
-      user_type: 'employer', name: 'PII Test', contact: 'leak@private.com',
+      user_type: 'pm', name: 'PII Test', contact: 'leak@private.com',
     });
     const res = await request(app).get('/');
     expect(res.text).not.toContain('leak@private.com');

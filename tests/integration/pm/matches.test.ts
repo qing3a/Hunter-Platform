@@ -26,7 +26,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
   contact?: string | null;
 }): User {
@@ -98,7 +98,7 @@ function seedCandidate(opts: {
   // candidates_private.headhunter_id has FK to users(id) — seed a real
   // headhunter user the first time we need it.
   if (!db.prepare("SELECT 1 FROM users WHERE id = 'hh_test'").get()) {
-    seedUser({ id: 'hh_test', userType: 'headhunter', name: 'Test Headhunter' });
+    seedUser({ id: 'hh_test', userType: 'hr', name: 'Test Headhunter' });
   }
   seedUser({ id: opts.id, userType: 'candidate', name: opts.name });
   const now = new Date().toISOString();

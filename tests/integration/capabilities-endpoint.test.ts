@@ -32,7 +32,7 @@ afterAll(() => {
 
 async function registerHeadhunter(contact: string, name = 'T') {
   const r = await request(app).post('/v1/auth/register')
-    .send({ user_type: 'headhunter', name, contact });
+    .send({ user_type: 'hr', name, contact });
   return { apiKey: r.body.data.api_key as string, userId: r.body.data.id as string };
 }
 
@@ -48,8 +48,8 @@ describe('GET /v1/capabilities', () => {
     expect(r.status).toBe(200);
     expect(r.body.data.sets.length).toBeGreaterThanOrEqual(5);  // auth, headhunter, employer, candidate, admin
     const roles = r.body.data.sets.map((s: any) => s.role);
-    expect(roles).toContain('headhunter');
-    expect(roles).toContain('employer');
+    expect(roles).toContain('hr');
+    expect(roles).toContain('pm');
     expect(roles).toContain('candidate');
     expect(roles).toContain('admin');
     expect(roles).toContain('auth');
@@ -57,7 +57,7 @@ describe('GET /v1/capabilities', () => {
 
   it('each capability has name, method, path, quota_cost', async () => {
     const r = await request(app).get('/v1/capabilities');
-    const headhunter = r.body.data.sets.find((s: any) => s.role === 'headhunter');
+    const headhunter = r.body.data.sets.find((s: any) => s.role === 'hr');
     expect(headhunter.capabilities.length).toBeGreaterThanOrEqual(5);
     for (const cap of headhunter.capabilities) {
       // Allow optional 3-part names (e.g. headhunter.recommendations.list_pending_pickup)
@@ -81,7 +81,7 @@ describe('GET /v1/capabilities/me', () => {
     const r = await request(app).get('/v1/capabilities/me')
       .set('Authorization', `Bearer ${apiKey}`);
     expect(r.status).toBe(200);
-    expect(r.body.data.user_type).toBe('headhunter');
+    expect(r.body.data.user_type).toBe('hr');
     expect(r.body.data.status).toBe('active');
     expect(r.body.data.quota_per_day).toBeGreaterThan(0);
     expect(r.body.data.capabilities.length).toBeGreaterThan(0);

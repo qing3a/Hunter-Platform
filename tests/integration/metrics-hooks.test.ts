@@ -31,7 +31,7 @@ describe('metrics refresh', () => {
     const users = createUsersRepo(db);
     const queue = createWebhookQueueRepo(db);
     users.insert({
-      id: 'u1', user_type: 'employer', name: 'U', contact: null, agent_endpoint: null,
+      id: 'u1', user_type: 'pm', name: 'U', contact: null, agent_endpoint: null,
       api_key_hash: 'h', api_key_prefix: 'hp_live_',
       quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z',
       reputation: 50, status: 'active',

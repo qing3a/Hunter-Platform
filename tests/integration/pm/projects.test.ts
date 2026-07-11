@@ -31,7 +31,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -200,8 +200,8 @@ describe('pm: projects (handler + repo integration)', () => {
 
     it('rejects non-PM callers with FORBIDDEN', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const handler = createProjectsHandler(getTestDb());
       expectErrorCode(() => handler.createProject(candidate, { name: 'x' }), 'FORBIDDEN');
       expectErrorCode(() => handler.createProject(employer, { name: 'x' }), 'FORBIDDEN');

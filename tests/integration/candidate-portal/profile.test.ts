@@ -141,7 +141,7 @@ function seedCandidateProfile(opts: {
       prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
       quota_per_day, quota_used, quota_reset_at, reputation,
       status, created_at, updated_at)
-    VALUES (?, 'headhunter', 'H', NULL, NULL,
+    VALUES (?, 'hr', 'H', NULL, NULL,
       'h_hash', 'h_prefix', NULL,
       NULL, NULL, NULL,
       200, 0, ?, 50,
@@ -444,7 +444,7 @@ describe('candidate-portal: profile (handler + repo integration)', () => {
           prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
           quota_per_day, quota_used, quota_reset_at, reputation,
           status, created_at, updated_at)
-        VALUES (?, 'headhunter', 'HH', NULL, NULL,
+        VALUES (?, 'hr', 'HH', NULL, NULL,
           'h1_hash', 'h1_prefix', NULL,
           NULL, NULL, NULL,
           200, 0, ?, 50,
@@ -456,7 +456,7 @@ describe('candidate-portal: profile (handler + repo integration)', () => {
           prev_api_key_hash, prev_api_key_prefix, prev_api_key_expires_at,
           quota_per_day, quota_used, quota_reset_at, reputation,
           status, created_at, updated_at)
-        VALUES (?, 'employer', 'Emp', NULL, NULL,
+        VALUES (?, 'pm', 'Emp', NULL, NULL,
           'e1_hash', 'e1_prefix', NULL,
           NULL, NULL, NULL,
           200, 0, ?, 50,
@@ -488,7 +488,7 @@ describe('candidate-portal: profile (handler + repo integration)', () => {
       expect(res.body.data.entries[0]).toMatchObject({
         action: 'express_interest',
         actor_user_id: 'emp_audit_test',
-        viewer_type: 'employer',
+        viewer_type: 'pm',
         viewer_name: 'Emp',
       });
       expect(typeof res.body.data.entries[0].created_at).toBe('string');
@@ -504,7 +504,7 @@ describe('candidate-portal: profile (handler + repo integration)', () => {
       const module_ = createCandidatePortalProfile(getTestDb());
       expect(() =>
         module_.getProfile({
-          id: 'h_x', user_type: 'headhunter', name: 'X', contact: null,
+          id: 'h_x', user_type: 'hr', name: 'X', contact: null,
           agent_endpoint: null, api_key_hash: '', api_key_prefix: '',
           api_key_expires_at: null, prev_api_key_hash: null,
           prev_api_key_prefix: null, prev_api_key_expires_at: null,

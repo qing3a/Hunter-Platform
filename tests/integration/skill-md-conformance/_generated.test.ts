@@ -41,7 +41,7 @@ describe('candidate', () => {
   it.todo('candidate.delete_my_data: POST /v1/candidate/delete-my-data');
 });
 
-describe('employer', () => {
+describe('pm', () => {
   it.todo('employer.create_placement: POST /v1/employer/placements');
   it.todo('employer.list_placements: GET /v1/employer/placements');
   it.todo('employer.create_job: POST /v1/employer/jobs');
@@ -54,7 +54,7 @@ describe('employer', () => {
   it.todo('employer.reject_job: POST /v1/employer/reject-jobs/:id');
 });
 
-describe('headhunter', () => {
+describe('hr', () => {
   it.todo('headhunter.upload_candidate: POST /v1/headhunter/candidates');
   it.todo('headhunter.recommend_candidate: POST /v1/headhunter/recommendations');
   it.todo('headhunter.withdraw_recommendation: POST /v1/headhunter/recommendations/:id/withdraw');

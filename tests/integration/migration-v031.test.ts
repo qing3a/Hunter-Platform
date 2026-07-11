@@ -14,13 +14,13 @@ describe('migration v031: session + user_role', () => {
     db.exec(`
       CREATE TABLE users (
         id TEXT PRIMARY KEY,
-        user_type TEXT NOT NULL CHECK (user_type IN ('pm','hr','candidate','headhunter','employer')),
+        user_type TEXT NOT NULL CHECK (user_type IN ('pm','hr','candidate','hr','pm')),
         name TEXT NOT NULL,
         created_at TEXT NOT NULL
       );
     `);
-    db.exec(`INSERT INTO users (id, user_type, name, created_at) VALUES ('u1', 'headhunter', 'Alice', '2026-01-01');`);
-    db.exec(`INSERT INTO users (id, user_type, name, created_at) VALUES ('u2', 'employer', 'Bob', '2026-01-01');`);
+    db.exec(`INSERT INTO users (id, user_type, name, created_at) VALUES ('u1', 'hr', 'Alice', '2026-01-01');`);
+    db.exec(`INSERT INTO users (id, user_type, name, created_at) VALUES ('u2', 'pm', 'Bob', '2026-01-01');`);
     db.exec(`INSERT INTO users (id, user_type, name, created_at) VALUES ('u3', 'candidate', 'Carol', '2026-01-01');`);
     const sql = fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'main', 'db', 'migrations', 'v031_session_and_multirole.sql'), 'utf8');
     db.exec(sql);

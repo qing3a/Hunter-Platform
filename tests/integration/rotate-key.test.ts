@@ -30,7 +30,7 @@ describe('POST /v1/auth/rotate-key', () => {
   it('returns a new api_key and immediately invalidates the old one (regression: Bug 1)', async () => {
     // register a headhunter
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'RotateTester', contact: 'rt@x.com' });
+      .send({ user_type: 'hr', name: 'RotateTester', contact: 'rt@x.com' });
     expect(reg.status).toBe(200);
     const oldKey = reg.body.data.api_key;
     const userId = reg.body.data.id;

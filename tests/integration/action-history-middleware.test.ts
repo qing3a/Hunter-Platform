@@ -37,7 +37,7 @@ describe('action_history middleware integration', () => {
   });
 
   /** Helper: directly insert a user with a known API key (bypasses register IP rate limit) */
-  function createUserDirectly(userType: 'headhunter' | 'employer' | 'candidate', apiKey: string): string {
+  function createUserDirectly(userType: 'hr' | 'pm' | 'candidate', apiKey: string): string {
     const userId = `user_${randomUUID().slice(0, 12)}`;
     const now = new Date().toISOString();
     const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
@@ -56,7 +56,7 @@ describe('action_history middleware integration', () => {
 
   it('writes register entry on POST /v1/auth/register', async () => {
     const res = await request(app).post('/v1/auth/register').send({
-      user_type: 'headhunter', name: 'Test', contact: `reg_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
+      user_type: 'hr', name: 'Test', contact: `reg_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
     });
     expect(res.status).toBe(200);
     const rows = db.prepare("SELECT * FROM action_history WHERE capability_name = 'auth.register'").all();
@@ -68,7 +68,7 @@ describe('action_history middleware integration', () => {
   it('writes upload_candidate entry with target_id when headhunter uploads', async () => {
     const candUserId = createUserDirectly('candidate', 'hp_live_test_cand');
     const hhApiKey = 'hp_live_test_hh_upload';
-    createUserDirectly('headhunter', hhApiKey);
+    createUserDirectly('hr', hhApiKey);
 
     const up = await request(app)
       .post('/v1/headhunter/candidates')
@@ -103,7 +103,7 @@ describe('action_history middleware integration', () => {
 
   it('records duration_ms in reasonable range (>= 0)', async () => {
     const res = await request(app).post('/v1/auth/register').send({
-      user_type: 'employer', name: 'E', contact: `emp_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
+      user_type: 'pm', name: 'E', contact: `emp_${Date.now()}_${randomUUID().slice(0,4)}@x.com`,
     });
     expect(res.status).toBe(200);
     const row = db.prepare("SELECT * FROM action_history WHERE capability_name='auth.register' ORDER BY id DESC LIMIT 1").get() as any;
@@ -122,9 +122,9 @@ describe('action_history middleware integration', () => {
     // Setup users directly in DB (bypass IP rate limit)
     const candUserId = createUserDirectly('candidate', 'hp_live_test_cand2');
     const hhApiKey = 'hp_live_test_hh_ei';
-    createUserDirectly('headhunter', hhApiKey);
+    createUserDirectly('hr', hhApiKey);
     const empApiKey = 'hp_live_test_emp_ei';
-    const empUserId = createUserDirectly('employer', empApiKey);
+    const empUserId = createUserDirectly('pm', empApiKey);
 
     // Upload candidate
     const up = await request(app)

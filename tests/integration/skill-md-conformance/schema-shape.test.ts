@@ -38,8 +38,8 @@ beforeAll(async () => {
   client = new ConformanceClient(app);
 
   // Register all three roles once; reuse across describes.
-  hKey = await client.register('headhunter', 'ShapeH', 'sh@x.com');
-  eKey = await client.register('employer', 'ShapeE', 'se@x.com');
+  hKey = await client.register('hr', 'ShapeH', 'sh@x.com');
+  eKey = await client.register('pm', 'ShapeE', 'se@x.com');
   cKey = await client.register('candidate', 'ShapeC', 'sc@x.com');
 
   // Pre-create resources needed by per-capability tests.
@@ -51,7 +51,7 @@ beforeAll(async () => {
 
   const hJobRes = await client.request({
     method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-    body: { title: 'HJob1', description: 'd', created_for_employer_id: client.ids.get('employer') },
+    body: { title: 'HJob1', description: 'd', created_for_employer_id: client.ids.get('pm') },
   });
   hJobId = hJobRes.data.data.id as string;
 
@@ -81,8 +81,8 @@ function bindPath(template: string, params: Record<string, string>): string {
 
 /** Map a role name to the API key created in beforeAll. */
 function keyFor(role: string): string | undefined {
-  if (role === 'headhunter') return hKey;
-  if (role === 'employer') return eKey;
+  if (role === 'hr') return hKey;
+  if (role === 'pm') return eKey;
   if (role === 'candidate') return cKey;
   return undefined; // admin / auth
 }
@@ -105,7 +105,7 @@ function bodyFor(capName: string): unknown | undefined {
     case 'headhunter.publish_to_pool':
       return undefined;
     case 'headhunter.create_job':
-      return { title: 'BodyJob', description: 'd', created_for_employer_id: client.ids.get('employer') };
+      return { title: 'BodyJob', description: 'd', created_for_employer_id: client.ids.get('pm') };
     case 'employer.create_job':
       return { title: 'EJobBody', description: 'd' };
     case 'employer.express_interest':
@@ -259,7 +259,7 @@ describe('schema-shape: auth capabilities', () => {
 });
 
 describe('schema-shape: headhunter capabilities', () => {
-  for (const cap of getAllCapabilitySets().find((s) => s.role === 'headhunter')!.capabilities) {
+  for (const cap of getAllCapabilitySets().find((s) => s.role === 'hr')!.capabilities) {
     if (COMPLEX_CAPS.has(cap.name)) continue;
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
       const r = await client.request({
@@ -275,7 +275,7 @@ describe('schema-shape: headhunter capabilities', () => {
 });
 
 describe('schema-shape: employer capabilities', () => {
-  for (const cap of getAllCapabilitySets().find((s) => s.role === 'employer')!.capabilities) {
+  for (const cap of getAllCapabilitySets().find((s) => s.role === 'pm')!.capabilities) {
     if (COMPLEX_CAPS.has(cap.name)) continue;
     it(`${cap.name}: ${cap.method} ${cap.path}`, async () => {
       const r = await client.request({

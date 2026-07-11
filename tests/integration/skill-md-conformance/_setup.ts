@@ -131,7 +131,7 @@ export class ConformanceClient {
   }
 
   /** Register a user, return api_key. */
-  async register(userType: 'candidate' | 'headhunter' | 'employer', name: string, contact: string): Promise<string> {
+  async register(userType: 'candidate' | 'hr' | 'pm', name: string, contact: string): Promise<string> {
     const r = await this.request({
       method: 'POST',
       path: '/v1/auth/register',

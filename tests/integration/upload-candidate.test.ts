@@ -18,7 +18,7 @@ describe('POST /v1/headhunter/candidates', () => {
     app = createApp();
 
     // 预创建猎头 + 候选人，从 register 响应中拿到 user_id
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h1-upload@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H', contact: 'h1-upload@x.com' });
     headhunterKey = h.body.data.api_key;
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c1-upload@x.com' });
     candidateId = c.body.data.id;

@@ -35,7 +35,7 @@ describe('GET / (marketplace landing)', () => {
 
 it('shows real open job count', async () => {
     const app = createApp();
-    const emp = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' });
+    const emp = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' });
     await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
       .send({ title: 'Job 1' });
@@ -51,7 +51,7 @@ it('shows real open job count', async () => {
 
   it('shows candidate data after upload + publish', async () => {
     const app = createApp();
-    const hh = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H1', contact: 'h1@h.com' });
+    const hh = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H1', contact: 'h1@h.com' });
     const cand = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C1', contact: 'c1@c.com' });
     const upload = await request(app).post('/v1/headhunter/candidates')
       .set('Authorization', `Bearer ${hh.body.data.api_key}`)
@@ -72,7 +72,7 @@ it('shows real open job count', async () => {
   it('does NOT include any PII', async () => {
     const app = createApp();
     await request(app).post('/v1/auth/register').send({
-      user_type: 'employer', name: 'PII Test', contact: 'leaked@private.com',
+      user_type: 'pm', name: 'PII Test', contact: 'leaked@private.com',
     });
     const res = await request(app).get('/');
     expect(res.text).not.toContain('leaked@private.com');
@@ -95,9 +95,9 @@ it('shows real open job count', async () => {
   describe('Hero Stats section', () => {
     it('shows today\'s unlocks count', async () => {
       const app = createApp();
-      const hh = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'StatsHH', contact: 'statsh@h.com' });
+      const hh = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'StatsHH', contact: 'statsh@h.com' });
       const cand = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'StatsC', contact: 'statsc@c.com' });
-      const emp = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'StatsE', contact: 'statse@e.com' });
+      const emp = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'StatsE', contact: 'statse@e.com' });
 
       const upload = await request(app).post('/v1/headhunter/candidates')
         .set('Authorization', `Bearer ${hh.body.data.api_key}`)
@@ -124,8 +124,8 @@ it('shows real open job count', async () => {
   describe('Top Headhunters tab (rankings)', () => {
     it('shows headhunters sorted by reputation DESC', async () => {
       const app = createApp();
-      await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopA', contact: 'topa@h.com' });
-      await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'TopB', contact: 'topb@h.com' });
+      await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'TopA', contact: 'topa@h.com' });
+      await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'TopB', contact: 'topb@h.com' });
 
       const res = await request(app).get('/');
       // v3: rankings tabbed section, hunters tab
@@ -147,7 +147,7 @@ it('shows real open job count', async () => {
   describe('PII safety in new sections', () => {
     it('does NOT leak user_id / contact / email', async () => {
       const app = createApp();
-      await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'PIIEmp', contact: 'leaked@evil.com' });
+      await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'PIIEmp', contact: 'leaked@evil.com' });
 
       const res = await request(app).get('/');
       // v3: still must not leak PII (email + user_id). Employer name is shown by

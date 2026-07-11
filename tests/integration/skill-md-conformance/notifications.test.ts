@@ -30,10 +30,10 @@ describe('notifications conformance (v1.9.0)', () => {
     client = new ConformanceClient(app);
     otherClient = new ConformanceClient(app);
 
-    userKey = await client.register('headhunter', 'Alice', 'alice@x.com');
-    otherKey = await otherClient.register('headhunter', 'Bob', 'bob@x.com');
-    userId = client.ids.get('headhunter')!;
-    otherId = otherClient.ids.get('headhunter')!;
+    userKey = await client.register('hr', 'Alice', 'alice@x.com');
+    otherKey = await otherClient.register('hr', 'Bob', 'bob@x.com');
+    userId = client.ids.get('hr')!;
+    otherId = otherClient.ids.get('hr')!;
 
     // Seed 3 notifications for Alice (mix of read/unread) and 1 for Bob.
     db.prepare(`INSERT INTO notifications (id, user_id, category, title, body, payload_json, read_at, created_at, expires_at, dedup_key)

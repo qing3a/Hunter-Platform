@@ -78,7 +78,7 @@ describe('OTel trace_id propagation', () => {
   it('action_history row trace_id matches the request trace_id', async () => {
     // Register a headhunter (write to action_history via auth route)
     const reg = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'T', contact: 't@x.com' });
+      .send({ user_type: 'hr', name: 'T', contact: 't@x.com' });
     expect(reg.status).toBe(200);
     const traceId = reg.headers['x-trace-id'];
     expect(traceId).toMatch(/^[0-9a-f]{32}$/);

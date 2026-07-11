@@ -15,7 +15,7 @@ describe('GET /v1/config/*', () => {
   async function registerHeadhunter() {
     const app = createApp();
     const res = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'CfgHH', contact: 'cfg@h.com' });
+      .send({ user_type: 'hr', name: 'CfgHH', contact: 'cfg@h.com' });
     return { app, apiKey: res.body.data.api_key };
   }
 

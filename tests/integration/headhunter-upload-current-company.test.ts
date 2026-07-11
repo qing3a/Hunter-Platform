@@ -29,7 +29,7 @@ describe('POST /v1/headhunter/candidates - current_company required', () => {
 
     // Register headhunter via /v1/auth/register (this is the proper auth pattern)
     const hhReg = await request(app).post('/v1/auth/register').send({
-      user_type: 'headhunter',
+      user_type: 'hr',
       name: 'Test HH',
       contact: 'hh@test.com',
     });

@@ -23,13 +23,13 @@ describe('GET /v1/market/jobs', () => {
 
     // 注册 2 个 employer + 1 个 headhunter
     const empA = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'A公司', contact: 'empa@x.com' });
+      .send({ user_type: 'pm', name: 'A公司', contact: 'empa@x.com' });
     empAKey = empA.body.data.api_key;
     const empB = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'B公司', contact: 'empb@x.com' });
+      .send({ user_type: 'pm', name: 'B公司', contact: 'empb@x.com' });
     empBKey = empB.body.data.api_key;
     const hunt = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: '测试猎头', contact: 'hunt@x.com' });
+      .send({ user_type: 'hr', name: '测试猎头', contact: 'hunt@x.com' });
     huntKey = hunt.body.data.api_key;
 
     // 创建 4 个 JD：A公司 2 个 + B公司 2 个

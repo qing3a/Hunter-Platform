@@ -22,7 +22,7 @@ describe('GET /v1/employer/talent — salary filter', () => {
 
     // 注册 headhunter 并上传 4 个不同 salary 的候选人（覆盖 4 个不同 band：0-20万 / 40-60万 / 120-200万 / 200万+）
     const hhRes = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Filter-HH', contact: 'fh@x.com' });
+      .send({ user_type: 'hr', name: 'Filter-HH', contact: 'fh@x.com' });
     hhKey = hhRes.body.data.api_key;
     const cand = await request(app).post('/v1/auth/register')
       .send({ user_type: 'candidate', name: 'C', contact: 'fc@x.com' });
@@ -56,7 +56,7 @@ describe('GET /v1/employer/talent — salary filter', () => {
 
     // 注册 employer
     const empRes = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'Filter-Emp', contact: 'fe@x.com' });
+      .send({ user_type: 'pm', name: 'Filter-Emp', contact: 'fe@x.com' });
     empKey = empRes.body.data.api_key;
   });
 

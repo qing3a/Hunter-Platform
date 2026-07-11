@@ -22,9 +22,9 @@ describe('commission 70/30 split - headhunter created job', () => {
   it('跨人 (A 建, B 推荐): 70% B / 30% A', async () => {
     const app = createApp();
     // 注册
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hhA = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'HA', contact: 'ha@h.com' })).body.data;
-    const hhB = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'HB', contact: 'hb@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hhA = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'HA', contact: 'ha@h.com' })).body.data;
+    const hhB = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'HB', contact: 'hb@h.com' })).body.data;
     const cand = (await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C1', contact: 'c1@c.com' })).body.data;
 
     // A 建岗, 指定 E
@@ -67,8 +67,8 @@ describe('commission 70/30 split - headhunter created job', () => {
 
   it('同人 (A 建, A 推荐): 100% A (避免自付)', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hhA = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'HA', contact: 'ha@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hhA = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'HA', contact: 'ha@h.com' })).body.data;
     const cand = (await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C1', contact: 'c1@c.com' })).body.data;
 
     // A 建岗, 指定 E
@@ -105,8 +105,8 @@ describe('commission 70/30 split - headhunter created job', () => {
 
   it('雇主直发 (E 建, B 推荐, 无 referrer): 100% B (老逻辑回归)', async () => {
     const app = createApp();
-    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' })).body.data;
-    const hhB = (await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'HB', contact: 'hb@h.com' })).body.data;
+    const emp = (await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E1', contact: 'e1@e.com' })).body.data;
+    const hhB = (await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'HB', contact: 'hb@h.com' })).body.data;
     const cand = (await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C1', contact: 'c1@c.com' })).body.data;
 
     // E 直接建岗

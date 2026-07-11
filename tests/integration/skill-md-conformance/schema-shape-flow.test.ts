@@ -31,8 +31,8 @@ describe('schema-shape: multi-step flow (per-test fresh recommendation)', () => 
   beforeAll(async () => {
     const f = await freshApp('shape-flow');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'FlowH', 'fh@x.com');
-    eKey = await client.register('employer', 'FlowE', 'fe@x.com');
+    hKey = await client.register('hr', 'FlowH', 'fh@x.com');
+    eKey = await client.register('pm', 'FlowE', 'fe@x.com');
     cKey = await client.register('candidate', 'FlowC', 'fc@x.com');
   });
   afterAll(() => cleanupDb('shape-flow'));
@@ -92,7 +92,7 @@ describe('schema-shape: multi-step flow (per-test fresh recommendation)', () => 
     const ts = Date.now();
     const j = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: `ClaimJob${ts}`, description: 'd', created_for_employer_id: client.ids.get('employer') },
+      body: { title: `ClaimJob${ts}`, description: 'd', created_for_employer_id: client.ids.get('pm') },
     });
     const r = await client.request({
       method: 'POST', path: `/v1/employer/claim-jobs/${j.data.data.id}`, auth: eKey,

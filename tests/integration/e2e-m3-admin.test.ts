@@ -26,15 +26,15 @@ describe('M3 E2E: Admin dashboard + actions', () => {
     webhooksIpc = createAdminWebhooksHandler(db);
     const users = (await import('../../src/main/db/repositories/users')).createUsersRepo(db);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'h1', user_type: 'headhunter', name: 'H1', contact: null, agent_endpoint: null, api_key_hash: 'h1', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 50, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    users.insert({ id: 'h2', user_type: 'headhunter', name: 'H2', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'h1', user_type: 'hr', name: 'H1', contact: null, agent_endpoint: null, api_key_hash: 'h1', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 50, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'h2', user_type: 'hr', name: 'H2', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     db.prepare("INSERT INTO webhook_delivery_queue (target_user_id, event_type, payload_enc, contains_pii, status, attempt_count, max_attempts, created_at, updated_at) VALUES (?, ?, ?, ?, 'dead_letter', 3, 3, ?, ?)").run('h1', 'notify_unlock_request', 'x', 0, now, now);
   });
   afterAll(() => { db.close(); try { fs.unlinkSync(testDb); } catch {} try { fs.unlinkSync(testDb + '-wal') } catch {} try { fs.unlinkSync(testDb + '-shm') } catch {} });
 
   it('dashboard returns aggregate stats', () => {
     const stats = dashboardIpc.getStats();
-    expect(stats.users.headhunter).toBe(2);
+    expect(stats.users.hr).toBe(2);
     expect(stats.webhooks.dead_letter).toBe(1);
   });
 

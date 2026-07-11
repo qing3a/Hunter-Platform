@@ -10,17 +10,17 @@ describe('skill.md: employer (scenarios 6-9)', () => {
   let recId: string;
 
   beforeAll(async () => {
-    const f = await freshApp('employer');
+    const f = await freshApp('pm');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'H', 'h@x.com');
-    eKey = await client.register('employer', 'E', 'e@x.com');
+    hKey = await client.register('hr', 'H', 'h@x.com');
+    eKey = await client.register('pm', 'E', 'e@x.com');
     await client.register('candidate', 'C', 'c@x.com');
     candidateId = client.ids.get('candidate')!;
     // Headhunter creates a job on employer's behalf (so employer_id is null
     // and employer can claim it via the flow).
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'EJob', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'EJob', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     jobId = jobRes.data.data.id;
     // Employer must claim the job before headhunter can recommend (v009).
@@ -36,7 +36,7 @@ describe('skill.md: employer (scenarios 6-9)', () => {
     });
     recId = recRes.data.data.id;
   });
-  afterAll(() => cleanupDb('employer'));
+  afterAll(() => cleanupDb('pm'));
 
   it('GET /v1/employer/pending-claims lists jobs awaiting claim/reject', async () => {
     const r = await client.request({ method: 'GET', path: '/v1/employer/pending-claims', auth: eKey });
@@ -109,7 +109,7 @@ describe('skill.md: employer (scenarios 6-9)', () => {
     // Use a fresh job (not the one we claimed)
     const jobRes = await client.request({
       method: 'POST', path: '/v1/headhunter/jobs', auth: hKey,
-      body: { title: 'Rej', description: 'd', create_for_employer_id: client.ids.get('employer') },
+      body: { title: 'Rej', description: 'd', create_for_employer_id: client.ids.get('pm') },
     });
     const jid = jobRes.data.data.id;
     const r = await client.request({

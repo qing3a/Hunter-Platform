@@ -50,7 +50,7 @@ interface SeededUser {
 
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'candidate' | 'employer';
+  userType: 'hr' | 'candidate' | 'pm';
   name?: string;
 }): SeededUser {
   const db = getHunterTestDb();
@@ -110,7 +110,7 @@ function seedJob(opts: {
 }): string {
   const db = getHunterTestDb();
   const employerId = opts.employerId ?? `emp_${opts.id}`;
-  seedUser({ id: employerId, userType: 'employer' });
+  seedUser({ id: employerId, userType: 'pm' });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO jobs (id, employer_id, title, description, requirements,
@@ -176,7 +176,7 @@ function seedRecommendation(opts: {
                                  referrer_headhunter_id, pipeline_stage, kanban_position,
                                  created_at, updated_at)
     VALUES (?, ?, ?, ?, ?,
-            ?, 'headhunter', NULL,
+            ?, 'hr', NULL,
             NULL, ?, ?,
             ?, ?)
   `).run(
@@ -206,8 +206,8 @@ describe('hunter-portal: router integration (HTTP)', () => {
   beforeEach(() => {
     app = createHeadhunterWorkspaceTestApp();
     resetHunterDb();
-    hunter = seedUser({ id: 'h1', userType: 'headhunter' });
-    otherHunter = seedUser({ id: 'h2', userType: 'headhunter' });
+    hunter = seedUser({ id: 'h1', userType: 'hr' });
+    otherHunter = seedUser({ id: 'h2', userType: 'hr' });
     candidate = seedUser({ id: 'c1', userType: 'candidate' });
   });
   afterAll(() => closeHunterTestDb());

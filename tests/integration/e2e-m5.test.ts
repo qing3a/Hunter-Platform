@@ -43,7 +43,7 @@ describe('M5 E2E: metrics + versioned crypto', () => {
     const { createApp } = await import('../../src/main/server');
     const { openDb } = await import('../../src/main/db/connection');
     const app = createApp();
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H', contact: 'h@x.com' });
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
     await request(app)
       .post('/v1/headhunter/candidates')

@@ -42,7 +42,7 @@ type SeedUser = User;
 
 function seedUser(opts: {
   id: string;
-  userType: 'headhunter' | 'candidate' | 'employer';
+  userType: 'hr' | 'candidate' | 'pm';
   name?: string;
 }): SeedUser {
   const db = getTestDb();
@@ -97,7 +97,7 @@ function seedJob(opts: {
 }): string {
   const db = getTestDb();
   const employerId = opts.employerId ?? `emp_${opts.id}`;
-  seedUser({ id: employerId, userType: 'employer' });
+  seedUser({ id: employerId, userType: 'pm' });
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO jobs (id, employer_id, title, description, requirements,
@@ -168,7 +168,7 @@ function seedRecommendation(opts: {
                                  referrer_headhunter_id, pipeline_stage, kanban_position,
                                  created_at, updated_at)
     VALUES (?, ?, ?, ?, ?,
-            ?, 'headhunter', NULL,
+            ?, 'hr', NULL,
             NULL, ?, ?,
             ?, ?)
   `).run(
@@ -213,7 +213,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
 
   describe('getBoard', () => {
     it('first call seeds the 5 default columns in order, all with empty cards', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const board = createHunterKanban(getTestDb()).getBoard(hunter);
 
       expect(board.columns).toHaveLength(5);
@@ -230,7 +230,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('idempotent: a second getBoard does not duplicate columns', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const kb = createHunterKanban(getTestDb());
       const first = kb.getBoard(hunter);
       const second = kb.getBoard(hunter);
@@ -239,7 +239,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('returns the matching cards after recommendations have been moved to columns', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j1 = seedJob({ id: 'job1' });
       const j2 = seedJob({ id: 'job2' });
       const j3 = seedJob({ id: 'job3' });
@@ -269,8 +269,8 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('does not leak another hunter\'s cards', () => {
-      const h1 = seedUser({ id: 'h1', userType: 'headhunter' });
-      const h2 = seedUser({ id: 'h2', userType: 'headhunter' });
+      const h1 = seedUser({ id: 'h1', userType: 'hr' });
+      const h2 = seedUser({ id: 'h2', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h2' });
       seedRecommendation({
@@ -302,7 +302,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
       colSubmitted: KanbanColumnRow;
       colScreen: KanbanColumnRow;
     } {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const kb = createHunterKanban(getTestDb());
       const board = kb.getBoard(hunter);
       return {
@@ -381,8 +381,8 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws notFound for a rec not owned by the hunter', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
-      const other = seedUser({ id: 'h2', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
+      const other = seedUser({ id: 'h2', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h2' });
       seedRecommendation({
@@ -399,7 +399,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws notFound for a non-existent column', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -418,7 +418,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
 
   describe('addCard', () => {
     it('claims a pending_pickup rec and places it on the first column', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       // pending_pickup with headhunter_id NULL means it's available to claim.
@@ -447,8 +447,8 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws invalidState for an already-claimed rec (headhunter_id != null)', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
-      seedUser({ id: 'h2', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
+      seedUser({ id: 'h2', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h2' });
       // Already owned by h2.
@@ -467,7 +467,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws invalidState for a rec not in pending_pickup status', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -489,7 +489,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
 
   describe('removeCard', () => {
     it('moves a submitted card to rejected and returns the card', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -507,7 +507,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws invalidState for an onboarded (terminal) card', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -521,7 +521,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws invalidState for an already-rejected (terminal) card', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({
@@ -535,8 +535,8 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
     });
 
     it('throws notFound for a rec not owned by the hunter', () => {
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
-      seedUser({ id: 'h2', userType: 'headhunter' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
+      seedUser({ id: 'h2', userType: 'hr' });
       const j = seedJob({ id: 'job1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h2' });
       seedRecommendation({
@@ -555,7 +555,7 @@ describe('hunter-portal: kanban (handler + repo integration)', () => {
   describe('auth', () => {
     it('rejects non-headhunter callers with FORBIDDEN', () => {
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
       const kb = createHunterKanban(getTestDb());
       expectErrorCode(() => kb.getBoard(candidate), 'FORBIDDEN');
       expectErrorCode(() => kb.getBoard(employer), 'FORBIDDEN');

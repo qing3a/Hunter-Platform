@@ -19,24 +19,24 @@ describe('employer handler', () => {
     jobs = createJobsRepo(db);
     employer = createEmployerHandler(db);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
   });
   afterEach(() => { db.close(); try { fs.unlinkSync(testDb); } catch {} });
 
   it('createJob requires employer role', () => {
-    const headhunter: any = { id: 'h1', user_type: 'headhunter' };
+    const headhunter: any = { id: 'h1', user_type: 'hr' };
     expect(() => employer.createJob(headhunter, { title: 'X' })).toThrow(/Only employers/);
   });
 
   it('createJob creates job and consumes quota', () => {
-    const employer1: any = { id: 'e1', user_type: 'employer' };
+    const employer1: any = { id: 'e1', user_type: 'pm' };
     const job = employer.createJob(employer1, { title: 'Senior FE', salary_min: 500000, salary_max: 800000, industry: '互联网' });
     expect(job.title).toBe('Senior FE');
     expect(jobs.findById(job.id)).toBeDefined();
   });
 
   it('createJob rejects when quota exhausted', () => {
-    const employer1: any = { id: 'e1', user_type: 'employer' };
+    const employer1: any = { id: 'e1', user_type: 'pm' };
     for (let i = 0; i < 20; i++) employer.createJob(employer1, { title: `Job ${i}` });
     expect(() => employer.createJob(employer1, { title: 'overflow' })).toThrow(/quota/i);
   });
@@ -61,8 +61,8 @@ describe('employer handler - browseTalent', () => {
     anon2 = createCandidatesAnonymizedRepo(db2);
     employer2 = createEmployerHandler(db2);
     const now = '2026-06-17T00:00:00Z';
-    users2.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    users2.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users2.insert({ id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users2.insert({ id: 'h1', user_type: 'hr', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users2.insert({ id: 'c1', user_type: 'candidate', name: 'C1', contact: null, agent_endpoint: null, api_key_hash: 'h3', api_key_prefix: 'hp_live_', quota_per_day: 50, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users2.insert({ id: 'c2', user_type: 'candidate', name: 'C2', contact: null, agent_endpoint: null, api_key_hash: 'h4', api_key_prefix: 'hp_live_', quota_per_day: 50, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     priv2.insert({ id: 'cp_1', headhunter_id: 'h1', candidate_user_id: 'c1', name_enc: 'n', phone_enc: 'p', email_enc: 'e', current_company_raw: '字节跳动', current_title_raw: 'P6', expected_salary: 700000, years_experience: 8, education_school: '清华大学', resume_url: null, skills_json: '["React"]', raw_payload_json: null, created_at: now, updated_at: now });
@@ -73,19 +73,19 @@ describe('employer handler - browseTalent', () => {
   afterEach(() => { db2.close(); try { fs.unlinkSync(testDb2); } catch {} });
 
   it('browseTalent returns public pool candidates', () => {
-    const employer1: any = { id: 'e1', user_type: 'employer' };
+    const employer1: any = { id: 'e1', user_type: 'pm' };
     const list = employer2.browseTalent(employer1, {});
     expect(list.length).toBe(2);
   });
 
   it('browseTalent filters by industry', () => {
-    const employer1: any = { id: 'e1', user_type: 'employer' };
+    const employer1: any = { id: 'e1', user_type: 'pm' };
     const list = employer2.browseTalent(employer1, { industry: '互联网' });
     expect(list.length).toBe(2);
   });
 
   it('browseTalent returns ONLY desensitized fields (no PII)', () => {
-    const employer1: any = { id: 'e1', user_type: 'employer' };
+    const employer1: any = { id: 'e1', user_type: 'pm' };
     const list = employer2.browseTalent(employer1, {});
     for (const c of list) {
       expect(c).not.toHaveProperty('name');

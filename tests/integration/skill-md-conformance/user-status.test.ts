@@ -8,24 +8,24 @@ describe('skill.md: user status + history (scenario 2)', () => {
   beforeAll(async () => {
     const f = await freshApp('user-status');
     client = new ConformanceClient(f.app);
-    myKey = await client.register('headhunter', 'Me', 'me@x.com');
+    myKey = await client.register('hr', 'Me', 'me@x.com');
   });
   afterAll(() => cleanupDb('user-status'));
 
   it('GET /v1/users/:id/status returns own status (quota, reputation)', async () => {
-    const me = client.ids.get('headhunter')!;
+    const me = client.ids.get('hr')!;
     const r = await client.request({
       method: 'GET', path: `/v1/users/${me}/status`, auth: myKey,
     });
     expect(r.status).toBe(200);
-    expect(r.data.data.user_type).toBe('headhunter');
+    expect(r.data.data.user_type).toBe('hr');
     expect(r.data.data.status).toBe('active');
     expect(typeof r.data.data.quota_per_day).toBe('number');
     expect(typeof r.data.data.quota_used).toBe('number');
   });
 
   it('GET /v1/users/:id/history returns action_history rows (Phase 2 trace_id)', async () => {
-    const me = client.ids.get('headhunter')!;
+    const me = client.ids.get('hr')!;
     const r = await client.request({
       method: 'GET', path: `/v1/users/${me}/history`, auth: myKey,
     });
@@ -34,8 +34,8 @@ describe('skill.md: user status + history (scenario 2)', () => {
   });
 
   it('GET /v1/users/:id/status from another user — accepts current privacy behavior', async () => {
-    const otherKey = await client.register('employer', 'Other', 'other@x.com');
-    const me = client.ids.get('headhunter')!;
+    const otherKey = await client.register('pm', 'Other', 'other@x.com');
+    const me = client.ids.get('hr')!;
     const r = await client.request({
       method: 'GET', path: `/v1/users/${me}/status`, auth: otherKey,
     });

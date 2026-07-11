@@ -59,7 +59,7 @@ describe('failure-modes: 403 (wrong user type)', () => {
   afterAll(() => cleanupDb('failure-403'));
 
   it('GET /v1/admin/ping with headhunter key → 401', async () => {
-    const hKey = await client.register('headhunter', 'WrongUser', 'wu@x.com');
+    const hKey = await client.register('hr', 'WrongUser', 'wu@x.com');
     const r = await client.request({ method: 'GET', path: '/v1/admin/ping', auth: hKey });
     expect([401, 403]).toContain(r.status);
     expect(['UNAUTHORIZED', 'FORBIDDEN']).toContain(r.data.error.code);
@@ -82,8 +82,8 @@ describe('failure-modes: 409 (invalid state transition)', () => {
   beforeAll(async () => {
     const f = await freshApp('failure-409');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'H409', 'h409@x.com');
-    eKey = await client.register('employer', 'E409', 'e409@x.com');
+    hKey = await client.register('hr', 'H409', 'h409@x.com');
+    eKey = await client.register('pm', 'E409', 'e409@x.com');
     cKey = await client.register('candidate', 'C409', 'c409@x.com');
 
     const eJobRes = await client.request({
@@ -130,7 +130,7 @@ describe('failure-modes: 429 (quota exhausted)', () => {
   beforeAll(async () => {
     const f = await freshApp('failure-429');
     client = new ConformanceClient(f.app);
-    hKey = await client.register('headhunter', 'QuotaEx', 'qe@x.com');
+    hKey = await client.register('hr', 'QuotaEx', 'qe@x.com');
     cKey = await client.register('candidate', 'QuotaC', 'qc@x.com');
 
     // Grab headhunter's user_id for direct DB write.

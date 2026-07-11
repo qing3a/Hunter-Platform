@@ -12,8 +12,8 @@ describe('jobs table CHECK constraints (v009)', () => {
     db.prepare(`
       INSERT INTO users (id, user_type, name, contact, api_key_hash, api_key_prefix, quota_per_day, quota_used, quota_reset_at, reputation, status, created_at, updated_at)
       VALUES
-        ('u_emp_1', 'employer',   'E1', 'e@e.com', 'h1', 'p1', 100, 0, datetime('now'), 50, 'active', datetime('now'), datetime('now')),
-        ('u_hh_1',  'headhunter', 'H1', 'h@h.com', 'h2', 'p2', 100, 0, datetime('now'), 50, 'active', datetime('now'), datetime('now'))
+        ('u_emp_1', 'pm',   'E1', 'e@e.com', 'h1', 'p1', 100, 0, datetime('now'), 50, 'active', datetime('now'), datetime('now')),
+        ('u_hh_1',  'hr', 'H1', 'h@h.com', 'h2', 'p2', 100, 0, datetime('now'), 50, 'active', datetime('now'), datetime('now'))
     `).run();
   });
 

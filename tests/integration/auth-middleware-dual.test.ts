@@ -175,11 +175,12 @@ describe('dual-track authMiddleware', () => {
     const s = sessionService.create(db, 'u1', 'pm', null, null);
     const r = await request(app).get('/whoami').set('Authorization', `Bearer ${s.id}`);
     expect(r.status).toBe(200);
-    // user_type is the remapped value (pm/hr/candidate), never the legacy
-    // 'headhunter' or 'employer' strings.
+    // user_type is the new enum value (pm/hr/candidate), never the legacy
+    // 'employer' or 'headhunter' strings (which would only exist if old DB
+    // values leaked through; remapLegacyUserType guards this).
     expect(r.body.user_type).toBe('pm');
-    expect(r.body.user_type).not.toBe('headhunter');
     expect(r.body.user_type).not.toBe('employer');
+    expect(r.body.user_type).not.toBe('headhunter');
   });
 
   it('X-Active-Role header is ignored on apikey auth path', async () => {

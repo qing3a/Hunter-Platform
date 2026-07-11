@@ -60,7 +60,7 @@ interface SeededUser {
 
 function seedUser(opts: {
   id: string;
-  userType: 'candidate' | 'headhunter' | 'employer';
+  userType: 'candidate' | 'hr' | 'pm';
 }): SeededUser {
   const db = getTestDb();
   const { key, hash, prefix } = generateApiKey();
@@ -162,8 +162,8 @@ describe('employer-panel: full E2E flow', () => {
 
     // Login (register is the documented seed pattern; the bcrypt hash lets us
     // use the plaintext key as a Bearer token in the final HTTP round-trip).
-    employer = seedUser({ id: 'emp_e2e', userType: 'employer' });
-    headhunter = seedUser({ id: 'hun_e2e', userType: 'headhunter' });
+    employer = seedUser({ id: 'emp_e2e', userType: 'pm' });
+    headhunter = seedUser({ id: 'hun_e2e', userType: 'hr' });
     candidate = seedUser({ id: 'can_e2e', userType: 'candidate' });
 
     app = buildEmployerPanelHttpApp(getTestDb());

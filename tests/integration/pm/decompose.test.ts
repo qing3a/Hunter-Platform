@@ -40,7 +40,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();
@@ -233,8 +233,8 @@ describe('pm: decompose (handler + repo integration)', () => {
       const pm = seedUser({ id: 'pm1', userType: 'pm' });
       const project = makeProject(pm, 'pm-only', 'vue');
       const candidate = seedUser({ id: 'c1', userType: 'candidate' });
-      const employer = seedUser({ id: 'e1', userType: 'employer' });
-      const hunter = seedUser({ id: 'h1', userType: 'headhunter' });
+      const employer = seedUser({ id: 'e1', userType: 'pm' });
+      const hunter = seedUser({ id: 'h1', userType: 'hr' });
       const handler = createDecomposeHandler(getTestDb());
 
       await expectErrorCode(

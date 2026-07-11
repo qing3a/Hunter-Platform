@@ -40,7 +40,7 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
     db = new DatabaseSync(f.dbPath);
 
     // Register users we need IDs from
-    hKey = await client.register('headhunter', 'AdminH', 'ah@x.com');
+    hKey = await client.register('hr', 'AdminH', 'ah@x.com');
     cKey = await client.register('candidate', 'AdminC', 'ac@x.com');
     const meRes = await client.request({ method: 'GET', path: '/v1/capabilities/me', auth: cKey });
     candidateUserId = meRes.data.data.user_id;
@@ -55,7 +55,7 @@ describe('schema-shape: admin endpoints needing pre-existing records', () => {
       .run(candidateAnonId);
 
     // 2. Create a job for the placement
-    const eKey = await client.register('employer', 'AdminE', 'ae@x.com');
+    const eKey = await client.register('pm', 'AdminE', 'ae@x.com');
     const eJob = await client.request({
       method: 'POST', path: '/v1/employer/jobs', auth: eKey,
       body: { title: 'AdminJob', description: 'd' },

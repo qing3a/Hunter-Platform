@@ -75,14 +75,14 @@ interface SeededUser {
 
 function seedUser(opts: {
   id: string;
-  userType: 'candidate' | 'headhunter' | 'employer' | 'pm';
+  userType: 'candidate' | 'hr' | 'pm' | 'pm';
   name?: string;
 }): SeededUser {
   const db = getTestDb();
   const { key, hash, prefix } = generateApiKey();
   const now = new Date().toISOString();
   // Note: the `users` CHECK constraint in v001 lists only
-  // ('candidate','headhunter','employer'); v029 added 'pm'.
+  // ('candidate','hr','pm'); v029 added 'pm'.
   // The constraint is set per migration, so this INSERT works as long as the
   // migration has been run. The test-app helper runs all migrations on boot.
   db.prepare(`
@@ -174,7 +174,7 @@ function seedCandidate(opts: {
   // to users.id). Tests can pass any string id; we seed the user on demand so
   // the test fixtures don't have to declare every hunter up front.
   const existing = db.prepare('SELECT id FROM users WHERE id = ?').get(opts.headhunterId);
-  if (!existing) seedUser({ id: opts.headhunterId, userType: 'headhunter' });
+  if (!existing) seedUser({ id: opts.headhunterId, userType: 'hr' });
   seedUser({ id: opts.userId, userType: 'candidate' });
   const now = new Date().toISOString();
   db.prepare(`
@@ -228,7 +228,7 @@ function seedRecommendation(opts: SeedRecOpts): void {
                                  pipeline_stage, kanban_position,
                                  created_at, updated_at)
     VALUES (?, ?, ?, ?, ?,
-            ?, 'headhunter', NULL,
+            ?, 'hr', NULL,
             NULL, NULL, NULL,
             'submitted', NULL,
             ?, ?)
@@ -385,7 +385,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('empty state (no data)', () => {
     it('returns all-zero counters for an employer with no jobs/recs/placements/audits', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       const handler = createEmployerDashboardHandler(getTestDb());
       const data = handler.getDashboard(user);
       expect(data).toEqual({
@@ -401,13 +401,13 @@ describe('employer-panel: dashboard handler', () => {
 
     it('returns all-zero counters when other employers have data but this one does not', () => {
       // Seed data owned by a DIFFERENT employer to confirm no cross-tenant leakage.
-      const { user: other } = seedUser({ id: 'other', userType: 'employer' });
+      const { user: other } = seedUser({ id: 'other', userType: 'pm' });
       seedJob({ id: 'job_other', employerId: other.id });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({ id: 'r1', headhunterId: 'h1', jobId: 'job_other', anonId: c.anonId, status: 'employer_interested' });
       seedPlacement({ id: 'p1', jobId: 'job_other', candidateUserId: 'c1', primaryHeadhunterId: 'h1', anonId: c.anonId, spend: 9999 });
 
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       const handler = createEmployerDashboardHandler(getTestDb());
       const data = handler.getDashboard(user);
       expect(data.active_jobs).toBe(0);
@@ -424,7 +424,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('authorization', () => {
     it('throws FORBIDDEN for headhunter caller', () => {
-      const { user } = seedUser({ id: 'h1', userType: 'headhunter' });
+      const { user } = seedUser({ id: 'h1', userType: 'hr' });
       const handler = createEmployerDashboardHandler(getTestDb());
       expectForbidden(() => handler.getDashboard(user));
     });
@@ -446,7 +446,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('active_jobs / open_positions', () => {
     it('counts only open jobs owned by the caller', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       seedJob({ id: 'j_open1', employerId: 'e1', status: 'open' });
       seedJob({ id: 'j_open2', employerId: 'e1', status: 'open' });
       seedJob({ id: 'j_claimed', employerId: 'e1', status: 'claimed' });
@@ -455,7 +455,7 @@ describe('employer-panel: dashboard handler', () => {
       seedJob({ id: 'j_paused', employerId: 'e1', status: 'paused' });
 
       // Another employer's open job must not be counted.
-      const { user: other } = seedUser({ id: 'e2', userType: 'employer' });
+      const { user: other } = seedUser({ id: 'e2', userType: 'pm' });
       seedJob({ id: 'j_other_open', employerId: other.id, status: 'open' });
 
       const data = createEmployerDashboardHandler(getTestDb()).getDashboard(user);
@@ -465,7 +465,7 @@ describe('employer-panel: dashboard handler', () => {
     });
 
     it('open_positions equals active_jobs (no headcount_planned in MVP)', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       for (let i = 0; i < 5; i++) seedJob({ id: `j${i}`, employerId: 'e1', status: 'open' });
       const data = createEmployerDashboardHandler(getTestDb()).getDashboard(user);
       expect(data.active_jobs).toBe(data.open_positions);
@@ -477,7 +477,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('interested_count / unlocked_count', () => {
     it('counts recommendations on the caller\'s jobs by status', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       seedJob({ id: 'job1', employerId: 'e1' });
 
       const cands = Array.from({ length: 8 }, (_, i) =>
@@ -502,8 +502,8 @@ describe('employer-panel: dashboard handler', () => {
     });
 
     it('does NOT include recommendations on another employer\'s jobs', () => {
-      const { user: e1 } = seedUser({ id: 'e1', userType: 'employer' });
-      const { user: e2 } = seedUser({ id: 'e2', userType: 'employer' });
+      const { user: e1 } = seedUser({ id: 'e1', userType: 'pm' });
+      const { user: e2 } = seedUser({ id: 'e2', userType: 'pm' });
       seedJob({ id: 'j_e1', employerId: 'e1' });
       seedJob({ id: 'j_e2', employerId: 'e2' });
       // 3 distinct candidates — recommendations table has a UNIQUE
@@ -526,7 +526,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('candidates_viewed_this_month', () => {
     it('counts audit_log rows in the last 30 days for the caller\'s job recs', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       seedJob({ id: 'job1', employerId: 'e1' });
       const c1 = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       const c2 = seedCandidate({ userId: 'c2', headhunterId: 'h1' });
@@ -550,8 +550,8 @@ describe('employer-panel: dashboard handler', () => {
     });
 
     it('does NOT count audit rows for recs on another employer\'s job', () => {
-      const { user: e1 } = seedUser({ id: 'e1', userType: 'employer' });
-      const { user: e2 } = seedUser({ id: 'e2', userType: 'employer' });
+      const { user: e1 } = seedUser({ id: 'e1', userType: 'pm' });
+      const { user: e2 } = seedUser({ id: 'e2', userType: 'pm' });
       seedJob({ id: 'j_e1', employerId: 'e1' });
       seedJob({ id: 'j_e2', employerId: 'e2' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
@@ -568,9 +568,9 @@ describe('employer-panel: dashboard handler', () => {
       // The spec counts via "jobs.employer_id = me" join, not via the rec's
       // employer_id (which is the same anyway). Audit rows where the actor
       // is someone else entirely must be ignored even on the employer's own rec.
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       // actor_user_id FKs to users(id), so we must seed the "someone else" user.
-      seedUser({ id: 'someone_else', userType: 'headhunter' });
+      seedUser({ id: 'someone_else', userType: 'hr' });
       seedJob({ id: 'job1', employerId: 'e1' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
       seedRecommendation({ id: 'r1', headhunterId: 'h1', jobId: 'job1', anonId: c.anonId });
@@ -584,8 +584,8 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('placements_count / spend_this_month', () => {
     it('counts placements on the caller\'s jobs', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
-      const { user: e2 } = seedUser({ id: 'e2', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
+      const { user: e2 } = seedUser({ id: 'e2', userType: 'pm' });
       seedJob({ id: 'j_e1', employerId: 'e1' });
       seedJob({ id: 'j_e2', employerId: 'e2' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
@@ -599,7 +599,7 @@ describe('employer-panel: dashboard handler', () => {
     });
 
     it('spend_this_month sums platform_fee + primary_share + referrer_share within 30d', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       seedJob({ id: 'j1', employerId: 'e1' });
       // Two distinct candidates — placements has a UNIQUE
       // (anonymized_candidate_id, job_id, primary_headhunter_id) constraint.
@@ -627,8 +627,8 @@ describe('employer-panel: dashboard handler', () => {
     });
 
     it('spend_this_month excludes placements on other employers\' jobs', () => {
-      const { user: e1 } = seedUser({ id: 'e1', userType: 'employer' });
-      const { user: e2 } = seedUser({ id: 'e2', userType: 'employer' });
+      const { user: e1 } = seedUser({ id: 'e1', userType: 'pm' });
+      const { user: e2 } = seedUser({ id: 'e2', userType: 'pm' });
       seedJob({ id: 'j_e1', employerId: 'e1' });
       seedJob({ id: 'j_e2', employerId: 'e2' });
       const c = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
@@ -645,7 +645,7 @@ describe('employer-panel: dashboard handler', () => {
 
   describe('response shape contract', () => {
     it('returns exactly the 7 documented keys, all non-negative integers', () => {
-      const { user } = seedUser({ id: 'e1', userType: 'employer' });
+      const { user } = seedUser({ id: 'e1', userType: 'pm' });
       const data = createEmployerDashboardHandler(getTestDb()).getDashboard(user);
       expect(Object.keys(data).sort()).toEqual(
         [
@@ -682,7 +682,7 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
   afterAll(() => closeTestDb());
 
   it('returns 200 with all-zero counters for an empty employer', async () => {
-    const { user, apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { user, apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     const res = await request(app)
       .get('/v1/employer-panel/dashboard')
       .set('Authorization', `Bearer ${apiKey}`);
@@ -697,11 +697,11 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
       placements_count: 0,
       spend_this_month: 0,
     });
-    expect(user.user_type).toBe('employer'); // sanity
+    expect(user.user_type).toBe('pm'); // sanity
   });
 
   it('returns 200 with populated counters for an employer with data', async () => {
-    const { user, apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { user, apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'open' });
     seedJob({ id: 'job2', employerId: 'e1', status: 'open' });
     const c1 = seedCandidate({ userId: 'c1', headhunterId: 'h1' });
@@ -746,7 +746,7 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
   });
 
   it('returns 403 FORBIDDEN for headhunter caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .get('/v1/employer-panel/dashboard')
       .set('Authorization', `Bearer ${apiKey}`);
@@ -774,7 +774,7 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
 
   it('isolates counters between two employers (cross-employer isolation)', async () => {
     // Employer A: 2 open jobs, 1 interested rec, 1 placement (spend 10000).
-    const { apiKey: aKey } = seedUser({ id: 'eA', userType: 'employer' });
+    const { apiKey: aKey } = seedUser({ id: 'eA', userType: 'pm' });
     seedJob({ id: 'jA1', employerId: 'eA', status: 'open' });
     seedJob({ id: 'jA2', employerId: 'eA', status: 'open' });
     const cA = seedCandidate({ userId: 'cA', headhunterId: 'h1' });
@@ -783,7 +783,7 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
     seedPlacement({ id: 'pA', jobId: 'jA1', candidateUserId: 'cA', primaryHeadhunterId: 'h1', anonId: cA.anonId, spend: 10000 });
 
     // Employer B: 5 open jobs, 3 interested recs, 2 placements (spend 60000).
-    const { apiKey: bKey } = seedUser({ id: 'eB', userType: 'employer' });
+    const { apiKey: bKey } = seedUser({ id: 'eB', userType: 'pm' });
     for (let i = 0; i < 5; i++) seedJob({ id: `jB${i}`, employerId: 'eB', status: 'open' });
     const cB1 = seedCandidate({ userId: 'cB1', headhunterId: 'h2' });
     const cB2 = seedCandidate({ userId: 'cB2', headhunterId: 'h2' });
@@ -827,7 +827,7 @@ describe('employer-panel: GET /v1/employer-panel/dashboard (HTTP)', () => {
   });
 
   it('responds with the documented content-type and envelope', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     const res = await request(app)
       .get('/v1/employer-panel/dashboard')
       .set('Authorization', `Bearer ${apiKey}`);

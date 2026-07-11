@@ -33,7 +33,7 @@ import type { User } from '../../../src/shared/types.js';
 
 function seedUser(opts: {
   id: string;
-  userType: 'pm' | 'headhunter' | 'candidate' | 'employer';
+  userType: 'pm' | 'hr' | 'candidate' | 'pm';
   name?: string;
 }): User {
   const db = getTestDb();

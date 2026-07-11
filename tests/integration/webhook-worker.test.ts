@@ -22,7 +22,7 @@ describe('webhook worker', () => {
     worker = createWebhookWorker(db, { batchSize: 5 });
     encryptionKey = (await import('node:crypto')).randomBytes(32);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'u1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: 'http://localhost:9876/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'u1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: 'http://localhost:9876/wh', api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
 
     receivedPayloads = [];
     receivedHeaders = null;

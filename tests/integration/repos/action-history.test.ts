@@ -17,8 +17,8 @@ describe('action_history repository', () => {
     const users = createUsersRepo(db);
     repo = createActionHistoryRepo(db);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'u1', user_type: 'employer', name: 'U1', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    users.insert({ id: 'u2', user_type: 'headhunter', name: 'U2', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'u1', user_type: 'pm', name: 'U1', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'u2', user_type: 'hr', name: 'U2', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'headhunter.upload_candidate', 'candidate', 'ca_1', 'success', '2026-06-17T00:00:01Z');
     db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', 'employer.express_interest', 'recommendation', 'rec_1', 'success', '2026-06-17T00:00:02Z');
     db.prepare(`INSERT INTO action_history (user_id, capability_name, target_type, target_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', 'headhunter.recommend_candidate', 'recommendation', 'rec_2', 'success', '2026-06-17T00:00:03Z');

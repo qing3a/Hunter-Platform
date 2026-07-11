@@ -15,7 +15,7 @@ describe('skill.md: auth (scenario 1)', () => {
     const r = await client.request({
       method: 'POST',
       path: '/v1/auth/register',
-      body: { user_type: 'headhunter', name: 'Tester', contact: 't@x.com' },
+      body: { user_type: 'hr', name: 'Tester', contact: 't@x.com' },
       schema: RegisterResponseSchema,
     });
     expect(r.status).toBe(200);
@@ -27,7 +27,7 @@ describe('skill.md: auth (scenario 1)', () => {
     const r = await client.request({
       method: 'POST',
       path: '/v1/auth/register',
-      body: { user_type: 'employer', name: 'T2', contact: 't2@x.com' },
+      body: { user_type: 'pm', name: 'T2', contact: 't2@x.com' },
     });
     expect(r.headers['x-capability-name']).toBe('auth.register');
   });

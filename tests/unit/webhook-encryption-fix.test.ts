@@ -13,14 +13,14 @@ function seedFullGraph(db: ReturnType<typeof openDb>) {
     INSERT INTO users (id, user_type, name, contact, status, reputation,
                        api_key_hash, api_key_prefix, quota_per_day, quota_used,
                        quota_reset_at, created_at, updated_at)
-    VALUES ('u_h1', 'headhunter', 'H1', 'h@h.com', 'active', 50,
+    VALUES ('u_h1', 'hr', 'H1', 'h@h.com', 'active', 50,
             'h1', 'p1', 500, 0, '${now}', '${now}', '${now}');
   `);
   db.exec(`
     INSERT INTO users (id, user_type, name, contact, status, reputation,
                        api_key_hash, api_key_prefix, quota_per_day, quota_used,
                        quota_reset_at, created_at, updated_at)
-    VALUES ('u_e1', 'employer', 'E1', 'e@e.com', 'active', 50,
+    VALUES ('u_e1', 'pm', 'E1', 'e@e.com', 'active', 50,
             'h2', 'p2', 800, 0, '${now}', '${now}', '${now}');
   `);
   db.exec(`
@@ -93,7 +93,7 @@ describe('webhook payload encryption fix (Bug 1)', () => {
     db.prepare("UPDATE recommendations SET status = 'unlocked' WHERE id = 'r1'").run();
     const handler = createCommissionHandler(db, TEST_KEY);
     await handler.createPlacement(
-      { id: 'u_e1', user_type: 'employer' } as any,
+      { id: 'u_e1', user_type: 'pm' } as any,
       { anonymized_candidate_id: 'ca1', job_id: 'j1', annual_salary: 200000 },
     );
     const rec = getLastWebhook(db, 'placement_created');

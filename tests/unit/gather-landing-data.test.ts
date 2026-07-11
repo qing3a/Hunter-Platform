@@ -51,9 +51,9 @@ describe('gatherLandingData - topEmployers', () => {
       INSERT INTO users (id, user_type, name, contact, status, reputation, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
       VALUES
         ('u_cand', 'candidate', 'C1', 'c@c.com', 'active', 50, 'hash_c1', 'prefix_c1', datetime('now'), datetime('now'), datetime('now')),
-        ('u_e1', 'employer', 'Boss Inc', 'e1@e.com', 'active', 80, 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now')),
-        ('u_e2', 'employer', 'Acme', 'e2@e.com', 'active', 90, 'hash_e2', 'prefix_e2', datetime('now'), datetime('now'), datetime('now')),
-        ('u_h1', 'headhunter', 'HH1', 'h@h.com', 'active', 70, 'hash_h1', 'prefix_h1', datetime('now'), datetime('now'), datetime('now'));
+        ('u_e1', 'pm', 'Boss Inc', 'e1@e.com', 'active', 80, 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now')),
+        ('u_e2', 'pm', 'Acme', 'e2@e.com', 'active', 90, 'hash_e2', 'prefix_e2', datetime('now'), datetime('now'), datetime('now')),
+        ('u_h1', 'hr', 'HH1', 'h@h.com', 'active', 70, 'hash_h1', 'prefix_h1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO candidates_private (id, headhunter_id, candidate_user_id, name_enc, phone_enc, email_enc, created_at, updated_at)
       VALUES ('cp1', 'u_h1', 'u_cand', 'n', 'p', 'e', datetime('now'), datetime('now'));
       INSERT INTO candidates_anonymized (id, source_private_id, source_headhunter_id, is_public_pool, unlock_status, created_at, updated_at)
@@ -90,7 +90,7 @@ describe('gatherLandingData - topIndustries', () => {
   it('groups public candidates by industry, sorted DESC', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_h1', 'headhunter', 'HH1', 'h@h.com', 'active', 'hash_h1', 'prefix_h1', datetime('now'), datetime('now'), datetime('now')),
+      VALUES ('u_h1', 'hr', 'HH1', 'h@h.com', 'active', 'hash_h1', 'prefix_h1', datetime('now'), datetime('now'), datetime('now')),
              ('u_cand', 'candidate', 'C1', 'c@c.com', 'active', 'hash_c1', 'prefix_c1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO candidates_private (id, headhunter_id, candidate_user_id, name_enc, phone_enc, email_enc, created_at, updated_at)
       VALUES ('cp1', 'u_h1', 'u_cand', 'n', 'p', 'e', datetime('now'), datetime('now')),
@@ -125,7 +125,7 @@ describe('gatherLandingData - hotSkills', () => {
   it('aggregates skills from open jobs, top 10, sorted DESC', () => {
     db.exec(`
       INSERT INTO users (id, user_type, name, contact, status, api_key_hash, api_key_prefix, quota_reset_at, created_at, updated_at)
-      VALUES ('u_e1', 'employer', 'Boss Inc', 'e1@e.com', 'active', 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now'));
+      VALUES ('u_e1', 'pm', 'Boss Inc', 'e1@e.com', 'active', 'hash_e1', 'prefix_e1', datetime('now'), datetime('now'), datetime('now'));
       INSERT INTO jobs (id, employer_id, title, status, required_skills_json, created_at, updated_at)
       VALUES
         ('j1', 'u_e1', 'J1', 'open', '["React", "TypeScript"]', datetime('now'), datetime('now')),

@@ -22,9 +22,9 @@ describe('configCache (Sub-F)', () => {
   beforeEach(() => { vi.useRealTimers(); });
 
   it('1. first get triggers DB read + caches result', async () => {
-    const db = fakeDb({ 'rate_limit.tier.headhunter.limit_per_minute': 200 });
+    const db = fakeDb({ 'rate_limit.tier.hr.limit_per_minute': 200 });
     const cache = createConfigCache(db as any);
-    const v = await cache.get<number>('rate_limit.tier.headhunter.limit_per_minute');
+    const v = await cache.get<number>('rate_limit.tier.hr.limit_per_minute');
     expect(v).toBe(200);
     expect(db.prepare).toHaveBeenCalledTimes(1);
   });

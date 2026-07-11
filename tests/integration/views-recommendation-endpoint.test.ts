@@ -18,7 +18,7 @@ describe('POST /v1/views/recommendation/:id', () => {
     app = createApp();
 
     const hh = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'RecHH', contact: 'rechh@rec.com' });
+      .send({ user_type: 'hr', name: 'RecHH', contact: 'rechh@rec.com' });
     hhKey = hh.body.data.api_key;
 
     const cand = await request(app).post('/v1/auth/register')
@@ -36,7 +36,7 @@ describe('POST /v1/views/recommendation/:id', () => {
       });
 
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'RecE', contact: 'rece@rec.com' });
+      .send({ user_type: 'pm', name: 'RecE', contact: 'rece@rec.com' });
     empKey = emp.body.data.api_key;
 
     const job = await request(app).post('/v1/employer/jobs')
@@ -70,7 +70,7 @@ describe('POST /v1/views/recommendation/:id', () => {
 
   it('rejects an unrelated user (403)', async () => {
     const other = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'headhunter', name: 'Other', contact: 'other@rec.com' });
+      .send({ user_type: 'hr', name: 'Other', contact: 'other@rec.com' });
     const res = await request(app).post(`/v1/views/recommendation/${recommendationId}`)
       .set('Authorization', `Bearer ${other.body.data.api_key}`);
     expect(res.status).toBe(403);

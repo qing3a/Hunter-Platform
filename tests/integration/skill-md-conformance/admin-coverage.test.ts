@@ -16,9 +16,9 @@ describe('skill.md: admin coverage (smoke test for all 20 admin.* capabilities)'
     const f = await freshApp('admin-coverage');
     client = new ConformanceClient(f.app);
     await client.register('candidate', 'C', 'c@x.com');
-    await client.register('employer', 'E', 'e@x.com');
+    await client.register('pm', 'E', 'e@x.com');
     candidateId = client.ids.get('candidate')!;
-    employerId = client.ids.get('employer')!;
+    employerId = client.ids.get('pm')!;
   });
   afterAll(() => cleanupDb('admin-coverage'));
 

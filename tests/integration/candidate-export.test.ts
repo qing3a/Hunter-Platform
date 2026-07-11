@@ -31,8 +31,8 @@ describe('candidate GDPR export', () => {
     audit = createUnlockAuditLogRepo(db);
     exporter = createCandidateExport(db, encryptionKey);
     const now = '2026-06-17T00:00:00Z';
-    users.insert({ id: 'e1', user_type: 'employer', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
-    users.insert({ id: 'h1', user_type: 'headhunter', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'e1', user_type: 'pm', name: 'E', contact: null, agent_endpoint: null, api_key_hash: 'h', api_key_prefix: 'hp_live_', quota_per_day: 100, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
+    users.insert({ id: 'h1', user_type: 'hr', name: 'H', contact: null, agent_endpoint: null, api_key_hash: 'h2', api_key_prefix: 'hp_live_', quota_per_day: 200, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     users.insert({ id: 'c1', user_type: 'candidate', name: 'C', contact: null, agent_endpoint: null, api_key_hash: 'h3', api_key_prefix: 'hp_live_', quota_per_day: 50, quota_used: 0, quota_reset_at: '2026-06-18T00:00:00Z', reputation: 50, status: 'active', created_at: now, updated_at: now });
     priv.insert({ id: 'cp_1', headhunter_id: 'h1', candidate_user_id: 'c1',
       name_enc: encrypt(encryptionKey, '张三'), phone_enc: encrypt(encryptionKey, '13800138000'), email_enc: encrypt(encryptionKey, 'z@x.com'),
@@ -81,7 +81,7 @@ describe('candidate GDPR export', () => {
   });
 
   it('rejects non-candidate', () => {
-    const h: any = { id: 'h1', user_type: 'headhunter' };
+    const h: any = { id: 'h1', user_type: 'hr' };
     expect(() => exporter.exportMyData(h)).toThrow();
   });
 });

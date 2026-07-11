@@ -53,7 +53,7 @@ interface SeededUser {
 
 function seedUser(opts: {
   id: string;
-  userType: 'candidate' | 'headhunter' | 'employer' | 'pm';
+  userType: 'candidate' | 'hr' | 'pm' | 'pm';
   name?: string;
 }): SeededUser {
   const db = getTestDb();
@@ -214,7 +214,7 @@ describe('employer: GET /v1/employer/jobs/:id', () => {
   });
 
   it('returns 403 FORBIDDEN for headhunter caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .get('/v1/employer/jobs/job_anything')
       .set('Authorization', `Bearer ${apiKey}`);
@@ -232,7 +232,7 @@ describe('employer: GET /v1/employer/jobs/:id', () => {
   });
 
   it('returns 404 NOT_FOUND for a non-existent job id', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     const res = await request(app)
       .get('/v1/employer/jobs/job_does_not_exist')
       .set('Authorization', `Bearer ${apiKey}`);
@@ -241,8 +241,8 @@ describe('employer: GET /v1/employer/jobs/:id', () => {
   });
 
   it('returns 404 NOT_FOUND for a job owned by another employer (no cross-tenant bleed)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
-    seedUser({ id: 'e2', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
+    seedUser({ id: 'e2', userType: 'pm' });
     seedJob({ id: 'job_other', employerId: 'e2' });
 
     const res = await request(app)
@@ -253,7 +253,7 @@ describe('employer: GET /v1/employer/jobs/:id', () => {
   });
 
   it('returns 200 with the Job envelope for the owner', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({
       id: 'job1', employerId: 'e1', title: 'Tech Lead',
       status: 'open', priority: 'high',
@@ -293,7 +293,7 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 403 FORBIDDEN for non-employer caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .patch('/v1/employer/jobs/anything')
       .set('Authorization', `Bearer ${apiKey}`)
@@ -302,8 +302,8 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 404 for a job owned by another employer', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
-    seedUser({ id: 'e2', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
+    seedUser({ id: 'e2', userType: 'pm' });
     seedJob({ id: 'job_other', employerId: 'e2' });
 
     const res = await request(app)
@@ -315,7 +315,7 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 400 INVALID_PARAMS for an empty body (no fields provided)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1' });
     const res = await request(app)
       .patch('/v1/employer/jobs/job1')
@@ -326,7 +326,7 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 400 INVALID_PARAMS for an unknown key (strict schema)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1' });
     const res = await request(app)
       .patch('/v1/employer/jobs/job1')
@@ -337,7 +337,7 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 200 with the updated Job when patching a single field', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', title: 'Old Title', priority: 'normal' });
     const res = await request(app)
       .patch('/v1/employer/jobs/job1')
@@ -352,7 +352,7 @@ describe('employer: PATCH /v1/employer/jobs/:id', () => {
   });
 
   it('returns 200 when patching all editable fields at once', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1' });
     const res = await request(app)
       .patch('/v1/employer/jobs/job1')
@@ -391,7 +391,7 @@ describe('employer: POST /v1/employer/jobs/:id/pause', () => {
   });
 
   it('returns 403 FORBIDDEN for non-employer caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_x/pause')
       .set('Authorization', `Bearer ${apiKey}`)
@@ -400,8 +400,8 @@ describe('employer: POST /v1/employer/jobs/:id/pause', () => {
   });
 
   it('returns 404 for a job owned by another employer', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
-    seedUser({ id: 'e2', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
+    seedUser({ id: 'e2', userType: 'pm' });
     seedJob({ id: 'job_other', employerId: 'e2', status: 'open' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_other/pause')
@@ -411,7 +411,7 @@ describe('employer: POST /v1/employer/jobs/:id/pause', () => {
   });
 
   it('returns 200 and flips an open job to paused', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'open' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/pause')
@@ -426,7 +426,7 @@ describe('employer: POST /v1/employer/jobs/:id/pause', () => {
   });
 
   it('returns 409 when the job is already paused (no pause→pause)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'paused' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/pause')
@@ -437,7 +437,7 @@ describe('employer: POST /v1/employer/jobs/:id/pause', () => {
   });
 
   it('returns 409 when the job is already closed (no close→pause)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'closed' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/pause')
@@ -462,7 +462,7 @@ describe('employer: POST /v1/employer/jobs/:id/resume', () => {
   });
 
   it('returns 403 FORBIDDEN for non-employer caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_x/resume')
       .set('Authorization', `Bearer ${apiKey}`)
@@ -471,8 +471,8 @@ describe('employer: POST /v1/employer/jobs/:id/resume', () => {
   });
 
   it('returns 404 for a job owned by another employer', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
-    seedUser({ id: 'e2', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
+    seedUser({ id: 'e2', userType: 'pm' });
     seedJob({ id: 'job_other', employerId: 'e2', status: 'paused' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_other/resume')
@@ -482,7 +482,7 @@ describe('employer: POST /v1/employer/jobs/:id/resume', () => {
   });
 
   it('returns 200 and flips a paused job back to open', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'paused' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/resume')
@@ -496,7 +496,7 @@ describe('employer: POST /v1/employer/jobs/:id/resume', () => {
   });
 
   it('returns 409 when the job is open (no open→resume)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'open' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/resume')
@@ -522,7 +522,7 @@ describe('employer: POST /v1/employer/jobs/:id/close', () => {
   });
 
   it('returns 403 FORBIDDEN for non-employer caller', async () => {
-    const { apiKey } = seedUser({ id: 'h1', userType: 'headhunter' });
+    const { apiKey } = seedUser({ id: 'h1', userType: 'hr' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_x/close')
       .set('Authorization', `Bearer ${apiKey}`)
@@ -531,8 +531,8 @@ describe('employer: POST /v1/employer/jobs/:id/close', () => {
   });
 
   it('returns 404 for a job owned by another employer', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
-    seedUser({ id: 'e2', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
+    seedUser({ id: 'e2', userType: 'pm' });
     seedJob({ id: 'job_other', employerId: 'e2', status: 'open' });
     const res = await request(app)
       .post('/v1/employer/jobs/job_other/close')
@@ -542,7 +542,7 @@ describe('employer: POST /v1/employer/jobs/:id/close', () => {
   });
 
   it('returns 200 and closes an open job', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'open' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/close')
@@ -553,7 +553,7 @@ describe('employer: POST /v1/employer/jobs/:id/close', () => {
   });
 
   it('returns 200 and closes a paused job (paused → closed is allowed)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'paused' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/close')
@@ -564,7 +564,7 @@ describe('employer: POST /v1/employer/jobs/:id/close', () => {
   });
 
   it('returns 409 when the job is already closed (no close→close)', async () => {
-    const { apiKey } = seedUser({ id: 'e1', userType: 'employer' });
+    const { apiKey } = seedUser({ id: 'e1', userType: 'pm' });
     seedJob({ id: 'job1', employerId: 'e1', status: 'closed' });
     const res = await request(app)
       .post('/v1/employer/jobs/job1/close')

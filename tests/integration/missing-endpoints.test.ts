@@ -31,9 +31,9 @@ describe('previously-missing endpoints (Bug 2 regression)', () => {
     // Setup: candidate, headhunter, employer
     const c = await request(app).post('/v1/auth/register').send({ user_type: 'candidate', name: 'C', contact: 'c@x.com' });
     candidateKey = c.body.data.api_key; candidateId = c.body.data.id;
-    const h = await request(app).post('/v1/auth/register').send({ user_type: 'headhunter', name: 'H', contact: 'h@x.com' });
+    const h = await request(app).post('/v1/auth/register').send({ user_type: 'hr', name: 'H', contact: 'h@x.com' });
     headhunterKey = h.body.data.api_key;
-    const e = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E', contact: 'e@x.com' });
+    const e = await request(app).post('/v1/auth/register').send({ user_type: 'pm', name: 'E', contact: 'e@x.com' });
     employerKey = e.body.data.api_key; employerId = e.body.data.id;
 
     // Upload candidate
@@ -63,7 +63,7 @@ describe('previously-missing endpoints (Bug 2 regression)', () => {
       const r = await request(app).get(`/v1/users/${employerId}/status`).set('Authorization', `Bearer ${employerKey}`);
       expect(r.status).toBe(200);
       expect(r.body.data.id).toBe(employerId);
-      expect(r.body.data.user_type).toBe('employer');
+      expect(r.body.data.user_type).toBe('pm');
       expect(r.body.data.quota_per_day).toBe(100);  // employer default
       expect(r.body.data.quota_used).toBeGreaterThanOrEqual(0);
       // Sensitive fields NOT exposed

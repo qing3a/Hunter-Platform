@@ -15,7 +15,7 @@ describe('POST /v1/employer/jobs — required_skills field', () => {
   it('accepts required_skills array and persists it (Chinese ok)', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'SkillEmp', contact: 'sk@emp.com' });
+      .send({ user_type: 'pm', name: 'SkillEmp', contact: 'sk@emp.com' });
 
     const res = await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
@@ -32,7 +32,7 @@ describe('POST /v1/employer/jobs — required_skills field', () => {
   it('ignores requirements field (removed from API) and only returns required_skills', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'SkillEmp2', contact: 'sk2@emp.com' });
+      .send({ user_type: 'pm', name: 'SkillEmp2', contact: 'sk2@emp.com' });
 
     const res = await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
@@ -49,7 +49,7 @@ describe('POST /v1/employer/jobs — required_skills field', () => {
   it('GET /v1/employer/jobs returns required_skills as array', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register')
-      .send({ user_type: 'employer', name: 'SkillEmp3', contact: 'sk3@emp.com' });
+      .send({ user_type: 'pm', name: 'SkillEmp3', contact: 'sk3@emp.com' });
 
     await request(app).post('/v1/employer/jobs')
       .set('Authorization', `Bearer ${emp.body.data.api_key}`)
