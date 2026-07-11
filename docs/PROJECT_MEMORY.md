@@ -69,8 +69,6 @@
 | 启动命令 | `node --experimental-sqlite --env-file=/opt/hunter-platform/.env /opt/hunter-platform/out/main/index.js` |
 | **生产无 git**（scp 同步即可） | 本地 build → scp `out/*` → restart |
 | Admin 密码路径 | `/opt/hunter-platform/.admin-password`（不在 `.env` 里） |
-| MCP 安装路径 | `/root/.npm-global/lib/@qing3a/hunter-platform-mcp/` |
-| MCP PAT | `/root/.npmrc` 里有 `_authToken=ghp_xxx` |
 
 ### 标准部署流程
 
@@ -91,19 +89,6 @@ ssh -i "/d/Downloads/cc.pem" root@101.201.110.129 \
 # Expected: 401 (auth required)
 ```
 
-### 发布 MCP server
-
-```bash
-# 本地
-cd /d/dev/hunter-platform/mcp-server
-export GH_TOKEN=$(ssh -i /d/Downloads/cc.pem root@101.201.110.129 \
-  'grep _authToken /root/.npmrc | sed "s/.*=//"')
-pnpm publish --no-git-checks
-
-# 生产升级
-ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
-```
-
 ### 已知生产怪异
 
 - `systemd` 启动加 `--experimental-sqlite` 标志（Node 22 内置 sqlite 但要 flag）
@@ -118,7 +103,7 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 | 优先级 | 任务 | 状态 |
 |--------|------|------|
 | ✅ 高 | action_history 中间件落地 | 已合 main + 已生产部署（Sub-E 部署含此） |
-| ✅ 高 | current_company 必填 | 已合 main（`72704b4`）+ 已生产部署 + MCP v0.1.3 已发布 |
+| ✅ 高 | current_company 必填 | 已合 main（`72704b4`）+ 已生产部署 |
 | ✅ Sub-F | Worker reads Config | 已合 main + 已生产部署（v2.8.0 在 101.201.110.129 跑）|
 | ✅ Sub-G | Public rate-limit + Commission + TTL 0 | 已合 main + 已生产部署（v2.9.0 在 101.201.110.129 跑）|
 | ✅ Sub-A→G | Web 管理后台 | Sub-A (login) + Sub-B (lists) + Sub-C (mutation) + Sub-D1-D6 (audit/timeline/webhooks/placements/suspend/filter) + Sub-E (config DB-backed) + Sub-F (worker reads config) + Sub-G (public rate-limit + commission) 全部完成 |
@@ -187,19 +172,6 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 
 ---
 
-## 6. MCP 集成（外部消费者）
-
-| 项 | 值 |
-|----|----|
-| 包名 | `@qing3a/hunter-platform-mcp`（私有 registry `npm.pkg.github.com/qing3a`） |
-| 最新版本 | **v0.1.3 已发布**（2026-06-23T12:52:26Z 发布；`headhunter_upload_candidate` requires `current_company`）|
-| 凭证存储 | 本机 `<user-home>/.hunter-platform-mcp/credentials.json` |
-| 凭证格式 | `{ apiKey, apiBaseUrl, userId }`；deploy 模式 = 1 user + 1 base URL |
-| 部署方式 | GitHub Packages PAT 写入生产服务器 `~/.npmrc` 后 `npm install @qing3a/hunter-platform-mcp` |
-| 已知 bug fix | v0.1.1 修 `auth_register` 不该要求 api_key |
-
----
-
 ## 7. 重要文件位置速查
 
 | 类别 | 路径 |
@@ -236,7 +208,7 @@ ssh root@101.201.110.129 'npm install -g @qing3a/hunter-platform-mcp@VERSION'
 
 ## 8. Agent 调用模式（OpenAPI）
 
-- 鉴权：`Authorization: Bearer <api_key>`（从 MCP 凭证读）
+- 鉴权：`Authorization: Bearer <api_key>`（调用方持有的 apikey 或 `sess_*` session token，详见 skill.md §1）
 - 响应信封：`{ ok: true, data: <T> }` 或 `{ ok: false, error: { code, message, details? } }`
 - 错误码：`UNAUTHORIZED`（401）/ `INVALID_PARAMS`（400）/ `NOT_FOUND`（404）/ `RATE_LIMITED`（429）/ `INTERNAL_ERROR`（500）
 - Action 能力名格式：`<user_type>.<verb_noun>` 例：`headhunter.upload_candidate`、`employer.express_interest`、`auth.register`
