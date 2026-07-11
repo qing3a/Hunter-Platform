@@ -13,6 +13,7 @@ describe('RegisterResponseSchema', () => {
         api_key: 'hp_live_xyz123',
         quota_per_day: 100,
         user_type: 'candidate',
+        available_roles: ['candidate'],
       },
     });
     expect(r.success).toBe(true);
