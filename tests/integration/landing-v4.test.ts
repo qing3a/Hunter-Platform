@@ -42,15 +42,20 @@ describe('GET / - v4 enrichment (3 new modules)', () => {
     const res = await request(app).get('/');
     const html = res.text;
     const heroIdx = html.indexOf('class="hero"');
+    const statsIdx = html.indexOf('class="card hero-stats"');
+    const rolesIdx = html.indexOf('id="for-roles"');
     const catNavIdx = html.indexOf('class="card job-category-nav"');
     const featIdx = html.indexOf('class="card featured-jobs"');
     const hotIdx = html.indexOf('class="card hot-companies"');
-    const statsIdx = html.indexOf('class="card hero-stats"');
     expect(heroIdx).toBeGreaterThan(0);
-    expect(catNavIdx).toBeGreaterThan(heroIdx);
+    // P1a: stats now sits right after hero (moved up from between hot-companies and rankings)
+    expect(statsIdx).toBeGreaterThan(heroIdx);
+    expect(statsIdx).toBeLessThan(rolesIdx);
+    // P1c: roles-switcher replaces standalone candidate section
+    expect(rolesIdx).toBeGreaterThan(statsIdx);
+    expect(catNavIdx).toBeGreaterThan(rolesIdx);
     expect(featIdx).toBeGreaterThan(catNavIdx);
     expect(hotIdx).toBeGreaterThan(featIdx);
-    expect(statsIdx).toBeGreaterThan(hotIdx);
   });
 
   it('renders empty-state copy when DB has no data', async () => {
@@ -82,7 +87,9 @@ describe('GET / - v4 enrichment (3 new modules)', () => {
     const res = await request(app).get('/');
     expect(res.text).toContain('class="top-nav"');
     expect(res.text).toContain('HEALTHY');
-    expect(res.text).toContain('Top 猎头');
-    expect(res.text).toContain('for-employers');
+    // P2b: rankings either renders tabs OR collapses — both forms preserve 多维榜单 H2
+    expect(res.text).toContain('多维榜单');
+    // P1c: merged roles-switcher replaces for-employers standalone section
+    expect(res.text).toContain('id="for-roles"');
   });
 });

@@ -37,7 +37,7 @@ export function featuredJobs(data: LandingData): string {
       </div>
       <div class="featured-job-title">📋 ${j.title}</div>
       <div class="featured-job-meta">
-        🏢 ${j.company_name ?? '某公司'} · ${j.industry ?? '其他'}
+        🏬 ${j.company_name ?? '某公司'} · ${j.industry ?? '其他'}
       </div>
       <div class="featured-job-skills">${raw(formatSkills(j.required_skills))}</div>
     </div>
@@ -46,7 +46,7 @@ export function featuredJobs(data: LandingData): string {
   return html`
 <section class="card featured-jobs" id="featured-jobs">
   <h2><span class="accent-bar"></span>🔥 精选/热招职位</h2>
-  <p class="meta">前 ${data.featuredJobs.length} 个开放岗位 — 按紧急度排序</p>
+  <p class="meta">共 <strong data-open-jobs-count>${data.openJobsCount}</strong> 个开放岗位 · 按紧急度排序</p>
   <div class="featured-jobs-grid">${cards}</div>
   <p class="meta featured-jobs-more" data-feature="see-more-featured-jobs">查看更多 → (MVP 不做)</p>
 </section>

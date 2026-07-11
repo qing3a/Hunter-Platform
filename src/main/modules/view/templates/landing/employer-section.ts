@@ -19,7 +19,7 @@ export function employerSection(data: LandingData): string {
   return html`
 <section class="card" id="for-employers">
   <h2>
-    <span class="accent-bar"></span>🏢 For Employers — 在招岗位: ${data.openJobsCount}
+    <span class="accent-bar"></span>💼 For Employers
   </h2>
   <p>浏览脱敏候选人池 → Agent 调 <code>GET /v1/employer/talent</code></p>
   ${renderBody(data)}

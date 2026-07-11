@@ -19,16 +19,21 @@ describe('GET / (marketplace landing)', () => {
     expect(res.headers['content-type']).toMatch(/^text\/html/);
   });
 
-  it('contains hero + 3 role sections', async () => {
+  it('contains hero + role switcher (merged for-X sections)', async () => {
     const app = createApp();
     const res = await request(app).get('/');
     expect(res.text).toContain('Hunter Platform');
-    expect(res.text).toContain('For Employers');
-    expect(res.text).toContain('For Headhunters');
-    expect(res.text).toContain('For Candidates');
+    // P1c: 3 for-X sections merged into 1 roles-switcher with 3 tabs
+    expect(res.text).toContain('id="for-roles"');
+    expect(res.text).toContain('class="card roles-switcher"');
+    expect(res.text).toContain('data-tab="candidates"');
+    expect(res.text).toContain('data-tab="employers"');
+    expect(res.text).toContain('data-tab="headhunters"');
+    // Default tab = candidates (privacy narrative first)
+    expect(res.text).toMatch(/data-tab="candidates"[^>]*aria-selected="true"/);
   });
 
-  it('shows real open job count', async () => {
+it('shows real open job count', async () => {
     const app = createApp();
     const emp = await request(app).post('/v1/auth/register').send({ user_type: 'employer', name: 'E1', contact: 'e1@e.com' });
     await request(app).post('/v1/employer/jobs')
@@ -39,7 +44,9 @@ describe('GET / (marketplace landing)', () => {
       .send({ title: 'Job 2' });
 
     const res = await request(app).get('/');
-    expect(res.text).toMatch(/在招岗位[\s\S]{0,100}2/);
+    // P0-1 + featured-jobs refactor: openJobsCount now displayed in
+    // featured-jobs section header as <strong data-open-jobs-count>${N}</strong>
+    expect(res.text).toMatch(/data-open-jobs-count[^>]*>2</);
   });
 
   it('shows candidate data after upload + publish', async () => {

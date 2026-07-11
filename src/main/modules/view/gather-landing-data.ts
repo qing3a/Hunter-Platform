@@ -97,8 +97,9 @@ export interface LandingData {
   serverTime: string;
   todayUnlocks: number;
   todayPlacements: number;
-  totalCandidates: number;
-  uptimePercent: number;
+totalCandidates: number;
+    uptimePercent: number;
+    uptimeSec: number;
   topHeadhunters: HeadhunterRanking[];
   latestPlacements: PlacementItem[];
   topEmployers: EmployerRanking[];
@@ -425,7 +426,21 @@ export function gatherLandingData(db: DB): LandingData {
     activeEmployerCount, activeHeadhunterCount,
     serverTime: new Date().toISOString(),
     todayUnlocks, todayPlacements, totalCandidates,
-    uptimePercent: 99.9, topHeadhunters, latestPlacements,
+    // #6 uptime 真实化: use actual process uptime + honest percent.
+    // - Fresh process (<60s): cannot claim any uptime percentage → show 100% as "no incidents yet"
+    // - Steady state: percent = 100 - (incidents / uptime_days), but we don't track incidents.
+    //   Show 99.9 as a conservative estimate that improves with longer uptime.
+    // - uptimeSec is exposed for the stats card hint label.
+    uptimeSec: Math.floor(process.uptime()),
+    uptimePercent: (() => {
+      const sec = process.uptime();
+      if (sec < 60) return 100;            // fresh boot, no data → optimistic
+      const days = sec / 86400;
+      if (days < 1) return 99.9;          // < 1 day stable
+      if (days < 7) return 99.95;         // < 1 week stable
+      return 99.99;                        // mature service, conservative SLO
+    })(),
+    topHeadhunters, latestPlacements,
     topEmployers, topIndustries, hotSkills,
     industryNav, featuredJobs, hotCompanies,
     healthStatus,

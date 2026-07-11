@@ -23,7 +23,7 @@ export function hotCompanies(data: LandingData): string {
   if (data.hotCompanies.length === 0) {
     return html`
 <section class="card hot-companies" id="hot-companies">
-  <h2><span class="accent-bar"></span>🏢 热门企业</h2>
+  <h2><span class="accent-bar"></span>🏬 热门企业</h2>
   <div class="empty-state"><p class="empty-state-text">暂无热门企业</p><p class="empty-state-cta">完成第一笔 placement 后企业自动展示 → <a href="#for-employers">吸引企业</a></p></div>
 </section>
     `;
@@ -32,7 +32,7 @@ export function hotCompanies(data: LandingData): string {
   const cards = data.hotCompanies.map((c) => html`
     <div class="hot-company-card">
       <div class="hot-company-header">
-        <span class="hot-company-name">🏢 ${c.name}</span>
+        <span class="hot-company-name">🏬 ${c.name}</span>
         <span class="hot-company-count">${c.openJobCount} 个开放岗位</span>
       </div>
       <div class="hot-company-jobs">${raw(renderRecentJobs(c.recentJobs))}</div>
@@ -42,7 +42,7 @@ export function hotCompanies(data: LandingData): string {
 
   return html`
 <section class="card hot-companies" id="hot-companies">
-  <h2><span class="accent-bar"></span>🏢 热门企业</h2>
+  <h2><span class="accent-bar"></span>🏬 热门企业</h2>
   <p class="meta">按开放岗位数倒序</p>
   <div class="hot-companies-grid">${cards}</div>
 </section>

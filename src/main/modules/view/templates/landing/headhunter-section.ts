@@ -17,7 +17,7 @@ export function headhunterSection(data: LandingData): string {
   return html`
 <section class="card" id="for-headhunters">
   <h2>
-    <span class="accent-bar"></span>🎯 For Headhunters — 今日可推荐: ${data.openJobsCount} 个开放岗位
+    <span class="accent-bar"></span>🎯 For Headhunters
   </h2>
   <p>上传候选人脱敏入库 → Agent 调 <code>POST /v1/headhunter/candidates</code></p>
   ${renderBody(data)}

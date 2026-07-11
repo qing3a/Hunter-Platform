@@ -23,6 +23,7 @@ export function layout(body: string): string {
   <style>${raw(LANDING_CSS)}</style>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
   ${body}
   ${raw(LANDING_SCRIPT)}
 </body>

@@ -3,20 +3,55 @@
 export const LANDING_SCRIPT = `
 <script>
 (function() {
-  // 0) Nav toggle: mobile menu (P1.7 v2)
+  // 0) Nav toggle: mobile menu — controls BOTH layer-1 actions and layer-2 role pills
   var navToggle = document.querySelector('.js-nav-toggle');
   var navCollapsible = document.querySelector('.js-nav-collapsible');
-  if (navToggle && navCollapsible) {
-    navToggle.addEventListener('click', function() {
-      var isOpen = navCollapsible.classList.toggle('open');
-      navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  var roleAnchors = document.querySelector('.role-anchors');
+  function focusableElements() {
+    // Collect focusable elements inside open menu (nav-toggle + role anchors + nav actions)
+    var sel = 'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])';
+    var inNav1 = navToggle ? Array.prototype.slice.call(navToggle.parentElement.querySelectorAll(sel)) : [];
+    var inNav2 = roleAnchors ? Array.prototype.slice.call(roleAnchors.querySelectorAll(sel)) : [];
+    return inNav1.concat(inNav2);
+  }
+  function isOpen() { return navToggle && navToggle.getAttribute('aria-expanded') === 'true'; }
+  function setOpen(open) {
+    if (!navToggle) return;
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (navCollapsible) navCollapsible.classList.toggle('open', open);
+    if (roleAnchors) roleAnchors.classList.toggle('open', open);
+    // Move focus appropriately
+    if (open && navToggle) {
+      // Focus first focusable in expanded menu after a tick
+      setTimeout(function() {
+        var els = focusableElements();
+        if (els.length > 1) els[1].focus();
+      }, 50);
+    } else if (navToggle) {
+      navToggle.focus();
+    }
+  }
+  if (navToggle) {
+    navToggle.addEventListener('click', function() { setOpen(!isOpen()); });
+    // Close menu when any nav link is clicked (mobile UX)
+    document.querySelectorAll('.js-nav-toggle-link').forEach(function(link) {
+      link.addEventListener('click', function() { setOpen(false); });
     });
-    // Close menu when a nav link is clicked (mobile UX)
-    navCollapsible.querySelectorAll('a').forEach(function(link) {
-      link.addEventListener('click', function() {
-        navCollapsible.classList.remove('open');
-        navToggle.setAttribute('aria-expanded', 'false');
-      });
+    // Focus trap: when menu is open, Tab/Shift+Tab cycle within menu
+    document.addEventListener('keydown', function(e) {
+      if (!isOpen() || e.key !== 'Tab') return;
+      var els = focusableElements();
+      if (els.length === 0) return;
+      var first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    });
+    // Esc closes menu
+    document.addEventListener('keydown', function(e) {
+      if (isOpen() && e.key === 'Escape') { setOpen(false); }
     });
   }
 
@@ -49,10 +84,13 @@ export const LANDING_SCRIPT = `
     });
   });
 
-  // 2) Ranking tabs
+  // 2) Ranking tabs — full WAI-ARIA Tab Pattern (aria-selected sync + roving tabindex + keyboard nav)
   function activateTab(tabName) {
     document.querySelectorAll('.js-ranking-tab').forEach(function(t) {
-      t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+      var match = t.getAttribute('data-tab') === tabName;
+      t.classList.toggle('active', match);
+      t.setAttribute('aria-selected', match ? 'true' : 'false');
+      t.setAttribute('tabindex', match ? '0' : '-1');
     });
     document.querySelectorAll('.js-ranking-panel').forEach(function(p) {
       var match = p.getAttribute('data-panel') === tabName;
@@ -63,9 +101,25 @@ export const LANDING_SCRIPT = `
       history.replaceState(null, '', '#ranking=' + tabName);
     }
   }
-  document.querySelectorAll('.js-ranking-tab').forEach(function(tab) {
+  var rankingTabs = Array.prototype.slice.call(document.querySelectorAll('.js-ranking-tab'));
+  rankingTabs.forEach(function(tab) {
     tab.addEventListener('click', function() {
       activateTab(tab.getAttribute('data-tab'));
+    });
+  });
+  // Keyboard navigation: ←/→ wrap, Home/End jump (WAI-ARIA Tab Pattern)
+  rankingTabs.forEach(function(tab, i) {
+    tab.addEventListener('keydown', function(e) {
+      var next = null;
+      if (e.key === 'ArrowRight') next = rankingTabs[(i + 1) % rankingTabs.length];
+      else if (e.key === 'ArrowLeft') next = rankingTabs[(i - 1 + rankingTabs.length) % rankingTabs.length];
+      else if (e.key === 'Home') next = rankingTabs[0];
+      else if (e.key === 'End') next = rankingTabs[rankingTabs.length - 1];
+      if (next) {
+        e.preventDefault();
+        next.focus();
+        activateTab(next.getAttribute('data-tab'));
+      }
     });
   });
   // Restore from URL hash on load
@@ -74,13 +128,62 @@ export const LANDING_SCRIPT = `
     if (tabName) activateTab(tabName);
   }
 
-  // 3) Role anchor smooth scroll
+  // 2b) Role switcher tabs — same WAI-ARIA Tab Pattern as rankings
+  function activateRoleTab(tabName) {
+    document.querySelectorAll('.js-roles-tab').forEach(function(t) {
+      var match = t.getAttribute('data-tab') === tabName;
+      t.classList.toggle('active', match);
+      t.setAttribute('aria-selected', match ? 'true' : 'false');
+      t.setAttribute('tabindex', match ? '0' : '-1');
+    });
+    document.querySelectorAll('.js-roles-panel').forEach(function(p) {
+      var match = p.getAttribute('data-panel') === tabName;
+      p.classList.toggle('active', match);
+      if (match) p.removeAttribute('hidden'); else p.setAttribute('hidden', '');
+    });
+    if (history.replaceState) {
+      history.replaceState(null, '', '#role=' + tabName);
+    }
+  }
+  var roleTabs = Array.prototype.slice.call(document.querySelectorAll('.js-roles-tab'));
+  roleTabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      activateRoleTab(tab.getAttribute('data-tab'));
+    });
+  });
+  roleTabs.forEach(function(tab, i) {
+    tab.addEventListener('keydown', function(e) {
+      var next = null;
+      if (e.key === 'ArrowRight') next = roleTabs[(i + 1) % roleTabs.length];
+      else if (e.key === 'ArrowLeft') next = roleTabs[(i - 1 + roleTabs.length) % roleTabs.length];
+      else if (e.key === 'Home') next = roleTabs[0];
+      else if (e.key === 'End') next = roleTabs[roleTabs.length - 1];
+      if (next) {
+        e.preventDefault();
+        next.focus();
+        activateRoleTab(next.getAttribute('data-tab'));
+      }
+    });
+  });
+  // Restore role from URL hash on load (#role=candidates|employers|headhunters)
+  if (location.hash && location.hash.indexOf('role=') === 1) {
+    var roleName = location.hash.split('role=')[1];
+    if (roleName) activateRoleTab(roleName);
+  }
+
+  // 3) Role anchor smooth scroll + activate matching tab when role is set
   document.querySelectorAll('.js-role-anchor').forEach(function(a) {
     a.addEventListener('click', function(e) {
       e.preventDefault();
       var targetId = a.getAttribute('data-target');
+      var role = a.getAttribute('data-role');
       var target = document.getElementById(targetId);
       if (target) {
+        // If this anchor targets the merged roles-switcher, dispatch click on matching tab
+        if (targetId === 'for-roles' && role) {
+          var tab = document.querySelector('.js-roles-tab[data-tab="' + role + '"]');
+          if (tab) tab.click();
+        }
         var navH = 64;
         var y = target.getBoundingClientRect().top + window.pageYOffset - navH - 8;
         window.scrollTo({ top: y, behavior: 'smooth' });

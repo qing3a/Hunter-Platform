@@ -24,7 +24,7 @@ describe('gatherLandingData - basic fields', () => {
     expect(data.totalCandidates).toBe(0);
     expect(data.activeEmployerCount).toBe(0);
     expect(data.activeHeadhunterCount).toBe(0);
-    expect(data.uptimePercent).toBe(99.9);
+    expect(data.uptimePercent).toBe(100); // A1: cold-start (<60s) shows 100; longer uptime rounds to 99.9
     expect(data.healthStatus).toBe('healthy');
     expect(data.serverTime).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(data.industryNav).toEqual([]);
