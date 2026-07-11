@@ -1,0 +1,55 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "rules": {
+    "no-invalid-double-slash-comments": null,
+    "at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": [
+          "tailwind",
+          "apply",
+          "variants",
+          "responsive",
+          "screen",
+          "layer"
+        ]
+      }
+    ],
+    "no-descending-specificity": null,
+    "selector-class-pattern": null,
+    "custom-property-pattern": null,
+    "keyframes-name-pattern": null,
+    "comment-empty-line-before": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "media-feature-range-notation": null,
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "color-function-alias-notation": null,
+    "color-hex-length": null,
+    "shorthand-property-no-redundant-values": null,
+    "declaration-block-no-redundant-longhand-properties": null,
+    "no-duplicate-selectors": null,
+    "declaration-block-single-line-max-declarations": null,
+    "at-rule-empty-line-before": null,
+    "string-no-newline": null,
+    "length-zero-no-unit": null,
+    "value-keyword-case": null,
+    "declaration-block-no-shorthand-property-overrides": null,
+    "selector-pseudo-element-no-unknown": true,
+    "selector-pseudo-class-no-unknown": [true, { "ignorePseudoClasses": ["deep"] }],
+    "media-feature-name-no-unknown": true,
+    "property-no-unknown": true,
+    "unit-no-unknown": true,
+    "function-no-unknown": true,
+    "property-no-vendor-prefix": null,
+    "value-no-vendor-prefix": null
+  },
+  "ignoreFiles": [
+    "node_modules/**",
+    "out/**",
+    "src/main/db/migrations/**",
+    "docs/**",
+    "tmp/**"
+  ]
+}
