@@ -62,8 +62,8 @@ export function createViewsRouter(db: DB, baseUrl: string): Router {
       throw Errors.notFound('Recommendation not found');
     }
 
-    const isHeadhunter = user.user_type === 'headhunter' && rec.headhunter_id === user.id;
-    const isEmployer = user.user_type === 'employer' && rec.employer_id === user.id;
+    const isHeadhunter = user.user_type === 'hr' && rec.headhunter_id === user.id;
+    const isEmployer = user.user_type === 'pm' && rec.employer_id === user.id;
     if (!isHeadhunter && !isEmployer) {
       throw Errors.forbidden('You can only request view URLs for recommendations you are part of');
     }

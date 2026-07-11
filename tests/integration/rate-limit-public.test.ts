@@ -50,20 +50,20 @@ describe('GET /v1/config/rate-limits (Sub-G public endpoint)', () => {
     expect(res.body.ok).toBe(true);
     expect(res.body.data.tiers).toEqual({
       candidate:  { second: 10, minute: 50,  hour: 300 },
-      headhunter: { second: 20, minute: 100, hour: 750 },
-      employer:   { second: 30, minute: 200, hour: 1200 },
+      hr:         { second: 20, minute: 100, hour: 750 },  // R1.C2: was 'headhunter'
+      pm:         { second: 30, minute: 200, hour: 1200 },  // R1.C2: was 'employer'
     });
     expect(res.body.data.windows).toEqual(['second', 'minute', 'hour']);
   });
 
   it('2. admin put new limit, public endpoint reflects new value (TTL=0)', async () => {
     await request(app)
-      .put('/v1/admin/config/rate_limit.tier.headhunter.limit_per_minute')
+      .put('/v1/admin/config/rate_limit.tier.hr.limit_per_minute')  // R1.C2: was 'headhunter'
       .set('Authorization', adminAuth)
       .send({ value: 200, reason: 'sub-g public test' });
     const res = await request(app).get('/v1/config/rate-limits');
     expect(res.status).toBe(200);
-    expect(res.body.data.tiers.headhunter.minute).toBe(200);
+    expect(res.body.data.tiers.hr.minute).toBe(200);  // R1.C2: was 'headhunter'
   });
 
   it('3. unauthenticated request still works (optional auth, not strict)', async () => {

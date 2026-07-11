@@ -48,7 +48,7 @@ export function createHunterTasks(db: DB): HunterTasksModule {
 
   /** Throw unless the caller is a headhunter. Centralizes the check. */
   function assertHeadhunter(user: User): void {
-    if (user.user_type !== 'headhunter') {
+    if (user.user_type !== 'hr') {
       throw Errors.forbidden('Only headhunters can manage tasks');
     }
   }

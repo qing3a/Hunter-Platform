@@ -155,7 +155,7 @@ export function createHeadhunterRouter(db: DB, encryptionKey: Buffer): Router {
   router.get('/candidates', (req, res, next) => {
     try {
       const user = (req as typeof req & { user?: User }).user!;
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can list candidates');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only HR users can list candidates');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.list_my_candidates ?? 1);
       if (!qResult.ok) {

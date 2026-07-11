@@ -48,7 +48,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
   return {
     async uploadCandidate(user: User, input: UploadCandidateInput): Promise<{ anonymized_id: string; preview: AnonymizedCandidate; __audit: { target_type: 'candidate'; target_id: string; res_summary: { anonymized_id: string; industry: string | null; title_level: string | null } } }> {
       // 1. 验证 user 是 headhunter
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can upload candidates');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can upload candidates');
 
       // 2. 验证 candidate_user_id 存在且是 candidate 类型
       const candidateUser = users.findById(input.candidate_user_id);
@@ -136,7 +136,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
         'job.id': input.job_id,
         'anonymized_candidate.id': input.anonymized_candidate_id,
       }, (span) => {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can recommend');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can recommend');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.recommend_candidate);
       if (!qResult.ok) {
@@ -187,7 +187,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
     },
 
     withdrawRecommendation(user: User, input: { recommendation_id: string }): void {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can withdraw');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can withdraw');
       const recs = createRecommendationsRepo(db);
       const rec = recs.findById(input.recommendation_id);
       if (!rec) throw Errors.notFound('Recommendation not found');
@@ -203,7 +203,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
     },
 
     publishToPool(user: User, input: { anonymized_candidate_id: string }): void {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can publish');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can publish');
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.publish_to_pool);
       if (!qResult.ok) {
         if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
@@ -217,7 +217,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
     },
 
     listMyRecommendations(user: User, opts: { status?: any } = {}): Recommendation[] {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can list recommendations');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can list recommendations');
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.list_recommendations);
       if (!qResult.ok) {
         if (qResult.reason === 'INSUFFICIENT_QUOTA') throw Errors.insufficientQuota();
@@ -230,7 +230,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
 
     // v009: 猎头代雇主建岗 (spec §5.1)
     createJobForEmployer(user: User, input: CreateJobForEmployerInput): Job {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters can create jobs on behalf of employers');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters can create jobs on behalf of employers');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.create_job);
       if (!qResult.ok) {
@@ -243,7 +243,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
       if (input.created_for_employer_id) {
         const target = users.findById(input.created_for_employer_id);
         if (!target) throw Errors.notFound('Target employer not found');
-        if (target.user_type !== 'employer') {
+        if (target.user_type !== 'pm') {
           throw Errors.forbidden('created_for_employer_id must point to an employer');
         }
       }
@@ -276,7 +276,7 @@ export function createHeadhunterHandler(db: DB, encryptionKey: Buffer) {
     },
 
     listMyCreatedJobs(user: User): Job[] {
-      if (user.user_type !== 'headhunter') throw Errors.forbidden('Only headhunters');
+      if (user.user_type !== 'hr') throw Errors.forbidden('Only headhunters');
       return jobsRepo.findBySourceHeadhunter(user.id);
     },
   };

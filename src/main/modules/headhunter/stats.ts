@@ -3,7 +3,7 @@
 // Hunter Workspace (Phase 3a, Task 5) — personal stats handler.
 //
 // Authorization model:
-//   - All methods require user_type === 'headhunter'. Non-headhunters
+//   - All methods require user_type === 'hr'. Non-headhunters
 //     get FORBIDDEN. Centralized via `assertHeadhunter(user)`, identical
 //     to the other hunter-portal modules (tasks.ts, kanban.ts).
 //   - overview and funnel are pass-throughs to the repo, scoped by
@@ -35,7 +35,7 @@ export function createHunterStats(db: DB): HunterStatsModule {
 
   /** Throw unless the caller is a headhunter. */
   function assertHeadhunter(user: User): void {
-    if (user.user_type !== 'headhunter') {
+    if (user.user_type !== 'hr') {
       throw Errors.forbidden('Only headhunters can view their stats');
     }
   }

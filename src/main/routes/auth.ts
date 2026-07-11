@@ -12,7 +12,7 @@ import { RegisterResponseSchema, RotateKeyResponseSchema } from '../schemas/auth
 import type { User } from '../../shared/types.js';
 
 const RegisterSchema = z.object({
-  user_type: z.enum(['candidate', 'headhunter', 'employer']),
+  user_type: z.enum(['candidate', 'hr', 'pm']),  // R1.C2: legacy 'hr'/'pm' accepted by handler with remap
   name: z.string().min(1).max(100),
   contact: z.string().min(1).max(200).optional(),
   agent_endpoint: z.string().url().optional(),

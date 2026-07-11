@@ -39,7 +39,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
 
   return {
     createJob(user: User, input: CreateJobInput): Job {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can create jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can create jobs');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.create_job);
       if (!qResult.ok) {
@@ -71,12 +71,12 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
     },
 
     listMyJobs(user: User, opts: { status?: any } = {}): Job[] {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers');
       return jobs.listByEmployer(user.id, opts);
     },
 
     browseTalent(user: User, filters: { industry?: string; title_level?: string; min_years?: number; max_years?: number; skills?: string[]; min_salary?: number; max_salary?: number }): AnonymizedCandidate[] {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can browse talent');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can browse talent');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.browse_talent);
       if (!qResult.ok) {
@@ -144,7 +144,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
       input: { recommendation_id: string },
       ctx: { encryptionKey: Buffer; ip?: string; userAgent?: string } = { encryptionKey: Buffer.alloc(32) },
     ): { __audit: { target_type: 'recommendation'; target_id: string } } {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can express interest');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can express interest');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.express_interest);
       if (!qResult.ok) {
@@ -217,7 +217,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
         'employer.id': user.id,
         'recommendation.id': input.recommendation_id,
       }, () => {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can unlock contact');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can unlock contact');
 
       const qResult = quota.tryConsume(user.id, QUOTA_COSTS.unlock_contact);
       if (!qResult.ok) {
@@ -310,7 +310,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
 
     // v009: 雇主"待认领"列表 (spec §5.1, §5.2)
     listPendingClaims(user: User): Job[] {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers');
       return jobs.findPendingClaims(user.id);
     },
 
@@ -320,7 +320,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
         'employer.id': user.id,
         'job.id': input.job_id,
       }, () => {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can claim jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can claim jobs');
 
       // 先校验: 存在 + 属于自己 (created_for_employer_id=me 或 null)
       const job = jobs.findById(input.job_id);
@@ -352,7 +352,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
         'job.id': input.job_id,
         'reject.reason': input.reason ?? '',
       }, () => {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can reject jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can reject jobs');
 
       const job = jobs.findById(input.job_id);
       if (!job) throw Errors.notFound('Job not found');
@@ -399,7 +399,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
      * exists).
      */
     getJob(user: User, input: { id: string }): Job {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can view jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can view jobs');
       const job = jobs.findById(input.id);
       if (!job) throw Errors.notFound('Job not found');
       if (job.employer_id !== user.id) throw Errors.notFound('Job not found');
@@ -419,7 +419,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
      * layer so we always have something to apply here).
      */
     updateJob(user: User, input: { id: string; fields: Record<string, unknown> }): Job {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can edit jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can edit jobs');
       const existing = jobs.findById(input.id);
       if (!existing) throw Errors.notFound('Job not found');
       if (existing.employer_id !== user.id) throw Errors.notFound('Job not found');
@@ -445,7 +445,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
      * the claim was unwanted, then pause as needed.
      */
     pauseJob(user: User, input: { id: string }): { id: string; status: 'paused' } {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can pause jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can pause jobs');
       const existing = jobs.findById(input.id);
       if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
       if (existing.status !== 'open') {
@@ -465,7 +465,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
      * Same ownership + state-machine shape as pauseJob.
      */
     resumeJob(user: User, input: { id: string }): { id: string; status: 'open' } {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can resume jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can resume jobs');
       const existing = jobs.findById(input.id);
       if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
       if (existing.status !== 'paused') {
@@ -484,7 +484,7 @@ export function createEmployerHandler(db: DB, notifTrigger?: NotificationTrigger
      * subsequent pause/resume call to fail with INVALID_STATE.
      */
     closeJob(user: User, input: { id: string }): { id: string; status: 'closed' } {
-      if (user.user_type !== 'employer') throw Errors.forbidden('Only employers can close jobs');
+      if (user.user_type !== 'pm') throw Errors.forbidden('Only employers can close jobs');
       const existing = jobs.findById(input.id);
       if (!existing || existing.employer_id !== user.id) throw Errors.notFound('Job not found');
       const changes = jobs.updateStatusIfCurrent(input.id, user.id, ['open', 'paused'], 'closed');
