@@ -17,6 +17,9 @@ export function createUsersRepo(db: DB) {
   `);
   const findByIdStmt = db.prepare('SELECT * FROM users WHERE id = ?');
   const findByHashStmt = db.prepare('SELECT * FROM users WHERE api_key_hash = ?');
+  // R1.C2 / T6 — login lookup by api_key_prefix (first 12 chars of `hp_live_xxxx`).
+  // The bcrypt verify of the full key happens in the route, not here.
+  const findByPrefixStmt = db.prepare('SELECT * FROM users WHERE api_key_prefix = ?');
 
   // Candidate Portal: look up a candidate by their login email (stored in `contact`).
   // The users table has no dedicated `email` column — `contact` is the only free-form
@@ -29,7 +32,7 @@ export function createUsersRepo(db: DB) {
   // Hunter Portal (Phase 3a / Task 11): lookup a headhunter by the email they
   // typed into the OTP login screen. Same `contact` column, different user_type.
   const findHeadhunterByEmailStmt = db.prepare(
-    "SELECT * FROM users WHERE contact = ? AND user_type = 'headhunter' AND status = 'active' LIMIT 1"
+    "SELECT * FROM users WHERE contact = ? AND user_type = 'hr' AND status = 'active' LIMIT 1"
   );
 
   // PM Workbench (Phase 3b / Task 1b): lookup a PM by their login email.
@@ -58,6 +61,10 @@ export function createUsersRepo(db: DB) {
     },
     findByApiKeyHash(hash: string): User | undefined {
       return findByHashStmt.get(hash) as User | undefined;
+    },
+    // R1.C2 / T6 — login pre-filter by 12-char prefix before bcrypt-verify.
+    findByApiKeyPrefix(prefix: string): User | undefined {
+      return findByPrefixStmt.get(prefix) as User | undefined;
     },
     findCandidateByEmail(email: string): User | null {
       const row = findCandidateByEmailStmt.get(email) as User | undefined;
@@ -104,7 +111,7 @@ export function createUsersRepo(db: DB) {
     createHeadhunter(id: string, email: string): void {
       const now = new Date().toISOString();
       const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
-      // Mirrors createCandidate() but writes user_type='headhunter' and uses
+      // Mirrors createCandidate() but writes user_type='hr' and uses
       // the headhunter quota (200/day per QUOTA_PER_DAY.headhunter). Email
       // becomes the contact field; the real display name will be filled in
       // when the hunter completes their workspace profile.
@@ -112,7 +119,7 @@ export function createUsersRepo(db: DB) {
       const placeholderPrefix = 'pending';
       insertStmt.run({
         id,
-        user_type: 'headhunter',
+        user_type: 'hr',
         name: email.split('@')[0] || email,
         contact: email,
         agent_endpoint: null,
