@@ -1,3 +1,15 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The Candidate Portal pages targeted by this plan
+> (`app-web/src/pages/candidate-portal/`) were removed in the cut.
+> Candidate UI is owned by `C:\Users\Administrator\Desktop\ow-headhunter-sass`
+> (prototype.html cand-login / cand-home / cand-applications screens).
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # Candidate Portal (C 端候选人门户) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

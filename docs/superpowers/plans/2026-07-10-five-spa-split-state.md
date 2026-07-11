@@ -1,3 +1,18 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The 5-SPA → 2-SPA architecture described here was reversed in a further cut:
+> app-web's PM/candidate/hunter portal code was removed because
+> `C:\Users\Administrator\Desktop\ow-headhunter-sass` already provides the
+> PM/HR/Candidate UI as a separate client.
+>
+> hunter-platform is now API + admin-web only. For the new direction, see
+> `docs/superpowers/specs/2026-07-01-product-positioning-standard.md`.
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # 5-SPA Split — Session State File
 
 > **Purpose:** Re-read this at the start of every session executing the 5-SPA split plan. It is the **only** state that survives session/context boundaries. Do not trust your own memory; trust this file.

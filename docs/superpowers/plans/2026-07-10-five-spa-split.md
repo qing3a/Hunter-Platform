@@ -1,3 +1,18 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The 5-SPA → 2-SPA architecture described here was reversed in a further cut:
+> app-web's PM/candidate/hunter portal code was removed because
+> `C:\Users\Administrator\Desktop\ow-headhunter-sass` already provides the
+> PM/HR/Candidate UI as a separate client.
+>
+> hunter-platform is now API + admin-web only. For the new direction, see
+> `docs/superpowers/specs/2026-07-01-product-positioning-standard.md`.
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # 5-SPA Split & Blank-Page Diagnostic Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan phase-by-phase. Steps use checkbox (`- [ ]`) syntax for tracking.

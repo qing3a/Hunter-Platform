@@ -1,3 +1,14 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The Headhunter Workspace pages targeted by this plan
+> (`app-web/src/pages/hunter-portal/`) were removed in the cut. HR UI is
+> owned by `C:\Users\Administrator\Desktop\ow-headhunter-sass` (prototype.html).
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # Headhunter Workspace Implementation Plan (Phase 3a)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax.

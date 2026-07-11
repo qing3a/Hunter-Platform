@@ -1,3 +1,18 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The 14 UI fidelity tasks described here target React components in
+> `app-web/src/pages/pm-portal/`, all of which were removed in the cut.
+> PM/HR/Candidate UI is owned by
+> `C:\Users\Administrator\Desktop\ow-headhunter-sass` (prototype.html, 9948 lines).
+>
+> hunter-platform does not own PM/HR/Candidate UI. If you want PM UI changes,
+> contribute to ow-recruit, not here.
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # PM Workbench UI Visual Fidelity Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

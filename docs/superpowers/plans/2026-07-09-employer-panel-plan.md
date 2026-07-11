@@ -1,3 +1,15 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The Employer Panel pages targeted by this plan
+> (`app-web/src/pages/{employer-portal,pm-portal}/`) were removed in the cut.
+> Per the Phase 4.5 decision "PM = employer", employer UI is owned by the PM
+> side of `C:\Users\Administrator\Desktop\ow-headhunter-sass` (prototype.html).
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # Employer Recruitment Panel Implementation Plan (Phase 3b)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax.

@@ -1,3 +1,14 @@
+> ⚠️ **ARCHIVED — DO NOT IMPLEMENT** (2026-07-11)
+>
+> Superseded by commit `c41167d` "cleanup: cut portal redundancy (~29876 lines)".
+> The PM Workbench pages targeted by this plan (`app-web/src/pages/pm-portal/`)
+> were removed in the cut. PM UI is owned by
+> `C:\Users\Administrator\Desktop\ow-headhunter-sass` (prototype.html, 9948 lines).
+>
+> **Preserved for historical reference only.**
+>
+> ---
+
 # PM Workbench Implementation Plan (Phase 2)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax.
