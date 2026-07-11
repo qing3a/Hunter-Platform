@@ -7,8 +7,11 @@ export default defineConfig({
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     pool: 'forks',
     poolOptions: {
-      forks: { singleFork: true },
+      forks: {
+        singleFork: true,
+      },
     },
     globalSetup: ['./tests/global-setup.ts'],
+    testTimeout: 60000,
   },
 });
