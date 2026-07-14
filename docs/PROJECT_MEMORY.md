@@ -227,3 +227,79 @@ ssh -i "/d/Downloads/cc.pem" root@101.201.110.129 \
 - **生效延迟**：admin 改后**立即**生效（Sub-G TTL=0，每次 get 重读 DB）
 - **Fallback**：DB miss 或抛错 → 返 hardcoded 常量（rate-limit 用 `RATE_LIMIT_BURSTS`，industry_map 用 `readFileSync`，commission 用 0.1）
 - **公开端点** `/v1/config/*` 列表：`/industries`（industry_map）/ `/title_levels` / `/salary_bands` / **`/rate-limits`**（Sub-G）— 不需要 auth
+
+---
+
+## 2b. R1 era 关键决策（2026-07-08 ~ 2026-07-15）
+
+| 决策 | 内容 | 关联 commit |
+|------|------|------|
+| **R1.C2 双轨认证** | `Bearer hp_live_*`（api_key, indefinite）+ `Bearer sess_*`（session, 168h sliding TTL）。`X-Active-Role: pm|hr|candidate` header 切换活跃角色。`authMiddleware` 按 token 前缀 dispatch。 | `4c6b037` (initial T4), `d3ebbd1` (R1.C2 register) |
+| **多角色 grantAll** | 每个新用户自动获得全部 3 个 role（`user_role` 表 + `grantAll` 一次性写入）。`active_role` 由 apikey 的 user_type 决定，或 session 创建时显式指定，或后续 `X-Active-Role` 切换。 | `d3ebbd1` |
+| **role enum rename** | `headhunter → hr`，`employer → pm`。所有 CHECK 约束、字段、文档同步更新。`remapLegacyUserType()` 兼容旧 DB（defense-in-depth）。 | `4c6b037`, `792f899` (T10 close + v029 cleanup) |
+| **R1.C3 webhook inbox dedup** | 新表 `webhook_inbox_deliveries` (v032)，UNIQUE(endpoint, body_hash) 约束。`POST /v1/webhooks/qing3` 走 INSERT OR IGNORE + lookup。`deduped: true|false` 返回标志。HMAC sha256 签名，±300s 重放窗口。 | `25e6d23` |
+| **R1.C4 capability aliases** | `Capability.aliases?: readonly string[]` 字段 + `findCapabilityByAlias(name)` lookup。aliases 是私有 routing 元数据，**不在** `/v1/capabilities` 公开。3 个 ow-recruit skill 映射：advance_candidate/send_message/sync_project_to_erp。 | `47b8f76` |
+| **T10 roleGate** | 4 个 role-restricted router 都挂 `router.use(roleGate(role))` 在 `authMiddleware` 之后：`/v1/pm` (pm) + `/v1/employer` (pm) + `/v1/employer-panel` (pm) + `/v1/headhunter` (hr) + `/v1/headhunter-workspace` (hr) + `/v1/candidate` (candidate)。 | `4c6b037` (pm), `792f899` (other 3) |
+| **vitest worker crash fix** | singleFork + Windows MINGW64 环境下未捕获 promise rejection 会让 tinypool IPC 关闭 → silent skip 后续测试。`tests/global-setup.ts` 在 test-runtime 下 swallow `unhandledRejection` + `uncaughtException`（log 到 stderr 但不 re-throw）。生产代码不受影响。 | `9856efd` |
+| **OpenAPI forward coverage** | 修了 scanner 假阳：MOUNT_PREFIXES 之前对 candidate-portal / headhunter-workspace / pm / employer-panel 设 null，注释声称 "uses full paths" 但实际用相对路径。改成真 prefix 后 scanner 暴露 75 个真实 forward gap。`scripts/apply-forward-gaps.py` 一键补齐 minimal entries（summary + 4 个标准 response code）。 | `2e85ce5` |
+| **conformance: 33 missing** | `tests/integration/skill-md-conformance/capability-coverage-extra.test.ts`：33 个之前无 scenario 的 capability（admin list_jobs, candidate_portal full surface, pm workbench endpoints）加最小 smoke test。Reuse 1 个 hr/candidate/pm api_key 避免 IP rate limit。 | `239997e` |
+| **admin-web RateLimitPage** (R2.5) | 新增 `/admin/rate-limit` 页面，调用 `GET /v1/config/rate-limits` + `POST /v1/admin/rate-limit/users/:id/clear`。admin-web 独立 React SPA。 | `8756607` |
+| **mcp-server removal** | R1 之前有个 mcp-server 包，发布到 GitHub Packages v0.1.3。R1.C2 时 `pm`/`hr` rename 让 mcp-server 的 Zod schema 校验失败（unfixable without breaking v0.1.3 callers）。删除 mcp-server/ + GitHub Packages。`mcp-server` 路径已废弃。 | `57ee486` |
+
+---
+
+## 3b. R1 era 已知坑点（部署 / 运维）
+
+| 坑 | 症状 | 修复 / workaround |
+|----|------|------|
+| **legacy headhunter/employer 在 v029 之前** | 旧 DB 有 8 个 headhunter + 2 个 employer 用户。v029 的 table-rebuild 失败（CHECK 拒绝 legacy enum）。 | 必须先在 prod 外部用 SQLite rebuild 技巧去掉 CHECK + rename legacy 值，然后再起新代码。详见 `OPERATIONS.md §3.3`。 |
+| **v031 自身的 UPDATE 是 no-op** | v031 的 `UPDATE users SET user_type='hr' WHERE user_type='hr'` 是 no-op（rename 时 search-and-replace 把 `headhunter` 改成了 `hr`）。需要在 v031 之前手动 rename 旧值。 | 已通过部署前的手动 rename 解决。 |
+| **.tsbuildinfo 缓存** | 第一次 build 之后 `out/main/telemetry.js` 缺失（tinypool override 解决后又出现）。 | build 前 `rm -rf out tsconfig.node.tsbuildinfo`。已在 OPERATIONS.md §3.2 第 1 步强调。 |
+| **scripts/copy-migrations.mjs 漏 .css** | 第一次 deploy R1.C3 时 `landing.css` 缺失导致 service crash。 | 已扩展为也 copy 所有 .css 资产（不只是 migrations）。`492889`。 |
+| **scripts/generate-openapi.ts 假阳** | MOUNT_PREFIXES 把 candidate-portal 等设 null 但路由用相对路径。 | 改成真 prefix。前向 75 个 gap 暴露后用 apply-forward-gaps.py 一键补齐。`2e85ce5` |
+| **brittle migration tests** | `tests/integration/migrations-v00{2,3,20}.test.ts` 硬编码 `expect(migs).toEqual([1..24])`。C3 加 v025 后这些测试 fail。 | 改为 `Array.from({length: migs.length}, (_, i) => i + 1)` + `migs.length >= 24`。`9856efd` |
+| **tinypool override 错配** | 之前 session 误加 `pnpm.overrides.tinypool: "^2.0.0"`，但 vitest 3.x 用 tinypool 1.x。IPC 消息格式不兼容，worker 死。 | 移除 override。vitest 3.x 自动用其原生 tinypool 1.1.1。`4c6b037` |
+| **isolate:false 漏 cache** | 之前 `vitest.config.ts` 设 `isolate: false`，导致 `industry_map` 模块缓存泄漏——`tests/integration/industry-map-config.test.ts` 写入的 `'TestCategory'` 值污染后续 desensitize/lookupIndustry 测试。 | 移除 `isolate: false`（默认 `true`，每个 test file 独立模块）。`4c6b037` |
+| **gather-landing-data flake** | `tests/unit/gather-landing-data.test.ts > returns zeros and empty arrays` 用 `process.uptime()` 计算 `uptimePercent`，跑 60s+ 后返回 99.9 而非 100。 | 注入 `uptimeSec` 参数（`gather-landing-data.ts` 加 `GatherLandingDataOptions`），测试传 0 走 cold-start 路径。`feea755` |
+| **tinypool/Windows IPC race** | 单 fork 模式下未捕获 promise rejection 让 worker 进程死掉，tinypool IPC 关闭，后续测试 silent skip。`process.on('unhandledRejection')` swallow（test-runtime only）。 | `9856efd` |
+
+---
+
+## 4. 跨文档导航
+
+| 想知道 | 看哪 |
+|---|---|
+| 平台能做什么（**单一总览**）| `docs/FEATURES.md`（141 routes, 86 capabilities, 25 migrations, R1 era） |
+| Agent 怎么调 | `docs/superpowers/skill.md`（frontmatter 已更新到 141 endpoints）|
+| 怎么部署到生产 | `docs/OPERATIONS.md`（R1 schema-rebuild + C3 deploy 步骤）|
+| 怎么定位和恢复 | `docs/PROJECT_MEMORY.md`（本文）|
+| 历史设计 | `docs/archive/2026-q1/`（v1.0~v1.4.1 release notes + plans）|
+| 当前 specs | `docs/superpowers/specs/`（47 个 spec）|
+
+---
+
+## 5. R1 era 部署记录（按 commit 时间倒序）
+
+```
+9856efd  fix(tests): vitest worker crash resolved + brittle migration tests
+8756607  feat(admin-web): R2.5 rate-limit & quota dashboard page
+239997e  test(conformance): scenario tests for the 33 previously-uncovered capabilities
+2e85ce5  feat(openapi): full forward coverage (76 missing routes added)
+792f899  fix: T10 roleGate on 3 routers + v029 CHECK constraint cleanup
+47b8f76  feat(capabilities): alias support for ow-recruit skill naming (R1.C4, R1 P1)
+25e6d23  feat(ingest): POST /v1/webhooks/qing3 with body-hash dedup (R1.C3, R1 P0)
+7316b96  fix(build): copy-migrations also copies .css assets
+a1cb6e5  Merge feature/vitest-worker-crash-fix into main
+feea755  fix(tests): make gather-landing-data uptime deterministic via DI
+d3ebbd1  feat(auth): auto-grant 3 roles on register + return available_roles (R1.C2)
+5e1f64c  feat(auth): POST /v1/auth/login + refresh + logout endpoints (R1.C2)
+4e1b389  test(auth): verify rotate-key accepts session bearer (R1.C2)
+61f72ab  test(R1.C2): fix role-gate assertions broken by employer→pm merge (T12)
+55309e6  test(R1.C2): rename headhunter/employer user_types to hr/pm in tests
+16f4414  Merge feature/session-multirole into main (R1.C2)
+57ee486  chore: remove mcp-server (deprecated, broken against R1.C2 enum)
+```
+
+每个 commit 的 why / what 详见 `git log -p <sha>` 或 commit message。
+
+最后更新 2026-07-15。
