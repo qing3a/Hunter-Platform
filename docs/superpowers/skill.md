@@ -278,6 +278,7 @@ curl -X POST https://qing3.top/v1/auth/logout  -H "Content-Type: application/jso
 | POST | `/v1/auth/rotate-key` | 轮换 API key（旧 key **立即失效**，无 grace period）。响应字段：`data.new_api_key`（**不是** `api_key`）。**接受 `Bearer hp_live_*` 或 `Bearer sess_*` 两种认证** | 1 |
 | GET  | `/v1/users/{id}/status` | 用户状态（配额/待办） | 1 |
 | GET  | `/v1/users/{id}/history` | 操作历史（支持 `?limit= ≤200` 和 `?since=ISO`） | 1 |
+| POST | `/v1/webhooks/qing3` | **入站 webhook（R1.C3 / R1 P0）**：ow-recruit relay 推送事件到此处。需 `X-Hunter-Timestamp` + `X-Hunter-Signature` HMAC 头（用 `WEBHOOK_HMAC_SECRET` 签名，sha256(secret, "{ts}.{body}")）；±5min 重放窗口。相同 body 在窗口内重投会被去重（response `deduped: true` + 同一 `delivery_id`）。上限 64 KiB。返回 `{ data: { delivery_id, deduped } }` | 0 |
 | GET  | `/v1/health` | 健康检查 | 0 |
 
 ### 2.2 雇主

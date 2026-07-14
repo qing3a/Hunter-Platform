@@ -50,6 +50,7 @@ const MOUNT_PREFIXES: Record<string, string | null> = {
   'pm.ts':           null,  // Phase 3b (PM workbench): routes use full /v1/pm/* paths inside the file
   'employer-panel.ts': null,  // Phase 3c (employer panel): routes use full /v1/employer-panel/* paths inside the file
   'landing.ts':    null,
+  'webhooks-inbox.ts': '/v1/webhooks',  // R1.C3: inbound webhooks with body-hash dedup
 };
 
 // Extra router files outside src/main/routes/. Keyed by the absolute path

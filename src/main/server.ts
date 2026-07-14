@@ -37,6 +37,7 @@ import { createAdminAuthMiddleware } from './modules/admin/auth.js';
 import { createAdminRouter } from './routes/admin.js';
 import { createCapabilitiesRouter } from './routes/capabilities.js';
 import { createNotificationsRouter } from './routes/notifications.js';
+import { createWebhooksInboxRouter } from './routes/webhooks-inbox.js';
 import { createCandidatePortalRouter } from './routes/candidate-portal.js';
 import { createHeadhunterWorkspaceRouter } from './routes/headhunter-workspace.js';
 import { createPmRouter } from './routes/pm.js';
@@ -261,6 +262,10 @@ export function createAppFromDb(db: DB, env: ReturnType<typeof loadEnv>): Expres
 
   // Notifications (4KB body is enough — payload is small structured JSON)
   app.use('/v1/notifications', createUtf8OnlyMiddleware(), express.json({ limit: MAX_BODY_SIZE }), createNotificationsRouter(db));
+  // Inbound webhooks (R1.C3): HMAC-verified, body-hash dedup'd. Uses its own
+  // raw-body parser (inside the route) so the HMAC can sign the exact bytes
+  // received — distinct from the express.json() mounts above.
+  app.use('/v1/webhooks', createWebhooksInboxRouter(db));
 
   // Public marketplace landing page (GET /) — no auth, no quota, no PII.
   app.use(createLandingRouter(db));
