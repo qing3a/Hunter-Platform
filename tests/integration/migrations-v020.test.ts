@@ -72,7 +72,12 @@ describe('migrations v020', () => {
     expect(recColNames).toContain('kanban_position');
 
     const migs = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(migs.map((m: any) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]);
+    // Pre-v032 the test asserted [1..24] exactly. C3 added v025 webhook
+    // inbox; v040+ may add more. Assert monotonic 1..N.
+    expect(migs.map((m: any) => m.version)).toEqual(
+      Array.from({ length: migs.length }, (_, i) => i + 1),
+    );
+    expect(migs.length).toBeGreaterThanOrEqual(24);
   });
 
   it('hunter_tasks defaults: priority=normal and timestamps set via unixepoch()*1000', async () => {
