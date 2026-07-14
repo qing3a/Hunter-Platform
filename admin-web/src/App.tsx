@@ -18,6 +18,7 @@ import RecommendationDetailPage from './pages/RecommendationDetailPage';
 import WebhookDeadLetterPage from './pages/WebhookDeadLetterPage';
 import PlacementsPage from './pages/PlacementsPage';
 import SettingsPage from './pages/SettingsPage';
+import RateLimitPage from './pages/RateLimitPage';
 import PrivateRoute from './components/PrivateRoute';
 import { ToastProvider } from '@hunter-platform/shared-web/lib';
 import Toast from './components/Toast';
@@ -44,6 +45,7 @@ function AdminApp() {
       <Route path="recommendations/:id/timeline" element={<PrivateRoute><RecommendationTimelinePage /></PrivateRoute>} />
       <Route path="webhooks/dead-letter" element={<PrivateRoute><WebhookDeadLetterPage /></PrivateRoute>} />
       <Route path="settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="rate-limit" element={<PrivateRoute><RateLimitPage /></PrivateRoute>} />
       <Route path="placements" element={<PrivateRoute><PlacementsPage /></PrivateRoute>} />
       <Route path="audit" element={<PrivateRoute><AuditPage /></PrivateRoute>} />
       <Route path="profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
