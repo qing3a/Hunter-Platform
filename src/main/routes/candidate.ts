@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { roleGate } from '../modules/auth/role-gate.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createConfigCache } from '../modules/config-cache.js';
 import { createCandidateHandler } from '../modules/candidate/handler.js';
@@ -23,6 +24,9 @@ export function createCandidateRouter(db: DB, encryptionKey: Buffer): Router {
   const gdpr = createGdprHandler(db);
   const audit = createUnlockAuditLogRepo(db);
   router.use(authMiddleware(db));
+  // R1.C2 / T10 — only the 'candidate' role is allowed.
+  // Handler modules' `assertCandidate(user)` remains the source of truth.
+  router.use(roleGate('candidate'));
   router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   router.get('/opportunities', (req, res, next) => {

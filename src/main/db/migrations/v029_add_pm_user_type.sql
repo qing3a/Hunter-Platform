@@ -22,9 +22,16 @@ PRAGMA foreign_keys = OFF;
 
 -- Rebuild users with the extended user_type CHECK. Every other column is
 -- preserved byte-for-byte from v008.
+--
+-- Note: the original commit 4b565eb rewrite turned this CHECK into
+-- ('candidate', 'hr', 'pm', 'pm') — pm listed twice. SQLite dedupes IN-list
+-- values at evaluation time (the constraint is semantically equivalent to
+-- ('candidate', 'hr', 'pm')), so the duplicate didn't break anything, but
+-- it was visually misleading and tripped up grep audits. R1.C2 followup
+-- trims it back to the canonical 3-value set.
 CREATE TABLE users_new (
   id                       TEXT PRIMARY KEY,
-  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'hr', 'pm', 'pm')),
+  user_type                TEXT NOT NULL CHECK (user_type IN ('candidate', 'hr', 'pm')),
   name                     TEXT,
   contact                  TEXT,
   agent_endpoint           TEXT,

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { DB } from '../db/connection.js';
 import { z } from 'zod';
 import { authMiddleware } from '../modules/auth/middleware.js';
+import { roleGate } from '../modules/auth/role-gate.js';
 import { createRateLimitMiddleware } from '../modules/rate-limit/middleware.js';
 import { createConfigCache } from '../modules/config-cache.js';
 import { createEmployerHandler } from '../modules/employer/handler.js';
@@ -57,6 +58,10 @@ export function createEmployerRouter(db: DB, encryptionKey: Buffer): Router {
   const notifTrigger = createNotificationTrigger(db);
   const handler = createEmployerHandler(db, notifTrigger);
   router.use(authMiddleware(db));
+  // R1.C2 / T10 — only the merged 'pm' role (formerly 'employer') is allowed
+  // on these endpoints. Handler modules' `assertPm(user)` remains the source of
+  // truth; this is the layered first-line defense.
+  router.use(roleGate('pm'));
   router.use(createRateLimitMiddleware(db, createConfigCache(db)));
 
   const commissionHandler = createCommissionHandler(db, encryptionKey, notifTrigger);
