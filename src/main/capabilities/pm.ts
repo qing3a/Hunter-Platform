@@ -56,6 +56,9 @@ export const pmCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.projects.update'],
+      // R1.C4: ow-recruit's "sync-project-to-erp" skill — patching
+      // project fields is how the PM surfaces project state to the ERP.
+      aliases: ['ow_recruit.sync_project_to_erp'],
     },
     {
       name: 'pm.delete_project',
@@ -116,6 +119,9 @@ export const pmCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.staffing_plans.update(is_selected)', 'db.staffing_plans.unselectOthers'],
+      // R1.C4: ow-recruit's "advance-candidate" skill — selecting a
+      // staffing plan advances the candidate through the PM pipeline.
+      aliases: ['ow_recruit.advance_candidate'],
     },
 
     // ----- Decompositions -----

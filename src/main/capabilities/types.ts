@@ -23,6 +23,15 @@ export interface Capability {
   /** Human-readable side effect descriptions, used in skill.md and the
    *  capabilities endpoint. e.g. ['consume_quota(N)', 'webhook: <event>']. */
   effects: string[];
+  /**
+   * R1.C4 — alternate skill names from external clients (e.g. ow-recruit).
+   * Lets a client that knows only its skill naming find the equivalent
+   * hunter-platform capability via `findCapabilityByAlias()`. The alias is
+   * NEVER advertised in the `/v1/capabilities` response (capabilities keep
+   * the canonical `name` as the public contract) — it is private routing
+   * metadata.
+   */
+  aliases?: readonly string[] | undefined;
 }
 
 export interface CapabilitySet {

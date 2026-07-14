@@ -80,6 +80,8 @@ export const candidatePortalCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.candidate_messages.insert', 'webhook: notify_message'],
+      // R1.C4: ow-recruit's "send-message" skill — direct 1:1 mapping.
+      aliases: ['ow_recruit.send_message'],
     },
     {
       name: 'candidate_portal.messages.list',

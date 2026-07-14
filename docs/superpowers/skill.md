@@ -279,6 +279,18 @@ curl -X POST https://qing3.top/v1/auth/logout  -H "Content-Type: application/jso
 | GET  | `/v1/users/{id}/status` | 用户状态（配额/待办） | 1 |
 | GET  | `/v1/users/{id}/history` | 操作历史（支持 `?limit= ≤200` 和 `?since=ISO`） | 1 |
 | POST | `/v1/webhooks/qing3` | **入站 webhook（R1.C3 / R1 P0）**：ow-recruit relay 推送事件到此处。需 `X-Hunter-Timestamp` + `X-Hunter-Signature` HMAC 头（用 `WEBHOOK_HMAC_SECRET` 签名，sha256(secret, "{ts}.{body}")）；±5min 重放窗口。相同 body 在窗口内重投会被去重（response `deduped: true` + 同一 `delivery_id`）。上限 64 KiB。返回 `{ data: { delivery_id, deduped } }` | 0 |
+
+#### 1.0.1 外部 skill 命名对齐（R1.C4）
+
+ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-platform 支持通过 `findCapabilityByAlias(name)` 把外部名映射到内部 canonical capability：
+
+| 外部 skill (ow-recruit) | 内部 canonical capability | HTTP |
+|---|---|---|
+| `ow_recruit.advance_candidate` | `pm.select_staffing_plan` | `POST /v1/pm/staffing-plans/:id/select` |
+| `ow_recruit.send_message` | `candidate_portal.messages.send` | `POST /v1/candidate-portal/messages` |
+| `ow_recruit.sync_project_to_erp` | `pm.update_project` | `PATCH /v1/pm/projects/:id` |
+
+客户端应先通过内部 endpoint（未来 `/v1/capabilities/by-alias`）解析到 canonical `name`，再发起请求。aliases 是私有路由元数据，**不在 `/v1/capabilities` 响应里公开**。
 | GET  | `/v1/health` | 健康检查 | 0 |
 
 ### 2.2 雇主

@@ -63,3 +63,26 @@ export function getAllCapabilitySets(): CapabilitySet[] {
 export function getCapabilitiesForRole(role: string): CapabilitySet | undefined {
   return ALL_SETS.find((s) => s.role === role);
 }
+
+/**
+ * R1.C4 — resolve a capability by any of its declared aliases. Returns the
+ * first capability whose `name` OR `aliases[i]` matches the queried string.
+ *
+ * Use case: external clients (e.g. ow-recruit) ship their own skill naming
+ * scheme (`advance-candidate`, `send-message`, `sync-project-to-erp`). They
+ * look up the matching hunter-platform capability before issuing a request so
+ * they can address it by the canonical name in `x-capability-name` headers
+ * and quotaCost lookups.
+ *
+ * O(n·m) scan — fine for the current capability count (~80). If the
+ * declaration set grows past a few hundred, swap in a Map built lazily.
+ */
+export function findCapabilityByAlias(alias: string): Capability | undefined {
+  for (const set of ALL_SETS) {
+    for (const cap of set.capabilities) {
+      if (cap.name === alias) return cap;
+      if (cap.aliases && cap.aliases.includes(alias)) return cap;
+    }
+  }
+  return undefined;
+}
