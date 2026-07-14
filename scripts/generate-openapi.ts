@@ -45,10 +45,10 @@ const MOUNT_PREFIXES: Record<string, string | null> = {
   'admin.ts':      '/v1/admin',
   'capabilities.ts': null,  // Phase 4: routes use full /v1/capabilities* paths inside the file
   'notifications.ts': '/v1/notifications',
-  'candidate-portal.ts': null,  // Phase 1 (candidate-portal): routes use full /v1/candidate-portal/* paths inside the file
-  'headhunter-workspace.ts': null,  // Phase 3a (hunter workspace): routes use full /v1/headhunter-workspace/* paths inside the file
-  'pm.ts':           null,  // Phase 3b (PM workbench): routes use full /v1/pm/* paths inside the file
-  'employer-panel.ts': null,  // Phase 3c (employer panel): routes use full /v1/employer-panel/* paths inside the file
+  'candidate-portal.ts': '/v1/candidate-portal',  // R1.C3: routes are relative; mount prefix needed
+  'headhunter-workspace.ts': '/v1/headhunter-workspace',  // Phase 3a: routes are relative
+  'pm.ts':           '/v1/pm',  // Phase 3b: routes are relative
+  'employer-panel.ts': '/v1/employer-panel',  // Phase 3c: routes are relative
   'landing.ts':    null,
   'webhooks-inbox.ts': '/v1/webhooks',  // R1.C3: inbound webhooks with body-hash dedup
 };

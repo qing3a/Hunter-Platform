@@ -233,14 +233,23 @@
             "type": "string"
           },
           "body": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "payload": {
-            "type": ["object", "null"],
+            "type": [
+              "object",
+              "null"
+            ],
             "additionalProperties": true
           },
           "read_at": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time"
           },
           "created_at": {
@@ -353,7 +362,9 @@
             "description": "ok",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Ok" }
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
               }
             }
           }
@@ -363,27 +374,43 @@
     "/v1/capabilities/me": {
       "get": {
         "summary": "当前用户的可用能力列表(Phase 4) — 含 quota 剩余和 available/reason",
-        "security": [{ "ApiKey": [] }],
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "ok",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Ok" }
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
               }
             }
           },
-          "401": { "description": "Unauthorized" }
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/ping": {
       "get": {
         "summary": "Admin health check (requires admin bearer token)",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "ok" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
@@ -396,65 +423,142 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password"],
+                "required": [
+                  "email",
+                  "password"
+                ],
                 "properties": {
-                  "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "minLength": 1 }
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Login success; data.api_key is the new bearer token" },
-          "400": { "description": "Invalid params" },
-          "401": { "description": "Invalid email or password" },
-          "403": { "description": "Admin account suspended" }
+          "200": {
+            "description": "Login success; data.api_key is the new bearer token"
+          },
+          "400": {
+            "description": "Invalid params"
+          },
+          "401": {
+            "description": "Invalid email or password"
+          },
+          "403": {
+            "description": "Admin account suspended"
+          }
         }
       }
     },
     "/v1/admin/auth/rotate-key": {
       "post": {
         "summary": "Rotate admin api_key (invalidates old)",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "New key" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "New key"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/me": {
       "get": {
         "summary": "Current admin info",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Admin info" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Admin info"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/dashboard/stats": {
       "get": {
         "summary": "Platform dashboard statistics — Sub-B: adds today_new_users + trend_30d[30]",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Dashboard stats (includes today_new_users int + trend_30d int[30])"
           },
-          "401": { "description": "Unauthorized" }
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/users": {
       "get": {
         "summary": "List users (admin) — Sub-B: paginated envelope with offset/keyword",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "user_type", "in": "query", "schema": { "type": "string" } },
-          { "name": "status", "in": "query", "schema": { "type": "string" } },
-          { "name": "keyword", "in": "query", "description": "LIKE name", "schema": { "type": "string" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } }
+          {
+            "name": "user_type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "LIKE name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -463,18 +567,42 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok", "data", "pagination"],
+                  "required": [
+                    "ok",
+                    "data",
+                    "pagination"
+                  ],
                   "properties": {
-                    "ok": { "type": "boolean" },
-                    "data": { "type": "array", "items": { "type": "object" } },
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
                     "pagination": {
                       "type": "object",
-                      "required": ["total", "page", "pageSize", "has_more"],
+                      "required": [
+                        "total",
+                        "page",
+                        "pageSize",
+                        "has_more"
+                      ],
                       "properties": {
-                        "total": { "type": "integer" },
-                        "page": { "type": "integer" },
-                        "pageSize": { "type": "integer" },
-                        "has_more": { "type": "boolean" }
+                        "total": {
+                          "type": "integer"
+                        },
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "has_more": {
+                          "type": "boolean"
+                        }
                       }
                     }
                   }
@@ -482,292 +610,764 @@
               }
             }
           },
-          "400": { "description": "Invalid page or pageSize" },
-          "401": { "description": "Unauthorized" }
+          "400": {
+            "description": "Invalid page or pageSize"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/users/{id}/suspend": {
       "post": {
         "summary": "Suspend user",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["reason"],
-                "properties": { "reason": { "type": "string" } }
+                "required": [
+                  "reason"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "User suspended" },
-          "400": { "description": "Invalid params" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "User not found" }
+          "200": {
+            "description": "User suspended"
+          },
+          "400": {
+            "description": "Invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
         }
       }
     },
     "/v1/admin/users/{id}/unsuspend": {
       "post": {
         "summary": "Unsuspend user",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "User unsuspended" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "User not found" }
+          "200": {
+            "description": "User unsuspended"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
         }
       }
     },
     "/v1/admin/users/{id}/adjust-quota": {
       "post": {
         "summary": "Adjust user quota",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["new_quota"],
-                "properties": { "new_quota": { "type": "integer", "minimum": 0, "maximum": 100000 } }
+                "required": [
+                  "new_quota"
+                ],
+                "properties": {
+                  "new_quota": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000
+                  }
+                }
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "Quota adjusted" },
-          "400": { "description": "Invalid params" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "User not found" }
+          "200": {
+            "description": "Quota adjusted"
+          },
+          "400": {
+            "description": "Invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          }
         }
       }
     },
     "/v1/admin/candidates": {
       "get": {
         "summary": "List candidates (admin) — Sub-B: paginated envelope with masked PII",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "in_pool", "in": "query", "schema": { "type": "boolean" } },
-          { "name": "unlock_status", "in": "query", "schema": { "type": "string" } },
-          { "name": "keyword", "in": "query", "description": "LIKE users.name OR users.contact", "schema": { "type": "string" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } }
+          {
+            "name": "in_pool",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "unlock_status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "LIKE users.name OR users.contact",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Candidate list (paginated envelope). Name/email masked (e.g. A***ce / a***@***.com)."
           },
-          "400": { "description": "Invalid page or pageSize" },
-          "401": { "description": "Unauthorized" }
+          "400": {
+            "description": "Invalid page or pageSize"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/candidates/{id}/remove-from-pool": {
       "post": {
         "summary": "Remove candidate from public pool",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Removed" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "Candidate not found" }
+          "200": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Candidate not found"
+          }
         }
       }
     },
     "/v1/admin/audit": {
       "get": {
         "summary": "List unlock audit log entries",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "actor_user_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "recommendation_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "actor_user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recommendation_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Audit list" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Audit list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/action-history": {
       "get": {
         "summary": "List business action_history entries (admin-only; distinct from /audit which reads unlock_audit_log)",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "user_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "capability_name", "in": "query", "schema": { "type": "string" } },
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["success", "error"] } },
-          { "name": "since", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "until", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 } },
-          { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capability_name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "success",
+                "error"
+              ]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Action history list with pagination" },
-          "400": { "description": "Invalid params (status not in [success,error] or limit out of range)" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Action history list with pagination"
+          },
+          "400": {
+            "description": "Invalid params (status not in [success,error] or limit out of range)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/webhooks/dead-letter": {
       "get": {
         "summary": "List dead-letter webhook deliveries",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Dead-letter list" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Dead-letter list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/webhooks/{id}/retry": {
       "post": {
         "summary": "Retry a dead-letter webhook",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Retry queued" },
-          "400": { "description": "Invalid params" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "Delivery not found" },
-          "409": { "description": "Invalid state" }
+          "200": {
+            "description": "Retry queued"
+          },
+          "400": {
+            "description": "Invalid params"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Delivery not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          }
         }
       }
     },
     "/v1/admin/rate-limit/buckets": {
       "get": {
         "summary": "List rate-limit buckets",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "user_id", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "user_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Bucket list" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Bucket list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/rate-limit/users/{id}/clear": {
       "post": {
         "summary": "Clear rate-limit buckets for a user",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Buckets cleared" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Buckets cleared"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/config": {
       "get": {
         "summary": "Read platform config (desensitization + commission)",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Config object" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Config object"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/config/{key}": {
       "put": {
         "summary": "Update a config key (desensitization|commission)",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "key", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Saved" },
-          "400": { "description": "Unknown key" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Unknown key"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/placements": {
       "get": {
         "summary": "List placements",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending_payment", "paid", "cancelled"] } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending_payment",
+                "paid",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Placement list" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Placement list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/placements/{id}/mark-paid": {
       "post": {
         "summary": "Mark placement as paid",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Marked paid" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "Placement not found" }
+          "200": {
+            "description": "Marked paid"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Placement not found"
+          }
         }
       }
     },
     "/v1/admin/placements/{id}/cancel": {
       "post": {
         "summary": "Cancel a placement",
-        "security": [{ "AdminBearer": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
-          "200": { "description": "Cancelled" },
-          "401": { "description": "Unauthorized" },
-          "404": { "description": "Placement not found" },
-          "409": { "description": "Invalid state" }
+          "200": {
+            "description": "Cancelled"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Placement not found"
+          },
+          "409": {
+            "description": "Invalid state"
+          }
         }
       }
     },
     "/v1/admin/placements/summary": {
       "get": {
         "summary": "Placement summary stats",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "responses": {
-          "200": { "description": "Summary" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Summary"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/admin-log": {
       "get": {
         "summary": "List admin action log entries",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Admin log list" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Admin log list"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
     "/v1/admin/login-events": {
       "get": {
         "summary": "List admin login events (success + failure) — Sub-D1",
-        "security": [{ "AdminBearer": [] }],
+        "security": [
+          {
+            "AdminBearer": []
+          }
+        ],
         "parameters": [
-          { "name": "admin_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "success", "in": "query", "schema": { "type": "string", "enum": ["0", "1"] } },
-          { "name": "email", "in": "query", "schema": { "type": "string" } },
-          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "until", "in": "query", "schema": { "type": "string", "format": "date-time" } },
-          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
-          { "name": "pageSize", "in": "query", "schema": { "type": "integer", "default": 50, "maximum": 200 } }
+          {
+            "name": "admin_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "success",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Login events list (paginated envelope)" },
-          "400": { "description": "Invalid page or pageSize" },
-          "401": { "description": "Unauthorized" }
+          "200": {
+            "description": "Login events list (paginated envelope)"
+          },
+          "400": {
+            "description": "Invalid page or pageSize"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
         }
       }
     },
@@ -780,7 +1380,9 @@
             "description": "ok",
             "content": {
               "text/html": {
-                "schema": { "type": "string" }
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -1928,20 +2530,31 @@
             "name": "industry",
             "in": "query",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "完全匹配 jobs.industry（如 互联网）"
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
           },
           {
             "name": "offset",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
           }
         ],
         "responses": {
@@ -1962,41 +2575,60 @@
       "get": {
         "summary": "List system notifications (in-site messages, 30-day TTL, polling). User-scoped: returns only caller's notifications.",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "unread",
             "in": "query",
             "required": false,
-            "schema": { "type": "boolean", "default": false },
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
             "description": "Only return unread (read_at IS NULL)"
           },
           {
             "name": "category",
             "in": "query",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Filter by category (recommendation_accepted, unlock_granted, etc.)"
           },
           {
             "name": "since",
             "in": "query",
             "required": false,
-            "schema": { "type": "string", "format": "date-time" },
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            },
             "description": "Only return items with created_at > this ISO 8601 timestamp (for polling)"
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
           },
           {
             "name": "offset",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "minimum": 0, "default": 0 }
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
           }
         ],
         "responses": {
@@ -2006,7 +2638,9 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
@@ -2015,10 +2649,16 @@
                           "properties": {
                             "items": {
                               "type": "array",
-                              "items": { "$ref": "#/components/schemas/Notification" }
+                              "items": {
+                                "$ref": "#/components/schemas/Notification"
+                              }
                             },
-                            "unread_count": { "type": "integer" },
-                            "has_more": { "type": "boolean" }
+                            "unread_count": {
+                              "type": "integer"
+                            },
+                            "has_more": {
+                              "type": "boolean"
+                            }
                           }
                         }
                       }
@@ -2028,7 +2668,9 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
@@ -2036,14 +2678,18 @@
       "get": {
         "summary": "Get single notification by id (user-scoped: 404 if not owned by caller)",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2053,11 +2699,15 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
-                        "data": { "$ref": "#/components/schemas/Notification" }
+                        "data": {
+                          "$ref": "#/components/schemas/Notification"
+                        }
                       }
                     }
                   ]
@@ -2065,21 +2715,29 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       },
       "delete": {
         "summary": "Delete a single notification (user-scoped)",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2089,14 +2747,18 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "object",
                           "properties": {
-                            "id": { "type": "string" }
+                            "id": {
+                              "type": "string"
+                            }
                           }
                         }
                       }
@@ -2106,8 +2768,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -2115,14 +2781,18 @@
       "post": {
         "summary": "Mark notification as read (idempotent — returns current read_at on repeat calls)",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2132,15 +2802,22 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "object",
                           "properties": {
-                            "id": { "type": "string" },
-                            "read_at": { "type": "string", "format": "date-time" }
+                            "id": {
+                              "type": "string"
+                            },
+                            "read_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
                           }
                         }
                       }
@@ -2150,8 +2827,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -2159,7 +2840,9 @@
       "post": {
         "summary": "Mark all of caller's unread notifications as read",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "responses": {
           "200": {
@@ -2168,14 +2851,19 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "object",
                           "properties": {
-                            "marked": { "type": "integer", "description": "Number of notifications marked as read" }
+                            "marked": {
+                              "type": "integer",
+                              "description": "Number of notifications marked as read"
+                            }
                           }
                         }
                       }
@@ -2185,7 +2873,9 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
         }
       }
     },
@@ -2193,14 +2883,18 @@
       "post": {
         "summary": "Generate one-time view_url for the requesting user's own audit log (v1.1 引入). Only caller == user_id allowed.",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2210,14 +2904,19 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "object",
                           "properties": {
-                            "view_url": { "type": "string", "format": "uri" }
+                            "view_url": {
+                              "type": "string",
+                              "format": "uri"
+                            }
                           }
                         }
                       }
@@ -2227,8 +2926,12 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
         }
       }
     },
@@ -2236,14 +2939,18 @@
       "post": {
         "summary": "Generate one-time view_url for a recommendation (v1.1 引入). Caller must be the headhunter who created it or the employer on the target job.",
         "security": [
-          { "ApiKey": [] }
+          {
+            "ApiKey": []
+          }
         ],
         "parameters": [
           {
             "name": "rec_id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2253,14 +2960,19 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/Ok" },
+                    {
+                      "$ref": "#/components/schemas/Ok"
+                    },
                     {
                       "type": "object",
                       "properties": {
                         "data": {
                           "type": "object",
                           "properties": {
-                            "view_url": { "type": "string", "format": "uri" }
+                            "view_url": {
+                              "type": "string",
+                              "format": "uri"
+                            }
                           }
                         }
                       }
@@ -2270,9 +2982,15 @@
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "403": { "$ref": "#/components/responses/Forbidden" },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
         }
       }
     },
@@ -2552,6 +3270,1800 @@
             }
           }
         }
+      }
+    },
+    "/v1/admin/users/{id}": {
+      "get": {
+        "summary": "Get users",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/jobs/{id}": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/candidates/{id}": {
+      "get": {
+        "summary": "Get candidates",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/recommendations/{id}": {
+      "get": {
+        "summary": "Get recommendations",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/jobs": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/recommendations": {
+      "get": {
+        "summary": "Get recommendations",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/timeline/{type}/{id}": {
+      "get": {
+        "summary": "Get timeline",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "summary": "POST /v1/auth/login",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "POST /v1/auth/refresh",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "summary": "POST /v1/auth/logout",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/auth/otp/request": {
+      "post": {
+        "summary": "Request request",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/auth/otp/verify": {
+      "post": {
+        "summary": "Verify verify",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/jobs/browse": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/jobs/recommended": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/jobs/{id}": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/jobs/{id}/apply": {
+      "post": {
+        "summary": "Apply apply",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/applications": {
+      "get": {
+        "summary": "Get applications",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/applications/{id}": {
+      "get": {
+        "summary": "Get applications",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/applications/{id}/respond": {
+      "post": {
+        "summary": "Respond respond",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/profile": {
+      "get": {
+        "summary": "Get profile",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update profile",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/profile/audit-log": {
+      "get": {
+        "summary": "Get audit-log",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/candidate-portal/messages": {
+      "get": {
+        "summary": "Get messages",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "POST /v1/candidate-portal/messages",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/config/rate-limits": {
+      "get": {
+        "summary": "Get rate-limits",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer-panel/dashboard": {
+      "get": {
+        "summary": "Get dashboard",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/pending-claims/{id}/claim": {
+      "post": {
+        "summary": "Claim claim",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/pending-claims/{id}/reject": {
+      "post": {
+        "summary": "Reject reject",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/jobs/{id}": {
+      "get": {
+        "summary": "Get jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update jobs",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/jobs/{id}/pause": {
+      "post": {
+        "summary": "Pause pause",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/jobs/{id}/resume": {
+      "post": {
+        "summary": "Resume resume",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/employer/jobs/{id}/close": {
+      "post": {
+        "summary": "Close close",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/dashboard": {
+      "get": {
+        "summary": "Get dashboard",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/tasks": {
+      "get": {
+        "summary": "Get tasks",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "POST /v1/headhunter-workspace/tasks",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/tasks/{id}": {
+      "put": {
+        "summary": "Update tasks",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete tasks",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/tasks/{id}/complete": {
+      "post": {
+        "summary": "Complete complete",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/tasks/{id}/reopen": {
+      "post": {
+        "summary": "Reopen reopen",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/kanban": {
+      "get": {
+        "summary": "Get kanban",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/kanban/move": {
+      "post": {
+        "summary": "Move move",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/kanban/add": {
+      "post": {
+        "summary": "Add add",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/kanban/remove": {
+      "post": {
+        "summary": "Remove remove",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter-workspace/stats": {
+      "get": {
+        "summary": "Get stats",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter/recommendations/pending-pickup": {
+      "get": {
+        "summary": "Get pending-pickup",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/headhunter/recommendations/{id}/pickup": {
+      "post": {
+        "summary": "Pickup pickup",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects": {
+      "post": {
+        "summary": "POST /v1/pm/projects",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get projects",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{id}": {
+      "get": {
+        "summary": "Get projects",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update projects",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete projects",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/positions": {
+      "post": {
+        "summary": "POST /v1/pm/projects/{projectId}/positions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get positions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/positions/stats": {
+      "get": {
+        "summary": "Get stats",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/positions/bulk": {
+      "post": {
+        "summary": "Bulk bulk",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/positions/{id}": {
+      "get": {
+        "summary": "Get positions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update positions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete positions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/decompose": {
+      "post": {
+        "summary": "Decompose decompose",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/decompose/{decompositionId}/commit": {
+      "post": {
+        "summary": "Commit commit",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/decompositions": {
+      "get": {
+        "summary": "Get decompositions",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/projects/{projectId}/plans": {
+      "post": {
+        "summary": "POST /v1/pm/projects/{projectId}/plans",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "Get plans",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/plans/{id}": {
+      "get": {
+        "summary": "Get plans",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update plans",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete plans",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/plans/{id}/select": {
+      "post": {
+        "summary": "Select select",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/positions/{id}/sandbox": {
+      "get": {
+        "summary": "Get sandbox",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/positions/{id}/matches": {
+      "get": {
+        "summary": "Get matches",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/positions/{id}/matches/recompute": {
+      "post": {
+        "summary": "Recompute recompute",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/snapshot": {
+      "get": {
+        "summary": "Get snapshot",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/notes/{candidate_user_id}": {
+      "get": {
+        "summary": "Get notes",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update notes",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/pm/notes": {
+      "get": {
+        "summary": "Get notes",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/webhooks/qing3": {
+      "post": {
+        "summary": "POST /v1/webhooks/qing3",
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "401": {
+            "description": "UNAUTHORIZED"
+          },
+          "403": {
+            "description": "FORBIDDEN"
+          },
+          "404": {
+            "description": "NOT_FOUND"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
       }
     }
   }
