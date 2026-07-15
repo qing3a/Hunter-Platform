@@ -34,7 +34,7 @@ export const candidatePortalCapabilities = defineCapabilitySet({
     {
       name: 'candidate_portal.jobs.browse',
       description: '候选人浏览全部开放工作',
-      method: 'GET', path: '/v1/candidate-portal/jobs',
+      method: 'GET', path: '/v1/candidate-portal/jobs/browse',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.jobs.listOpen'],
@@ -63,6 +63,14 @@ export const candidatePortalCapabilities = defineCapabilitySet({
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.candidate_applications.listByCandidate'],
+    },
+    {
+      name: 'candidate_portal.applications.detail',
+      description: '候选人查看单个投递详情',
+      method: 'GET', path: '/v1/candidate-portal/applications/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.candidate_applications.findById'],
     },
     {
       name: 'candidate_portal.applications.respond',
