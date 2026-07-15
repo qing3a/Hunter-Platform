@@ -13,5 +13,10 @@ export default defineConfig({
     },
     globalSetup: ['./tests/global-setup.ts'],
     testTimeout: 60000,
+    // freshApp() boots an in-process Express server + admin auth login on
+    // first call which can exceed 10s under Windows + first-cold-start of
+    // node:sqlite. Bump the default hookTimeout so beforeAll isn't the
+    // bottleneck.
+    hookTimeout: 30_000,
   },
 });

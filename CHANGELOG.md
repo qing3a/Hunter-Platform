@@ -179,6 +179,42 @@ Closed the **58-entry route⇄capability drift** that `pnpm capabilities:check` 
 - `webhooks-inbox.ts` capability set's `role: 'admin'` is a workaround — there's no `'system'` in the type union. Documented inline.
 - Existing `tests/integration/capabilities-by-alias.test.ts` (introduced by PR #2) asserts the path is `/v1/pm/staffing-plans/:id/select` because the capability declaration was wrong. PR #2's test will need a follow-up assertion update to `/v1/pm/plans/:id/select`. Not in this PR's scope (which branched off main before PR #2 merged).
 
+### Conformance follow-up (PR #4)
+
+Picks up the post-PR-#3 follow-ups outlined in that PR's `Risks acknowledged`:
+
+- **`tests/integration/capabilities-by-alias.test.ts`** — `ow_recruit.advance_candidate → pm.select_staffing_plan` path assertion updated to `/v1/pm/plans/:id/select` (the actual route, post-PR-#3 reconciliation). 6/6 PASS.
+- **`src/main/capabilities/types.ts`** — `CapabilitySet.role` union extended with `'system'` (was workaround `role: 'admin'` for `webhooks-inbox.ts`); `webhooks-inbox.ts` updated to use the new value. Type-fidelity restoration — no more silent type cast.
+- **`vitest.config.ts`** — `hookTimeout: 30_000` (was default 10s; `freshApp()` cold-start + admin auth login can exceed 10s on Windows).
+- **`tests/integration/skill-md-conformance/_setup.ts`**:
+  - Admin seed uses `INSERT OR IGNORE` (was breaking on re-run when test files persisted stale DB handles).
+  - `freshApp()` now sets `RATE_LIMIT_ENABLED=false` (killswitch per skill.md §5.6) so the suite's many `/v1/auth/register` calls don't trip the 5/h IP limit.
+- **10 new real scenarios** replacing 10 `it.todo()` placeholders in `pnpm conformance:gen` output:
+  - `tests/integration/skill-md-conformance/auth.test.ts` (3):
+    - `auth.login` returns 168h `sess_*` token + role-switchable.
+    - `auth.refresh` slides expiry + flips `active_role` mid-session.
+    - `auth.logout` idempotent (returns ok + `revoked: true` on existing session; ok on retry of already-revoked session).
+  - `tests/integration/skill-md-conformance/employer-lifecycle.test.ts` (4):
+    - `employer.read_job` GET 200 + correct shape.
+    - `employer.update_job` PATCH 200 + title change reflected.
+    - `employer.pause_job` + `employer.resume_job` open → paused → open state machine.
+    - `employer.close_job` open → closed (terminal).
+  - `tests/integration/skill-md-conformance/admin-endpoints.test.ts` (3):
+    - `admin.me` returns the current super admin.
+    - `admin.users.read` returns a registered user by id.
+    - `admin.action_history` returns audit rows.
+
+**Verification**:
+- `pnpm typecheck` — 0 errors.
+- `pnpm capabilities:check` — 0 issues.
+- `pnpm conformance:check` — still all 132 caps covered; **10 are now real scenarios** (was `it.todo`).
+- `pnpm openapi:check` — 0 forward gaps.
+- The 3 modified scenario files — **18/18 PASS**.
+
+**Risks acknowledged**:
+- 41 capabilities remain `it.todo()` (the remaining newly-declared ones from PR #3 — headhunter-workspace 12, employer_jobs/pause/close-pending variants, admin rate-limit + login-events + audit + auth endpoints + 24 pm router endpoints). These don't break conformance:check (presence of `it.todo` counts as coverage). Deferred to v1.10 PR per "51 stubs" note in PR #3.
+- The RATE_LIMIT_ENABLED=false kill-switch in test setup is documented in `_setup.ts`; production code unaffected.
+
 ---
 
 ## [v1.4.1] — 2026-06-20
