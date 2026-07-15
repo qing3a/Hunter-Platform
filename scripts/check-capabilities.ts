@@ -47,17 +47,22 @@ const SKIP_FILES = new Set([
 // `null` means the router is mounted at root and uses full paths internally
 // (capabilities.ts uses '/v1/capabilities' directly; landing uses '/').
 const MOUNT_PREFIXES: Record<string, string | null> = {
-  'auth.ts':       '/v1/auth',
-  'users.ts':      '/v1/users',
-  'config.ts':     '/v1/config',
-  'market.ts':     '/v1/market',
-  'headhunter.ts': '/v1/headhunter',
-  'employer.ts':   '/v1/employer',
-  'candidate.ts':  '/v1/candidate',
-  'admin.ts':      '/v1/admin',
-  'capabilities.ts': null,
-  'notifications.ts': '/v1/notifications',
-  'landing.ts':    null,
+  'auth.ts':                  '/v1/auth',
+  'users.ts':                 '/v1/users',
+  'config.ts':                '/v1/config',
+  'market.ts':                '/v1/market',
+  'headhunter.ts':            '/v1/headhunter',
+  'employer.ts':              '/v1/employer',
+  'candidate.ts':             '/v1/candidate',
+  'admin.ts':                 '/v1/admin',
+  'capabilities.ts':          null,
+  'notifications.ts':         '/v1/notifications',
+  'landing.ts':               null,
+  'candidate-portal.ts':      '/v1/candidate-portal',
+  'headhunter-workspace.ts':  '/v1/headhunter-workspace',
+  'pm.ts':                    '/v1/pm',
+  'employer-panel.ts':        '/v1/employer-panel',
+  'webhooks-inbox.ts':        '/v1/webhooks',
 };
 
 // Match router.get('/path', ...) etc. — accepts single, double, or backtick quotes.

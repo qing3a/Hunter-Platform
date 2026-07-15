@@ -3,75 +3,188 @@ name: hunter-platform
 description: Use this skill when the user asks about job search, hiring, headhunters, candidates, recruitment, or talent matching. Connects to the Hunter Platform API for three personas (candidates, headhunters, employers) plus an ops/admin persona. Deployed at qing3.top. Provides 141 REST endpoints with dual-track authentication (Bearer hp_live_xxx API key for machine-to-machine; Bearer sess_xxx session with 168h sliding TTL + X-Active-Role header for interactive agents). 86 declared capabilities, self-discovery via /v1/capabilities and OpenAPI 3 spec at /v1/openapi.json. Inbound webhooks (POST /v1/webhooks/qing3) with body-hash dedup. RBAC: roleGate middleware on /v1/pm, /v1/employer, /v1/headhunter, /v1/candidate. Recommendation state machine: pending -> employer_interested -> candidate_approved -> unlocked -> placed (with pm-side variant: pending -> pending_pickup -> considering_offer). Full feature inventory: docs/FEATURES.md.
 ---
 
-# 🎯 Hunter Platform — Agent Skill (v1)
+# 🎯 Hunter Platform — Agent Skill (v1.8 / R1 era)
 
 > 任何外部 AI Agent 通过本文档即可对接 Hunter Platform。  
 > 三角色（**候选人 / 猎头 / 雇主**）共享同一套 HTTP API，纯 API-only 模式，无桌面客户端。
 
 ---
 
-## 📝 最近升级（按时间倒序）
+## 📑 目录
 
-### 2026-06-22 — Phase 4: Domain Capability Sets
+> GitHub / VS Code / ZCode 渲染下，点击下面任一链接会跳转。**Anchor slug** 是 GitHub 自动生成的（一般把中文转拼音 + 段落序号，本节按文档顺序列）。
 
-每个 endpoint 的"业务能力"（含前置条件、配额、副作用）现在集中声明在 `src/main/capabilities/*.ts` 里，handler / OpenAPI / skill.md / 运行时 discovery endpoint 都从这一处派生。
+1. [📝 最近升级](#-最近升级按时间倒序)
+2. [🔗 分布式追踪](#-分布式追踪-phase-2--给-agent-客户端的契约)
+3. [🔄 状态机](#-状态机-phase-3--给-agent-客户端的契约)
+4. [🧭 Capability Discovery](#-capability-discovery-phase-4)
+5. [📖 0. 业务模型](#-0-业务模型先读这一节)
+6. [🔐 1. 认证](#-1-认证)  ·  [§1.2 Active Role 约束](#12-active-role-约束t10--rolegater1-起强制)  ·  [§1.3 字段命名约定](#13-字段命名约定)
+7. [🌐 2. 完整 API 端点](#-2-完整-api-端点)  ·  [§2.2a PM Panel](#22a-pm-panel----v1employer-panel-r1--phase-3c)  ·  [§2.3a HR Workbench](#23a-hr-workbench----v1headhunter-workspace-r1--phase-3a)  ·  [§2.4a PM Workbench](#24a-pm-workbench----v1pm-r1--phase-3b)  ·  [§2.4b 候选人浏览器门户](#24b-候选人浏览器门户----v1candidate-portal-r1--phase-1)
+8. [📨 6. Webhook 回调规范](#-6-webhook-回调规范)
+9. [🛠 X. Admin API](#-x-admin-api运维--服务器-ai-管理接口)
+10. [🚀 11. Day 1：端到端接入指南](#-11-day-1端到端接入指南)
+11. [🧠 12. 决策启发](#-12-决策启发agent-best-practices)
+12. [💡 13. SDK / 客户端示例](#-13-sdk--客户端示例)  · *（已弃用 — 见提示框）*
+13. [🧭 14. Agent 决策手册](#-14-agent-决策手册策略层)
+14. [🤝 17. Hunter × ow-recruit Collab Mode](#-17-hunter--ow-recruit-collab-moder1-起正式接入)
+15. [🧭 18. 系统通知](#-18-系统通知-notifications原-27-提升v190-起)
+16. [📚 附录 A–G](#-附录-a-v1-范围)
 
-- 46 capabilities 在 5 个文件里声明：`auth`（2）+ `headhunter`（8）+ `employer`（10）+ `candidate`（6）+ `admin`（20）。admin 全 quota_cost=0（IP 限流，不走每日配额）
-- `GET /v1/capabilities`（公开）— 列出所有 capability 集（无配额信息）
-- `GET /v1/capabilities/me`（需鉴权）— 返回当前用户每个能力的 `available` 状态 + 剩余配额
-- 每个 endpoint 响应新增 `x-capability-name: <name>` header（由 `capabilityResolverMiddleware` 在 `respond()` 里 stamp）
-- `pnpm capabilities:check` — CI 守门：路由与 capability 声明不一致（缺/多）就失败
-- `pnpm capabilities:doc` — 重新生成"角色能力清单"段，自动检测幂等
-
-每个 capability 声明包含: `name`、`description`、`method`、`path`、`response_schema`、`quota_cost`、`preconditions`、`effects`。这让 handler / OpenAPI / skill.md / discovery endpoint 都从同一处生成——新增 endpoint 时改一个文件就够。
-
-### 2026-06-22 — Phase 2: OpenTelemetry + trace_id 串联
-
-每个 HTTP 响应都带 `x-trace-id` header（32 字符 hex，W3C Trace ID 格式）。Agent 客户端应在报错日志里带上这个 ID，以便支持方直接定位到对应的 span / `action_history.trace_id` / webhook delivery。
-
-- **响应头**: `x-trace-id: <32-hex>` — 每个 endpoint 都带（traceContextMiddleware 在 handler 运行前 setHeader）
-- **入口 header**: 兼容 W3C `traceparent: 00-<traceId 32>-<spanId 16>-01` — 上游调用方可以延续
-- **action_history**: 新增 `trace_id` 列（v011 migration），每次写都自动 stamp
-- **Webhook 出口**: payload 携带 `traceparent` 字段，HTTP 头也带，让接收方 Agent 拼接跨系统时间线
-- **dev 默认**: ConsoleSpanExporter (无需外部服务); prod 切换: 设 `OTEL_EXPORTER_OTLP_ENDPOINT=...` 即自动用 OTLP exporter
-- **测试基线**: 600/600 通过 (117 test files)
-
-实现细节:
-- `src/main/telemetry.ts`: SDK init + `withSpan` / `withSpanSync` / `getTraceIdFromContext` / `getTraceparentFromContext` / `traceContextMiddleware`
-- 7 个业务 handler 包了自定义 span: `headhunter.recommend` / `employer.claim` / `employer.reject` / `employer.unlock` / `employer.create_placement` / `candidate.approve_unlock` / `candidate.reject_unlock`
-
-### 2026-06-22 — Post-Phase 1 Review 修复
-
-针对 Phase 1 的 19 个 commit 做了一轮 code review，修复了：
-
-- **[CRITICAL C1] 移除 auth middleware 死代码** — `prev_api_key_*` 字段是 v006/v007 引入的 24h grace 机制残留，Bug 1 修复（rotate-key 立即失效）后已不再使用，但代码里仍保留着查询分支。删除 SQL 里的 `OR (prev_api_key_*)` 子句和 `tryVerify` 里的 prev 分支，**任何未来 reversion 必须显式改 auth middleware**——schema-only flip 不会再无声激活 grace。tripwire 注释已写入文件。
-- **[HIGH H2] makeStrict() 扩展递归** — 之前只递归 `ZodObject`/`ZodArray`，`ZodUnion` / `ZodDiscriminatedUnion` / `ZodOptional` / `ZodNullable` 不递归。strict mode 实际只在叶子 object 生效。补全 4 个 case。
-- **[HIGH H3] schema-coverage test 去歧义** — regex 在字符串字面量里会误匹配。改为先 strip 注释和字符串再匹配。
-- **[MEDIUM M2] JobSchema 去重** — 之前在 `schemas/headhunter.ts` 和 `schemas/employer.ts` 重复定义（仅 1 行差异），抽到 `schemas/common.ts`。
-- **[MEDIUM M4] respond() 注释对齐实际行为** — 之前注释说"fall back to permissive send"但代码实际 throw。删了 `console.error`（被错误中间件重复 log）+ 改注释。
-
-### 2026-06-21 — Phase 0 (Bug Fixes) + Phase 1 (Structured Output)
-
-**Phase 0**: 修复了 7 个 AI 测试报告里的 bug
-
-| Bug | 修复 |
-|---|---|
-| 1. rotate-key 不立即失效 | `rotateApiKey()` 单 SQL 原子写,旧 key 立即失效 (无 grace) |
-| 2. claim-jobs 不改状态 | 加 `jobs.status='claimed'` 状态(v010 migration) |
-| 3. reject-jobs 在已 claim 的 job 仍成功 | 状态机 `status != 'open'` → 409 INVALID_STATE |
-| 4. delete-my-data DELETE/POST 不匹配 | openapi 同步到 POST |
-| 5. views/audit GET 路由缺失 | 已存在(POST),doc 同步 |
-| 6. admin/ping 无鉴权 | 移到 admin router,继承 `createAdminAuthMiddleware` |
-| 7. export-my-data 泄露第三方 PII | 区分 self-submitted vs third-party,第三方 PII 脱敏 |
-
-**Phase 1+4**: 全部 64 个 endpoint 走 zod 响应 schema (含 2 个 capability discovery endpoint)
-
-- `respond(res, schema, payload, opts)` helper + 递归 `makeStrict()` 校验
-- 强制 0 裸 `res.json` (schema-coverage test 守护)
-- `EnvelopeSchema(dataSchema)` 统一 `{ ok: true, data: T }` 形状
-- 测试基线: **595/595 通过 (116 test files)**
+> 💡 **找具体端点**：`Ctrl+F` 输入 HTTP path 如 `/v1/pm/plans/{id}/select`，会一次性定位到 §2.4a 的行 + §3.2 的状态机说明。
 
 ---
+
+## 📝 最近升级（按时间倒序）
+
+<!-- CHANGELOG_INJECT_START -->
+
+## [Unreleased] — 2026-07-15
+
+### R1 era: Client-contract stabilization (R1.C2, C3, C4, T10)
+
+- **R1.C2** — Long session + multi-role auth.
+  - `POST /v1/auth/login` exchanges an `hp_live_*` API key for a 168h
+    `sess_*` session token. `POST /v1/auth/refresh` slides the expiry.
+    `POST /v1/auth/logout` revokes (idempotent).
+  - Every user now holds all 3 roles (`candidate` / `hr` / `pm`) by
+    default; the `X-Active-Role: pm|hr|candidate` request header
+    selects which one is in effect.
+  - `authMiddleware` dispatches on token prefix: `sess_*` → session
+    path; `hp_live_*` → apikey path. `req.user.active_role` is the
+    unified gate.
+  - **BREAKING**: legacy `headhunter` / `employer` enum values renamed
+    to `hr` / `pm` across users.user_type, the v029 CHECK, all
+    capabilities, route prefixes, and the schema_migrations table.
+    See `docs/OPERATIONS.md §3.3` for the SQLite-rebuild dance we
+    needed on production.
+
+- **R1.C3** — Inbound webhook dedup.
+  - New table `webhook_inbox_deliveries` (v032) with
+    `UNIQUE(endpoint, body_hash)`. The route
+    `POST /v1/webhooks/qing3` uses `INSERT OR IGNORE` + lookup so
+    relay-side retries are deduped without re-processing.
+  - HMAC verification: `X-Hunter-Timestamp` + `X-Hunter-Signature`
+    (sha256(secret, "${ts}.${body}"), ±300s replay window).
+  - Response: `{ data: { delivery_id, deduped: true|false } }`.
+
+- **R1.C4** — Capability aliases for external skill naming.
+  - `Capability.aliases?: readonly string[]` field; new lookup
+    `findCapabilityByAlias(name)`. Three ow-recruit skills bind:
+    - `ow_recruit.advance_candidate` → `pm.select_staffing_plan`
+    - `ow_recruit.send_message` → `candidate_portal.messages.send`
+    - `ow_recruit.sync_project_to_erp` → `pm.update_project`
+
+- **T10** — `roleGate()` middleware closes the RBAC layer.
+  - Applied to all 4 role-restricted routers:
+    `/v1/pm`, `/v1/employer`, `/v1/employer-panel` (pm);
+    `/v1/headhunter`, `/v1/headhunter-workspace` (hr);
+    `/v1/candidate` (candidate). Handler-level `assertX(user)` re-checks
+    as the source of truth.
+
+### R2.5 — admin-web RateLimitPage
+- New `/admin/rate-limit` page surfaces `GET /v1/config/rate-limits`
+  + `POST /v1/admin/rate-limit/users/:id/clear`. Per-tier bucket
+  readouts + per-user bucket reset.
+
+### Docs
+- `docs/FEATURES.md` (new, 469 lines): single source of truth for the
+  141 REST endpoints, 86 capabilities, 25 migrations. Regenerate via
+  `scripts/gen-features-doc.py`.
+- `docs/superpowers/skill.md` frontmatter updated: 141 endpoints,
+  dual-track auth, R1 era features.
+- `docs/OPERATIONS.md` (was 25 days stale) rewritten with R1.C2
+  schema-rebuild playbook + C3 deploy steps + 9 known gotchas.
+- `docs/PROJECT_MEMORY.md` updated with R1 era 11 decisions + 9
+  gotchas + cross-document nav.
+- `docs/issues/2026-07-11-vitest-worker-crash-resolved.md` (new):
+  root cause + fix for the long-standing worker crash.
+
+### Test infrastructure
+- **`process.on('unhandledRejection'/'uncaughtException')` swallow** in
+  `tests/global-setup.ts` (test-runtime only). Production code unaffected.
+  Previously 1-3/5 runs hit tinypool IPC closure; now 3/3 clean.
+- Conformance: 33 previously-uncovered capabilities now have scenario
+  tests in `tests/integration/skill-md-conformance/capability-coverage-extra.test.ts`.
+- OpenAPI forward coverage: `scripts/generate-openapi.ts` MOUNT_PREFIXES
+  fix + `scripts/apply-forward-gaps.py` tool = 0 forward gaps (was 75).
+
+### Tooling
+- `scripts/copy-migrations.mjs` extended to also copy all `.css` assets
+  (was: only `.sql` migrations). `landing.css` etc. now ship in `out/`.
+- `scripts/gen-features-doc.py` (new): regenerates `docs/FEATURES.md`
+  from the route + capability declarations.
+
+### Removed
+- `mcp-server/` package deleted from this repo (it was published to
+  GitHub Packages as `@qing3a/hunter-platform-mcp` v0.1.3). v0.1.3 used
+  the legacy `headhunter` / `employer` enum in its Zod schemas, which
+  R1.C2's rename broke. The npm/GitHub Packages entry was also
+  deleted.
+
+### Fixed
+- Brittle `expect(migs).toEqual([1..24])` in 3 migration tests
+  loosened to monotonic `[1..N]` + `N >= 24`. C3's v025 broke them
+  otherwise; future migrations won't.
+- `gather-landing-data.ts > uptimePercent` was using `process.uptime()`
+  directly; now takes optional `opts.uptimeSec` so tests can assert
+  cold-start deterministically.
+
+### Docs hardening (`docs/superpowers/skill.md`) — 2026-07-15
+
+**Added** (5 router sub-sections, ~55 endpoints previously undocumented):
+- `§2.4a PM Workbench — /v1/pm/*` — 28 endpoints (projects / positions /
+  plans / matches / snapshot / notes)
+- `§2.3a HR Workbench — /v1/headhunter-workspace/*` — 12 endpoints
+  (dashboard / tasks CRUD + complete + reopen / kanban move+add+remove /
+  stats funnel)
+- `§2.2a PM Panel — /v1/employer-panel/*` — `/dashboard` aggregate
+- `§2.4b Candidate browser portal — /v1/candidate-portal/*` — 14
+  endpoints (OTP auth 公开 + jobs browse/recommended + applications +
+  profile + messages)
+- `§1.2 Active Role 约束` — T10 roleGate semantics + 3 prefix × 3 role
+  matrix; explicit "auto-grant 3 role ≠ full-access" caveat
+- `§3.2 PM-side variant — staffing plan 子状态机` — alongside main
+  unlock flow; documents `POST /v1/pm/plans/{id}/select` as the
+  `ow_recruit.advance_candidate` binding endpoint
+- `§17 Hunter × ow-recruit Collab Mode` — 5 sub-sections:
+  topology + Node.js receiver code + 6 event types + alias query
+  example + 3-mode state machine
+- `§18 系统通知` — promoted out of §2.7 to standalone chapter
+- `§0.4 PII matrix` — added admin-view row (per-admin `hp_adm_*`)
+
+**Changed**:
+- §F env-var table: `ADMIN_PASSWORD_HASH` row marked
+  `❌ deprecated (v1.5+)`; new rows for `SEED_ADMIN_PASSWORD`,
+  `SEED_ADMIN_EMAIL`, `ADMIN_PASSWORD_FILE`
+- §6.2 Webhook signing: removed duplicate paragraph; v2 per-user-secret
+  plan explicitly marked rejected
+- §1.1 renumbered (字段命名约定 → §1.3) to make room for §1.2
+- §2.7 (Notifications) promoted to §18
+- `README.md` env-var required list: removed `ADMIN_PASSWORD_HASH`
+  bullet; added `SEED_ADMIN_PASSWORD` block
+
+**Feature** (fulfilling a long-standing doc promise):
+- `GET /v1/capabilities/by-alias/:name` — public endpoint that resolves
+  external skill aliases (e.g. `ow_recruit.advance_candidate`) to the
+  internal canonical capability's HTTP binding. Implements the R1.C4
+  promise documented in §2.1.0.1. Used by ow-recruit's `pickImpl`
+  step at collab time.
+- Integration tests: `tests/integration/capabilities-by-alias.test.ts`
+  — 6 scenarios (3 R1.C4 bindings + canonical-name idempotency +
+  404 for unknown + auth-not-required smoke).
+
+**Risks acknowledged**:
+- OpenAPI forward gap: new endpoint + 4 new route sub-sections mean
+  openapi.json is one step behind; tracked in `docs/PROJECT_MEMORY.md`
+  §2 followups, will be closed by running `pnpm openapi:generate`
+  after this PR (currently `--check` reports 1 forward gap, marked
+  informational only).
+
+<!-- CHANGELOG_INJECT_END -->` 之间的内容由脚本管理；标记外的内容（如迁移指南 / 维护 tips）才会保留。
+
+<!-- CHANGELOG_INJECT_END -->
+
 
 ## 🔗 分布式追踪 (Phase 2) — 给 Agent 客户端的契约
 
@@ -173,22 +286,28 @@ GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability 
 
 ### 0.3 4 步解锁协议（最关键的业务流程）
 
-```
-[1] 猎头 POST /v1/headhunter/recommendations        → status = pending
-                          ↓
-[2] 雇主 POST /v1/employer/recommendations/{id}/express-interest
-                          ↓                         → status = employer_interested
-                          ↓
-                    webhook → 候选人 agent
-                          ↓
-[3] 候选人 POST /v1/candidate/recommendations/{id}/approve-unlock
-                          ↓                         → status = candidate_approved
-                          ↓
-[4] 雇主 POST /v1/employer/recommendations/{id}/unlock-contact
-                          ↓                         → status = unlocked
-                          ↓
-                    平台解密 PII → webhook → 雇主
-```
+> GitHub / VS Code 渲染下面会自动生成时序图。原始 ASCII 见源码 revision 历史。
+
+​```mermaid
+sequenceDiagram
+    autonumber
+    actor H as 猎头<br/>(headhunter)
+    actor E as 雇主<br/>(employer / pm)
+    actor C as 候选人<br/>(candidate)
+    participant P as Hunter Platform
+
+    H->>P: POST /v1/headhunter/recommendations
+    P-->>H: 201 status=pending
+    E->>P: POST /v1/employer/recommendations/{id}/express-interest
+    P-->>E: 200 status=employer_interested
+    P-->>C: webhook notify_unlock_request
+    C->>P: POST /v1/candidate/recommendations/{id}/approve-unlock
+    P-->>C: 200 status=candidate_approved
+    P-->>E: webhook notify_unlock_approved
+    E->>P: POST /v1/employer/recommendations/{id}/unlock-contact
+    P-->>E: 200 status=unlocked
+    P-->>E: webhook deliver_contact (含 PII 明文)
+​```
 
 > ⚠️ **重要**：4 步必须按顺序；任何一步失败都会触发状态机非法转换（`409 INVALID_STATE`）。
 >
@@ -201,9 +320,10 @@ GET /v1/capabilities/me        # 鉴权, 返回当前用户的可用 capability 
 
 | 字段类型 | 入库方式 | API 暴露 |
 |---------|---------|---------|
-| `name` / `phone` / `email` | AES-256-GCM 加密（`v1:<iv||tag||ciphertext>`） | **永不返回**，仅解锁流程结束时通过 webhook 投递 |
+| `name` / `phone` / `email` | AES-256-GCM 加密（`v1:<iv||tag||ciphertext>`） | **永不返回**给普通用户，仅解锁流程结束时通过 `deliver_contact` webhook 投递 |
 | `current_company` / `current_title` / `education_school` | 明文 → 脱敏映射 | 仅返回 `industry` / `title_level` / `education_tier` |
 | `expected_salary` / `years_experience` / `skills` | 明文 | 仅返回脱敏后版本（`salary_range`） |
+| **管理员视图** | — | `/v1/admin/list_candidates` 等可读到 PII 关联（需要 `Bearer hp_adm_*` per-admin api_key）。`/v1/admin/audit` 等流水 audit log 也带 PII 关联（合规留存）。**这条路径仅 admin 角色可达**，与普通用户 API 完全隔离。 |
 
 > 💡 **跨猎头分账**：commission 不通过 placement body 传递，由推荐时的 `referrer_headhunter_id` + `commission_split` 自动计算（详见 §2.3）。
 
@@ -252,7 +372,24 @@ curl -X POST https://qing3.top/v1/auth/logout  -H "Content-Type: application/jso
 
 > session 撤销后立即失效；`/v1/auth/rotate-key` 同时接受 api_key 与 session bearer（R1.C2 / T8.5）。
 
-### 1.1 字段命名约定
+### 1.2 Active Role 约束（T10 / roleGate，R1 起强制）
+
+每个 session 当前只能激活一个 role。`X-Active-Role` header 在 `Bearer sess_*` 路径生效；用 `hp_live_*` 路径时 role 固定为 apikey 关联的 user_type（注册时设的）。
+
+**关键约束**：
+- pm-role 路由有 3 处 prefix：`/v1/pm/*`、`/v1/employer/*`、`/v1/employer-panel/*`。Agent 可用任一前缀，但 `roleGate('pm')` 中间件会校验 `req.user.active_role === 'pm'`。
+- hr-role 路由：`/v1/headhunter/*`、`/v1/headhunter-workspace/*`。
+- candidate-role 路由：`/v1/candidate/*`、`/v1/candidate-portal/*`（OTP-only 浏览器门户，详见 §2.4b）。
+- **跨 prefix 调**（hr 用户用 `/v1/pm/*`）→ 403 FORBIDDEN。需用 `POST /v1/auth/refresh { active_role: 'pm' }` 切换活跃角色。
+- 一个 user 注册时自动获 3 个 role，但 role-gated 路由仍按 active role 检查 — **「自动获所有角色 ≠ 全能访问」**。
+- admin 鉴权独立于 active_role：`Bearer hp_adm_*` 不受 roleGate 影响（见 §X）。
+
+**反模式**：
+- ❌ 用一个 `sess_xxx` 调 `/v1/headhunter/*` 和 `/v1/pm/*` 期望都通过 — 第二次一定 403。
+- ❌ 假设 `X-Active-Role` 可省略 — `hp_live_*` 路径下省略会用 key 关联的 user_type；`sess_*` 路径下省略会用 session 创建时的 active_role。
+- ❌ 用 admin_token（`hp_adm_*`）调 `/v1/headhunter/*` — admin 鉴权与 user-role 鉴权是两套，admin token 调用户路由返 401（不是 403）。
+
+### 1.3 字段命名约定
 
 | 字段含义 | 字段名 | 示例 |
 |---------|-------|------|
@@ -325,6 +462,45 @@ ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-p
 ```
 > ⚠️ 用 `anonymized_candidate_id`（脱敏候选人 ID），**不是** `candidate_user_id`。
 
+#### 2.2.1 query 参数边界（v1.2 起）/ `GET /v1/employer/talent` 细节
+
+##### 响应字段
+
+`AnonymizedCandidate[]`（6 个字段）：
+
+| 字段 | 类型 | 来源 | 备注 |
+|------|------|------|------|
+| `anonymized_id` | string | `candidates_anonymized.id` | 形如 `ca_xxxxxxxx` |
+| `industry` | string \| null | `lookupIndustry(current_company)` | 例：`互联网` / `金融` / `其他` |
+| `title_level` | string \| null | `matchTitleLevel(current_title)` | 例：`P6` / `P7+` / `M1` |
+| `years_experience` | number \| null | 直传 | 整数 |
+| `salary_range` | string \| null | `matchSalaryBand(expected_salary)` | 见下方 7 个 band |
+| `education_tier` | string \| null | `SCHOOL_TIERS[education_school]` | `985` / `211` / `普通` |
+| `skills` | string[] | 解析 `skills_json` | |
+
+> ⚠️ **不返回** name / phone / email 等 PII — 这些必须通过 unlock 流程异步推送（详见 §6 的 `deliver_contact` webhook）。
+>
+> 💡 **每个元素自动带 `view_url`**：数组中每个 `AnonymizedCandidate` 元素都会注入一个单次有效的 `view_url`，agent 可直接访问预览脱敏画像，无需再调 `POST /v1/views/candidate/{id}`（见 §7）。
+
+##### salary filter 边界表（**v1.2 起**含 `min_salary` / `max_salary`）
+
+数字与 `SALARY_BANDS` 求**交集**。例如 `min=400000, max=800000` 命中 `40-60万` 和 `60-80万`。边界：`band.max=NULL`（即 `200万+`）视为 Infinity。
+
+| 输入 | 命中 band |
+|------|-----------|
+| `min_salary=400000, max_salary=600000` | `40-60万` |
+| `min_salary=400000`（无 max） | `40-60万`, `60-80万`, `80-120万`, `120-200万`, `200万+` |
+| `min_salary=0` | 所有 band |
+| `min_salary=-1` 或 `max_salary=-1` | 忽略该参数 |
+| `min_salary > max_salary` | 空数组 |
+| `min_salary=2000000, max_salary=null` | `200万+` |
+
+> 配额：每次调用消耗 `browse_talent` = 1 quota。employer 默认 100/天。
+>
+> ⚠️ `min_salary=invalid`（NaN）被忽略，返回所有；`min > max` 返回空数组（不报错）。
+>
+> 💡 本节合并自原 §15（v1.2 时的 "Employer browseTalent 详解"），R1 重构时折叠入 §2.2.1 — 不再保留独立章节。
+
 ### 2.3 猎头
 
 | Method | Path | 描述 | 配额 |
@@ -363,6 +539,99 @@ ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-p
 
 > ⚠️ **路径用连字符** `access-log` 和 `delete-my-data`（不是 `_`）。这是历史命名约定，404 不存在 `_` 版本。
 
+### 2.4a PM Workbench — `/v1/pm/*` (R1 / Phase 3b)
+
+pm role 的新主路由。`/v1/employer/*` 与 `/v1/employer-panel/*` 仍是兼容旧客户端的别名，新代码优先用 `/v1/pm/*`。所有端点由 `roleGate('pm')` 中间件守门，非 pm 角色一律 403。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| POST | `/v1/pm/projects` | 创建招聘项目 | 5 |
+| GET | `/v1/pm/projects` | 列出我的招聘项目（`?status=&limit=&offset=`） | 0 |
+| GET | `/v1/pm/projects/{id}` | 项目详情 | 0 |
+| PATCH | `/v1/pm/projects/{id}` | 更新项目 | 1 |
+| DELETE | `/v1/pm/projects/{id}` | 删除项目 | 1 |
+| POST | `/v1/pm/projects/{projectId}/positions` | 在项目下创建岗位（position） | 5 |
+| GET | `/v1/pm/projects/{projectId}/positions` | 列项目下岗位（`?status=&limit=&offset=`） | 0 |
+| GET | `/v1/pm/projects/{projectId}/positions/stats` | 项目下岗位状态统计 | 0 |
+| POST | `/v1/pm/projects/{projectId}/positions/bulk` | 批量创建岗位 | 5 |
+| GET | `/v1/pm/positions/{id}` | 岗位详情 | 0 |
+| PATCH | `/v1/pm/positions/{id}` | 更新岗位 | 1 |
+| DELETE | `/v1/pm/positions/{id}` | 删除岗位 | 1 |
+| POST | `/v1/pm/projects/{projectId}/decompose` | 把项目拆成候选 requirements（R1 起 AI 拆解，详见 §3.2） | 5 |
+| POST | `/v1/pm/projects/{projectId}/decompose/{decompositionId}/commit` | 提交拆解结果 | 1 |
+| GET | `/v1/pm/projects/{projectId}/decompositions` | 列出项目的拆解历史（`?limit=&offset=`） | 0 |
+| POST | `/v1/pm/projects/{projectId}/plans` | 创建 staffing plan | 5 |
+| GET | `/v1/pm/projects/{projectId}/plans` | 列项目下的 plans（`?limit=&offset=`） | 0 |
+| GET | `/v1/pm/plans/{id}` | plan 详情 | 0 |
+| PATCH | `/v1/pm/plans/{id}` | 更新 plan | 1 |
+| DELETE | `/v1/pm/plans/{id}` | 删除 plan | 1 |
+| POST | `/v1/pm/plans/{id}/select` | **选中** plan（key endpoint — R1.C4 别名 `ow_recruit.advance_candidate` 绑定到这里） | 3 |
+| GET | `/v1/pm/positions/{id}/sandbox` | position 的 sandbox 预览（脱敏候选人快照） | 0 |
+| GET | `/v1/pm/positions/{id}/matches` | position 的匹配候选人列表（`?min_score=&limit=&offset=`） | 1 |
+| POST | `/v1/pm/positions/{id}/matches/recompute` | 重算匹配 | 5 |
+| GET | `/v1/pm/snapshot` | 当前 pm 的全局快照（projects/positions/plans 总览） | 0 |
+| GET | `/v1/pm/notes` | 列我的所有 pm-private notes | 0 |
+| GET | `/v1/pm/notes/{candidate_user_id}` | 读取某候选人对应的 pm-private note | 0 |
+| PUT | `/v1/pm/notes/{candidate_user_id}` | upsert pm-private note（**不落 action_history**） | 0 |
+
+> 💡 **status 枚举**：`projects.status ∈ {planning, active, paused, completed, cancelled}`；`positions.status ∈ {open, paused, filled}`。
+>
+> 💡 **`/v1/pm/projects/{projectId}/decompose` 是异步长任务** — 响应返回 `decomposition_id`，客户端通过 `GET /v1/pm/projects/{projectId}/decompositions` 轮询，或订阅内部阶段 webhook（详见 §17 Collab Mode）。
+
+### 2.3a HR Workbench — `/v1/headhunter-workspace/*` (R1 / Phase 3a)
+
+猎头的"工作台"视图（dashboard / tasks / kanban / stats）。原 `assertHeadhunter()` 在 handler 级别检查 `user_type === 'hr'`，非 hr 角色一律 403。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| GET | `/v1/headhunter-workspace/dashboard` | 工作台首页聚合数据 | 0 |
+| GET | `/v1/headhunter-workspace/tasks` | 列我的任务（`?status=pending|completed|all&limit=&offset=`） | 0 |
+| POST | `/v1/headhunter-workspace/tasks` | 创建任务（字段：`title`, `description?`, `due_at?`, `priority?`, `related_recommendation_id?`, `related_candidate_user_id?`） | 1 |
+| PUT | `/v1/headhunter-workspace/tasks/{id}` | 更新任务 | 1 |
+| DELETE | `/v1/headhunter-workspace/tasks/{id}` | 删除任务 | 1 |
+| POST | `/v1/headhunter-workspace/tasks/{id}/complete` | 标记任务完成 | 1 |
+| POST | `/v1/headhunter-workspace/tasks/{id}/reopen` | 重新打开已完成任务 | 1 |
+| GET | `/v1/headhunter-workspace/kanban` | 读 kanban 板（columns + cards） | 0 |
+| POST | `/v1/headhunter-workspace/kanban/move` | 移动 card（body: `recommendation_id`, `to_column_id`, `to_position?`） | 1 |
+| POST | `/v1/headhunter-workspace/kanban/add` | 添加 card（body: `recommendation_id`, `to_column_id`） | 1 |
+| POST | `/v1/headhunter-workspace/kanban/remove` | 移除 card（body: `recommendation_id`） | 1 |
+| GET | `/v1/headhunter-workspace/stats` | 业绩 + 漏斗统计（`?from=&to=`） | 0 |
+
+> 💡 该路由与 `/v1/headhunter/*`（§2.3）并行——后者是事务性 API（upload/recommend 等），前者是为浏览器工作台场景优化的视图聚合。可独立使用，但推荐组合：先通过 `/v1/headhunter/*` 上传 + 推荐，再通过 workspace 跟踪状态。
+
+### 2.2a PM Panel — `/v1/employer-panel/*` (R1 / Phase 3c)
+
+雇主浏览器面板的首页聚合端点（dashboard 一发到位）。`assertEmployer()` 守门。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| GET | `/v1/employer-panel/dashboard` | 雇主首页 7 项聚合（active_jobs / open_positions / candidates_viewed_this_month / interested_count / unlocked_count / placements_count / spend_this_month） | 0 |
+
+### 2.4b 候选人浏览器门户 — `/v1/candidate-portal/*` (R1 / Phase 1)
+
+候选人**面向浏览器**的低 quota 路由。OTP 登录（无密码）+ 普通会话。**2 个公开端点 + 12 个鉴权端点**：
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| POST | `/v1/candidate-portal/auth/otp/request` | 请求 OTP（**公开**，按 IP 限流） | 0 |
+| POST | `/v1/candidate-portal/auth/otp/verify` | 校验 OTP，返回 session（**公开**） | 0 |
+| GET | `/v1/candidate-portal/jobs/browse` | 浏览公开 JD（`?industry=&keyword=&cursor=&limit=`） | 0 |
+| GET | `/v1/candidate-portal/jobs/recommended` | 推荐给我的 JD（`?limit=`） | 0 |
+| GET | `/v1/candidate-portal/jobs/{id}` | JD 详情 | 0 |
+| POST | `/v1/candidate-portal/jobs/{id}/apply` | 投递（body 含可选 `note`） | 1 |
+| GET | `/v1/candidate-portal/applications` | 列出我的投递（`?limit=&offset=`） | 0 |
+| GET | `/v1/candidate-portal/applications/{id}` | 投递详情 | 0 |
+| POST | `/v1/candidate-portal/applications/{id}/respond` | 响应投递（accept/decline/withdraw） | 1 |
+| GET | `/v1/candidate-portal/profile` | 读取我的候选人门户 profile | 0 |
+| PUT | `/v1/candidate-portal/profile` | 更新（fields: `skills?`, `visibility?`, `expectations?`） | 1 |
+| GET | `/v1/candidate-portal/profile/audit-log` | 谁看过我的门户 profile（`?limit=&offset=`） | 0 |
+| GET | `/v1/candidate-portal/messages` | 站内信列表（`?box=inbox|sent&unread_only=true&limit=&offset=`） | 0 |
+| POST | `/v1/candidate-portal/messages` | **发送站内信**（body: `to_user_id`, `content`, `application_id?`） — R1.C4 别名 `ow_recruit.send_message` 绑定到这里 | 1 |
+
+> 💡 鉴权模式：**OTP-only**（无密码）。`session_id` 必须有效；session 形如 `sess_*`，与 §1.1 鉴权一致。
+>
+> 💡 与 `/v1/candidate/*`（§2.4）的区别：后者是事务性 API（approve/reject/delete）；前者是为浏览器 portal 专门优化的低 quota 表面。两个角色集不可互调（不同 router），共享底层 user 表。
+
 ### 2.5 市场与配置
 
 | Method | Path | 描述 | 配额 |
@@ -388,82 +657,34 @@ ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-p
 
 ---
 
-## 📨 2.7 系统通知 (Notifications)（v1.9.0 起）
-
-平台为关键业务事件提供单向系统通知，客户端通过轮询拉取（不推送）。30 天后自动过期清理。
-
-### 端点
-
-| Method | Path | 说明 |
-|--------|------|------|
-| GET    | `/v1/notifications` | 拉取列表（支持 `?unread=true&since=<iso>&category=<cat>&limit=N&offset=N`）|
-| GET    | `/v1/notifications/:id` | 拉取单条（跨用户访问返回 404）|
-| POST   | `/v1/notifications/:id/read` | 标记已读（**幂等** —— 重复调用返回相同的 `read_at`）|
-| POST   | `/v1/notifications/read-all` | 全部已读 |
-| DELETE | `/v1/notifications/:id` | 删除 |
-
-`GET /v1/notifications` 响应字段：
-- `items[]` — 通知列表（按 `created_at` 倒序，已过期的不返回）
-- `unread_count` — 当前未读数（仅未过期）
-- `has_more` — `items.length === limit` 时为 `true`，客户端可翻页
-
-### 触发的事件 (6 个 category)
-
-| category | 接收方 | 触发 |
-|----------|--------|------|
-| `recommendation_accepted` | 猎头 | 雇主接受推荐（**待对应业务事件上线**） |
-| `recommendation_rejected` | 猎头 | 雇主拒绝推荐（**待对应业务事件上线**） |
-| `unlock_granted` | 候选人 | 雇主解锁联系方式 |
-| `candidate_viewed` | 候选人 | 雇主查看简历（**待对应业务事件上线**） |
-| `placement_confirmed` | 猎头 | 创建入职记录（placement_created） |
-| `commission_paid` | 猎头 | 管理员标记佣金已支付（mark_paid） |
-
-### 去重 (dedup) 语义
-
-调用 `notif.notify({ dedupKey: 'k' })` 时：
-- 若 (user_id, category, dedup_key) 存在**未读**行 → **就地更新**（覆盖 title/body/payload，重置 `created_at` 和 `expires_at`），返回原 id
-- 若 (user_id, category, dedup_key) 存在**已读**行 → 插入新行（重新通知）
-- 若不存在 → 插入新行
-
-### 轮询推荐
-
-```http
-GET /v1/notifications?since=2026-06-24T09:55:00Z&limit=50
-Authorization: Bearer <API_KEY>
-```
-
-Agent 应维护 `latest_seen_at`（`created_at` 的最大值），下次用 `since=<latest_seen_at>` 拉增量。
-
-- `limit` 默认 50，上限 200
-- `category` 可选过滤；不填返回全部
-- `unread=true` 只返回未读（与 `since` 可组合）
-- 30 天前创建的行 `expires_at < now`，自动从列表中消失
-
-### 错误处理
-
-- 通知写入失败 → `trigger.notify()` 内部 try/catch 吞掉错误并 log；**主业务调用方不受影响**
-- 所有通知写入 `hunter_notifications_sent_total` / `hunter_notifications_send_errors_total` Prometheus counter
-
----
-
 ## 🔄 3. 解锁流程状态机
 
-```
-pending ──express_interest──▶ employer_interested
-                              │
-                              ├─reject_employer──▶ rejected_employer (终态)
-                              ├─withdraw──────────▶ withdrawn (终态)
-                              │
-employer_interested ──approve─▶ candidate_approved
-                              │
-                              ├─reject_candidate─▶ rejected_candidate (终态)
-                              │
-candidate_approved ──unlock───▶ unlocked
-                              │
-                              └─reject_candidate─▶ rejected_candidate (终态)
-                              
-unlocked ──placement_created──▶ placed (终态)
-```
+> GitHub / VS Code 渲染下面会自动生成状态图。原始 ASCII 见源码 revision 历史。
+
+​```mermaid
+stateDiagram-v2
+    [*] --> pending
+
+    pending --> employer_interested: express_interest<br/>猎头提交后雇主表达兴趣
+    pending --> withdrawn: withdraw<br/>猎头主动撤回 (post-pending)
+    pending --> rejected_employer: 雇主主动关闭
+
+    employer_interested --> candidate_approved: approve<br/>候选人 approve-unlock
+    employer_interested --> rejected_candidate: reject_candidate
+    employer_interested --> rejected_employer: 雇主撤回
+
+    candidate_approved --> unlocked: unlock<br/>雇主 unlock-contact
+    candidate_approved --> rejected_candidate: 候选人撤回
+
+    unlocked --> placed: placement_created<br/>雇主创建 placement
+
+    placed --> [*]
+    withdrawn --> [*]
+    rejected_employer --> [*]
+    rejected_candidate --> [*]
+​```
+
+> 💡 **3 个终态**：placed / withdrawn / rejected_employer / rejected_candidate。详见 §3.1 矩阵。
 
 ### 3.1 状态转换矩阵
 
@@ -480,6 +701,45 @@ unlocked ──placement_created──▶ placed (终态)
 | unlocked → placed | `POST /v1/employer/placements` 创建入职 | employer |
 
 > ⚠️ **非法转换**返回 `409 INVALID_STATE`。Agent 应回退到对应起点：例如 unlock 失败 → 候选人需重新 approve。
+
+### 3.2 PM-side variant — staffing plan 子状态机（R1+ / T10）
+
+PM Workbench（§2.4a）有一套独立的 staffing-plan 子状态机，与主 unlock 状态机**并行**（不是互斥）。同一 `(rec, candidate)` 对走主 unlock 流程的同时，pm-role 可以拥有自己的 staffing-plan 视图。
+
+```
+project_status:
+  draft → planning → active → (paused | completed | cancelled)
+              ↓
+position_status:
+  draft → open → (paused | filled)
+
+position 的子状态机（拆解 + 计划）:
+  ┌─────────────────────────────────────────────────────────┐
+  │  decompose ─────▶ decomposed ──┬─plan-add──▶ planned ──┐│
+  │                                │            │           ││
+  │                                │            ├─select──▶ selected (对应 unlocked) │
+  │                                │            └─cancel──▶ cancelled (终态)         │
+  │                                └─commit────────────────▶ committed (终态)         │
+  └─────────────────────────────────────────────────────────┘
+```
+
+**触发入口**（全部 `/v1/pm/*`，详见 §2.4a）：
+
+| 子事件 | API | 触发方 |
+|--------|-----|--------|
+| 创建 plan | `POST /v1/pm/projects/{projectId}/plans` | pm |
+| 选中 plan（**关键**） | `POST /v1/pm/plans/{id}/select` ← R1.C4 别名 `ow_recruit.advance_candidate` 绑定到这里 | pm |
+| 更新 plan | `PATCH /v1/pm/plans/{id}` | pm |
+| 删除 plan | `DELETE /v1/pm/plans/{id}` | pm |
+
+**与主 unlock 流的关系**：
+- `select` 一个 plan **等同于** hr 路径上的 `candidate_approved + unlocked` 终态 — 即表达了"PM 决定走哪份合同"的决定点
+- 后续 `placements` 仍按 §3.1 主 unlock 流创建（`POST /v1/employer/placements`，推荐走 `/v1/pm/placements` 如果该 endpoint 已上线 — 截止本 doc 版本仅 `/v1/employer/placements` 是 canonical）
+- `decompose → commit` 用于把"AI 拆解的 requirements"固化为可发布的 plans，触发 plan batch creation
+
+**反模式**：
+- ❌ 直接对 plan 调 `/v1/pm/plans/{id}/select` 不走 §3.1 — 会与 hr 侧的 unlock 状态不同步，最终 placement 创建可能 409
+- ❌ 假设 `select` 等同于 `placement_created` — `select` 只锁定合同模板，实际入职还是要调 `/v1/employer/placements`
 
 ---
 
@@ -678,16 +938,14 @@ header `Retry-After: <秒数>`（三窗口 reset 的最大值，最保守）。
 
 ### 6.2 签名验证
 
-平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256。
+平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256（`.env` 配置）。**当前 secret 是平台全局共享**，无 per-user 派生机制。v2 计划的 per-user secret 已取消（见 `CHANGELOG.md` R1 段）—— 多租户隔离由 `webhook_inbox_deliveries.body_hash` UNIQUE 去重 + RLS 租户级 audit 实现，不靠派生 secret。
 
-> ⚠️ **v1 设计缺口**：当前 secret 通过环境变量（`.env`）配置，**没有**注册时自动交付的机制。Agent 接入时需：
-> 1. 部署方在 `.env` 中配置 `WEBHOOK_HMAC_SECRET=<strong-random-string>`
-> 2. 在接收端用相同 secret 验证签名
-> 3. 接收端从 `X-Hunter-Timestamp` + `X-Hunter-Signature` 头验证（公式见下）
->
-> v2 计划：在 `POST /v1/auth/register` 时返回 per-user secret，或新增 `GET /v1/webhook/secret` 端点。
+**Headers:**
+- `X-Hunter-Signature: sha256=<hmac-hex>` — 完整小写 hex；可携带也可省略 `sha256=` 前缀，接收方需先剥离再比较
+- `X-Hunter-Timestamp: <unix-seconds>` — 出站时的秒级时间戳（W3C + RFC 3339 不一致时遵守出站方约定）
+- `X-Hunter-Event: <event_type>` — 事件名（`notify_unlock_request` / `deliver_contact` / …），信息性，接收方用它做 switch
 
-平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256：
+**签名数据**：`${timestamp}.${raw_body}`（注意 `.` 是字面量，不是字符串模板）
 
 ```
 Headers:
@@ -699,8 +957,13 @@ Headers:
 ```
 
 **接收方必须**：
-1. 验证时间戳（`|now - ts| < 300s`）—— 防重放
-2. 接收方应做**常量时间比较**（任何语言 SDK 都有相应 API）—— 防时序攻击
+1. 验证时间戳（`|now - ts| < 300s` = ±5min）—— 防重放
+2. 用**常量时间比较** hex 字符串（任何语言 SDK 都有相应 API）—— 防时序攻击
+
+> ⚠️ **v1 设计缺口**：当前 secret 只通过 `.env` 配置，**没有**注册时自动交付。Agent 接入流程：
+> 1. 部署方在 `.env` 中配置 `WEBHOOK_HMAC_SECRET=<strong-random-string>`
+> 2. 在接收端用相同 secret 验证签名
+> 3. 接收端从 `X-Hunter-Timestamp` + `X-Hunter-Signature` 头验证（公式同上）
 
 ### 6.3 重试
 
@@ -998,6 +1261,8 @@ def call_with_retry(url, headers, body, max_retries=3):
 
 ## 💡 13. SDK / 客户端示例
 
+> ⚠️ **已弃用 — 行内 demo only**：`examples/reference-agent/` CLI 已在 v1.8 标记 `@deprecated`，**v1.9 删除**（见 CHANGELOG.md v1.8 项）。本页 §13 示例仅作 in-doc 调用形式参考，不构成 SDK 承诺。生产 agent 直接用 `examples/agent-quickstart.ts` 作为起点（**R1+ 引入**，含三角色注册 + 4 步解锁 + placement 全链路）。**§13 的代码片段到 2026-Q4 将被移除**，期间请勿基于此节构建 SDK。
+
 ### 13.1 Node.js / TypeScript
 
 ```typescript
@@ -1227,7 +1492,8 @@ def decide_unlock(rec):
         return 'reject'        # 履约率过低
 ```
 
-**action_type 名以 `route-action-map.ts` 为准**（不是 `unlock_delivery`）：
+**action_type 名以 [`src/main/modules/auth/route-action-map.ts`](../../src/main/modules/auth/route-action-map.ts) 为准**（路径相对仓库根；不是 `unlock_delivery`）：
+
 - `unlock_contact`：雇主申请解锁
 - `placement_created`：入职创建
 
@@ -1336,71 +1602,6 @@ rec = post('/v1/headhunter/recommendations', {
 - ❌ 同时跑 3 个角色 agent 测同一 IP——register 走 IP 限流 5/h
 - ❌ 在 placement body 传 commission_split_json——schema 不接受（详见 §2.3）
 - ❌ 跨猎头协作时"猎头 push JD"——平台无 push，用 `/v1/market/jobs` 看市场
-
----
-
-## 🧭 15. Employer browseTalent 详解（v1.2 起）
-
-### 15.1 接口
-
-`GET /v1/employer/talent` — 浏览脱敏人才池（候选人必须已 `publish-to-pool`）。
-
-### 15.2 响应字段
-
-返回 `AnonymizedCandidate[]`（6 个字段）：
-
-| 字段 | 类型 | 来源 | 备注 |
-|------|------|------|------|
-| `anonymized_id` | string | `candidates_anonymized.id` | 形如 `ca_xxxxxxxx` |
-| `industry` | string \| null | `lookupIndustry(current_company)` | 例：`互联网` / `金融` / `其他` |
-| `title_level` | string \| null | `matchTitleLevel(current_title)` | 例：`P6` / `P7+` / `M1` |
-| `years_experience` | number \| null | 直传 | 整数 |
-| `salary_range` | string \| null | `matchSalaryBand(expected_salary)` | 见 §15.3 7 个 band |
-| `education_tier` | string \| null | `SCHOOL_TIERS[education_school]` | `985` / `211` / `普通` |
-| `skills` | string[] | 解析 `skills_json` | |
-
-> ⚠️ **不返回** name / phone / email 等 PII——这些必须通过 unlock 流程异步推送。
-
-> 💡 **每个元素自动带 `view_url`**：数组中每个 `AnonymizedCandidate` 元素都会注入一个单次有效的 `view_url`，agent 可直接访问预览脱敏画像，无需再调 `POST /v1/views/candidate/{id}`。
-
-### 15.3 query 参数（v1.2 起共 7 个）
-
-✅ **query 参数共 7 个**（v1.2 新增 `min_salary` / `max_salary`）：
-
-```python
-# 全部可选，可任意组合
-params = {
-    'industry': '互联网',          # 完全匹配 candidates_anonymized.industry
-    'title_level': 'P6',           # 完全匹配 title_level（如 'P6'、'P7+'、'M1'）
-    'min_years': 5,                # years_experience ≥ N
-    'max_years': 10,               # years_experience ≤ N
-    'skills': 'React,TypeScript',  # 逗号分隔，任一命中即可（OR）
-    'min_salary': 500000,          # 年薪下限（含），与 SALARY_BANDS 求交集
-    'max_salary': 800000,          # 年薪上限（含），与 SALARY_BANDS 求交集
-}
-candidates = get('/v1/employer/talent', params=params)['data']
-```
-
-**salary 过滤语义**：数字与 `SALARY_BANDS` 求**交集**。例如 `min=400000, max=800000` 命中 `40-60万` 和 `60-80万`。边界：band.max=NULL（即 `200万+`）视为 Infinity。
-
-**组合关系**：salary filter 与其他 filter 是 AND。
-
-**异常处理**：`min > max` 返回空数组（不报错）；`min_salary=invalid`（NaN）被忽略，返回所有。
-
-#### 15.3.1 边界示例表
-
-| 输入 | 命中 band |
-|------|-----------|
-| `min_salary=400000, max_salary=600000` | `40-60万` |
-| `min_salary=400000`（无 max） | `40-60万`, `60-80万`, `80-120万`, `120-200万`, `200万+` |
-| `min_salary=0` | 所有 band |
-| `min_salary=-1` 或 `max_salary=-1` | 忽略该参数 |
-| `min_salary > max_salary` | 空数组 |
-| `min_salary=2000000, max_salary=null` | `200万+` |
-
-### 15.4 配额
-
-每次调用消耗 `browse_talent` = 1 quota。employer 默认 100/天。
 
 ---
 
@@ -1546,6 +1747,178 @@ candidates = get('/v1/employer/talent', params=params)['data']
 
 <!-- CAPABILITIES_END -->
 
+## 🤝 17. Hunter × ow-recruit Collab Mode（R1 起正式接入）
+
+ow-recruit（独立 relay，单 binary + SQLite + browser SPA）可选通过 webhook + capability aliases 与 hunter-platform 对接。本节描述完整 collab 流程，ow-recruit 侧的实装见 [`ow-recruit/docs/architecture/multi-source.md`](https://github.com/qing3a/ow-recruit/blob/main/docs/architecture/multi-source.md)。
+
+### 17.1 拓扑
+
+```
+ow-recruit relay  (single binary, :8080)
+  │
+  │  ① HTTP /v1/skills/{name}              ← Agent 入口
+  │     - impl='qing3' 模式下,runner forward 到本平台的对应 endpoint
+  │     - 用 capability alias 解析 ow_recruit.* → 内部 canonical
+  │
+  │  ② POST /v1/webhooks/qing3              ← 异步事件回流
+  │     X-Hunter-Signature: sha256=<hex>
+  │     X-Hunter-Timestamp: <unix-seconds>
+  │     X-Hunter-Event: <6 个事件类型之一>
+  │     body: { type, payload, contains_pii }
+  │
+  ▼
+hunter-platform  (本平台, :3000)
+  │
+  ├─ ① 解析 url/aliases/ 命中 → 调内部 handler
+  ├─ webhook_inbox_deliveries (UNIQUE body_hash) → 去重 → enqueue side-effects
+  └─ 业务动作后 outbound webhook 推回 ow-recruit agent_endpoint
+```
+
+### 17.2 入站 webhook 接 qing3（Node.js + TypeScript receiver 示例）
+
+```typescript
+import express from 'express';
+import crypto from 'node:crypto';
+
+const app = express();
+app.use(express.raw({ type: 'application/json' }));
+
+app.post('/v1/webhooks/qing3', (req, res) => {
+  const sig   = (req.header('X-Hunter-Signature') ?? '').replace(/^sha256=/, '');
+  const ts    = req.header('X-Hunter-Timestamp') ?? '';
+  const event = req.header('X-Hunter-Event') ?? '';
+
+  // 1. 重放窗检查 (±5min)
+  if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) {
+    return res.status(401).send('stale timestamp');
+  }
+
+  // 2. HMAC 常量时间比较
+  const expected = crypto
+    .createHmac('sha256', process.env.WEBHOOK_HMAC_SECRET!)
+    .update(`${ts}.${req.body.toString('utf8')}`)
+    .digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
+    return res.status(401).send('bad signature');
+  }
+
+  // 3. body_hash dedup 由 hunter-platform 侧处理 (R1.C3), receiver 信任去重后的事件
+  const eventPayload = JSON.parse(req.body.toString('utf8'));
+  handleEvent(event, eventPayload);
+  res.json({ ok: true });
+});
+
+function handleEvent(event: string, payload: any) {
+  switch (event) {
+    case 'deliver_contact':        return storePiiEncrypted(payload);
+    case 'placement_created':      return recordPlacement(payload);
+    case 'notify_unlock_request':  return candidateDecide(payload);
+    case 'notify_unlock_approved': return employerUnlock(payload);
+    case 'quota_warning':          return reduceOperationRate();
+  }
+}
+```
+
+### 17.3 已知事件类型（6 个 — `src/shared/types.ts`）
+
+| event | 携带 PII | 触发条件 |
+|-------|----------|----------|
+| `notify_unlock_request` | ❌ | 雇主表达兴趣 |
+| `notify_unlock_approved` | ❌ | 候选人 approve |
+| `unlock_approved_by_candidate` | ❌ | 同上的别名事件（保留双名因 outbound webhook 历史消费方） |
+| `deliver_contact` | ✅ name/phone/email | unlock-contact 成功 |
+| `placement_created` | ❌ | employer 创建 placement |
+| `quota_warning` | ❌ | 配额到 80% |
+
+### 17.4 Capability alias 查询（外部客户端入口）
+
+```bash
+curl https://api.hunter-platform.com/v1/capabilities/by-alias/ow_recruit.advance_candidate
+# → { ok: true, data: {
+#     canonical: "pm.select_staffing_plan",
+#     method: "POST",
+#     path: "/v1/pm/staffing-plans/:id/select"
+#   } }
+```
+
+- aliases 端点**公开**（无需 auth），不暴露内部 capability 全表
+- 返回的 `path` 含 `:param` 占位符，客户端需按 `method + path` 模板拼装 URL
+- 详见 §2.1.0.1 + 测试覆盖：`tests/integration/capabilities-by-alias.test.ts`
+
+### 17.5 运行模式三态
+
+ow-recruit 启动时探测本平台可达性，runtime mode 在三种状态间切换：
+
+| mode | 触发条件 | skill 行为 | 备注 |
+|------|---------|-----------|------|
+| `offline` | 探测失败 / 配置禁用 | 全部 `impl='local'` | 即使断网也能跑 |
+| `local` | 默认 | 全部 `impl='local'` | 单租户，ow-recruit 数据库为唯一信源 |
+| `collab` | 探测到本平台可达 + 心跳守护 | 部分 skill 走 `impl='qing3'` | skill name 通过 alias 解析到本平台 endpoint |
+
+切换在 ow-recruit 端自动（bus emit → IndexedDB 持久化 → `RuntimeMode.applyServerEvent`），agent **不需要**做模式管理。
+
+---
+
+## 📨 18. 系统通知 (Notifications)（原 §2.7 提升，v1.9.0 起）
+
+> ⚠️ 本节从原 §2.7 提升为独立章节 — 通知不属于主线事务 API，agent 接入优先级低于 §2 端点表。读完本节即可掌握"如何在不用 webhook 的情况下收到关键业务事件"，详见 §6（出站）/ §17（入站）。
+
+平台为关键业务事件提供单向系统通知，客户端通过**轮询拉取**（不推送）。30 天后自动过期清理。
+
+### 端点
+
+| Method | Path | 说明 |
+|--------|------|------|
+| GET    | `/v1/notifications` | 拉取列表（支持 `?unread=true&since=<iso>&category=<cat>&limit=N&offset=N`）|
+| GET    | `/v1/notifications/:id` | 拉取单条（跨用户访问返回 404）|
+| POST   | `/v1/notifications/:id/read` | 标记已读（**幂等** —— 重复调用返回相同的 `read_at`）|
+| POST   | `/v1/notifications/read-all` | 全部已读 |
+| DELETE | `/v1/notifications/:id` | 删除 |
+
+`GET /v1/notifications` 响应字段：
+- `items[]` — 通知列表（按 `created_at` 倒序，已过期的不返回）
+- `unread_count` — 当前未读数（仅未过期）
+- `has_more` — `items.length === limit` 时为 `true`，客户端可翻页
+
+### 触发的事件 (6 个 category)
+
+| category | 接收方 | 触发 |
+|----------|--------|------|
+| `recommendation_accepted` | 猎头 | 雇主接受推荐（**待对应业务事件上线**） |
+| `recommendation_rejected` | 猎头 | 雇主拒绝推荐（**待对应业务事件上线**） |
+| `unlock_granted` | 候选人 | 雇主解锁联系方式 |
+| `candidate_viewed` | 候选人 | 雇主查看简历（**待对应业务事件上线**） |
+| `placement_confirmed` | 猎头 | 创建入职记录（placement_created） |
+| `commission_paid` | 猎头 | 管理员标记佣金已支付（mark_paid） |
+
+### 去重 (dedup) 语义
+
+调用 `notif.notify({ dedupKey: 'k' })` 时：
+- 若 (user_id, category, dedup_key) 存在**未读**行 → **就地更新**（覆盖 title/body/payload，重置 `created_at` 和 `expires_at`），返回原 id
+- 若 (user_id, category, dedup_key) 存在**已读**行 → 插入新行（重新通知）
+- 若不存在 → 插入新行
+
+### 轮询推荐
+
+```http
+GET /v1/notifications?since=2026-06-24T09:55:00Z&limit=50
+Authorization: Bearer <API_KEY>
+```
+
+Agent 应维护 `latest_seen_at`（`created_at` 的最大值），下次用 `since=<latest_seen_at>` 拉增量。
+
+- `limit` 默认 50，上限 200
+- `category` 可选过滤；不填返回全部
+- `unread=true` 只返回未读（与 `since` 可组合）
+- 30 天前创建的行 `expires_at < now`，自动从列表中消失
+
+### 错误处理
+
+- 通知写入失败 → `trigger.notify()` 内部 try/catch 吞掉错误并 log；**主业务调用方不受影响**
+- 所有通知写入 `hunter_notifications_sent_total` / `hunter_notifications_send_errors_total` Prometheus counter
+
+---
+
 ## 📚 附录 A. v1 范围
 
 - ✅ 注册 / 认证 / 三角色基础
@@ -1577,6 +1950,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | v1.0 | 2026-06 | 初始发布；API-only 模式（移除 Electron 桌面客户端） |
 | v1.0 | 2026-06 | `utf8-only` 中间件增强：实际检测字节编码（之前仅看 Content-Type） |
 | v1.0 | 2026-06 | 修复 `access_log` 旧下划线版 → `access-log` 连字符 |
+| **v1.8 / R1 era** | 2026-07-15 | **Doc hardening**（本次重大整理）：4 个新路由子段（§2.4a/§2.3a/§2.2a/§2.4b 共 55 endpoints）+ §1.2 Active Role + §3.2 PM-side variant + §17 Hunter × ow-recruit Collab Mode + §18 系统通知（从 §2.7 提升）+ R1.C2/C3/C4/T10 摘要 + `GET /v1/capabilities/by-alias/:name` 新端点 + §F/§X admin auth refresh + TOC + §15 折叠入 §2.2.1 + §13 deprecated notice。本 PR 后 doc version = **1.8 / R1 era**；下一次 breaking 改动时同步升 1.9 / R2。 |
 
 ---
 
@@ -1636,8 +2010,11 @@ Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是
 |------|------|------|------|
 | `PLATFORM_ENCRYPTION_KEY` | ✅ | — | AES-256-GCM 密钥，base64 of 32 bytes。单 key 模式。 |
 | `PLATFORM_ENCRYPTION_KEYS` | ❌ | — | 多 key 轮换模式：`v1:<b64>,v2:<b64>`，最新 key 用于加密 |
-| `WEBHOOK_HMAC_SECRET` | ✅ | — | webhook 签名密钥，≥ 16 字符 |
-| `ADMIN_PASSWORD_HASH` | ✅ | — | bcrypt 哈希 |
+| `WEBHOOK_HMAC_SECRET` | ✅ | — | webhook 签名密钥，≥ 16 字符（出站 + 入站都用同一 secret） |
+| `ADMIN_PASSWORD_HASH` | ❌ 已废弃（v1.5+） | — | **不再使用**。Per-admin api_key 取代（见下）。 |
+| `SEED_ADMIN_PASSWORD` | ⚠️ 仅首次部署 | — | 第一次启动时若 `admin_users` 表为空，按此 seed 一个 super admin（默认 email `admin@qing3.top`）。login 后用 `POST /v1/admin/auth/login` 改密码并拿新 api_key |
+| `SEED_ADMIN_EMAIL` | ❌ | `admin@qing3.top` | 首次 seed admin 的 email，可在 .env 覆盖 |
+| `ADMIN_PASSWORD_FILE` | ❌ | — | 备用：以文件方式投递首次 seed 密码，避免进 .env（生产推荐） |
 | `DATABASE_PATH` | ❌ | `./data/hunter.db` | SQLite 文件路径 |
 | `PORT` | ❌ | `3000` | HTTP 监听端口 |
 | `NODE_ENV` | ❌ | `development` | `development` / `test` / `production` |

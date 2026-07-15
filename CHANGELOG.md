@@ -100,6 +100,57 @@ Changed, Fixed, Removed, Deprecated, Security. Versions follow
   directly; now takes optional `opts.uptimeSec` so tests can assert
   cold-start deterministically.
 
+### Docs hardening (`docs/superpowers/skill.md`) — 2026-07-15
+
+**Added** (5 router sub-sections, ~55 endpoints previously undocumented):
+- `§2.4a PM Workbench — /v1/pm/*` — 28 endpoints (projects / positions /
+  plans / matches / snapshot / notes)
+- `§2.3a HR Workbench — /v1/headhunter-workspace/*` — 12 endpoints
+  (dashboard / tasks CRUD + complete + reopen / kanban move+add+remove /
+  stats funnel)
+- `§2.2a PM Panel — /v1/employer-panel/*` — `/dashboard` aggregate
+- `§2.4b Candidate browser portal — /v1/candidate-portal/*` — 14
+  endpoints (OTP auth 公开 + jobs browse/recommended + applications +
+  profile + messages)
+- `§1.2 Active Role 约束` — T10 roleGate semantics + 3 prefix × 3 role
+  matrix; explicit "auto-grant 3 role ≠ full-access" caveat
+- `§3.2 PM-side variant — staffing plan 子状态机` — alongside main
+  unlock flow; documents `POST /v1/pm/plans/{id}/select` as the
+  `ow_recruit.advance_candidate` binding endpoint
+- `§17 Hunter × ow-recruit Collab Mode` — 5 sub-sections:
+  topology + Node.js receiver code + 6 event types + alias query
+  example + 3-mode state machine
+- `§18 系统通知` — promoted out of §2.7 to standalone chapter
+- `§0.4 PII matrix` — added admin-view row (per-admin `hp_adm_*`)
+
+**Changed**:
+- §F env-var table: `ADMIN_PASSWORD_HASH` row marked
+  `❌ deprecated (v1.5+)`; new rows for `SEED_ADMIN_PASSWORD`,
+  `SEED_ADMIN_EMAIL`, `ADMIN_PASSWORD_FILE`
+- §6.2 Webhook signing: removed duplicate paragraph; v2 per-user-secret
+  plan explicitly marked rejected
+- §1.1 renumbered (字段命名约定 → §1.3) to make room for §1.2
+- §2.7 (Notifications) promoted to §18
+- `README.md` env-var required list: removed `ADMIN_PASSWORD_HASH`
+  bullet; added `SEED_ADMIN_PASSWORD` block
+
+**Feature** (fulfilling a long-standing doc promise):
+- `GET /v1/capabilities/by-alias/:name` — public endpoint that resolves
+  external skill aliases (e.g. `ow_recruit.advance_candidate`) to the
+  internal canonical capability's HTTP binding. Implements the R1.C4
+  promise documented in §2.1.0.1. Used by ow-recruit's `pickImpl`
+  step at collab time.
+- Integration tests: `tests/integration/capabilities-by-alias.test.ts`
+  — 6 scenarios (3 R1.C4 bindings + canonical-name idempotency +
+  404 for unknown + auth-not-required smoke).
+
+**Risks acknowledged**:
+- OpenAPI forward gap: new endpoint + 4 new route sub-sections mean
+  openapi.json is one step behind; tracked in `docs/PROJECT_MEMORY.md`
+  §2 followups, will be closed by running `pnpm openapi:generate`
+  after this PR (currently `--check` reports 1 forward gap, marked
+  informational only).
+
 ---
 
 ## [v1.4.1] — 2026-06-20
