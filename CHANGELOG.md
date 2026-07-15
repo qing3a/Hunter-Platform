@@ -274,6 +274,52 @@ Closes the v1.10 "long-term bloat" follow-up outlined in PR #5:
 - `_generated.test.ts` is no longer tracked. If a future developer wants the baseline file back, they can `git checkout origin/main -- tests/integration/skill-md-conformance/_generated.test.ts` (the file existed on main until 8958d4a in commit `8958d4a`).
 - `pm-deep.test.ts` requires a registered candidate (`cKey`) to produce matches. The test is **lenient on actual match contents** (accepts both array and `{matches, total}` shapes, and accepts zero or more matches returned) — it's primarily an HTTP-route-exercise + smoke; deeper assertions live in `tests/integration/pm/matches.test.ts` (handler + repo direct, 10+ scenarios).
 
+### Production deployment — 2026-07-16
+
+Synced local main (post-R1 era, including PR #2-#6) to qing3.top. The R1 era migrations (v024-v032) and C2/C3/C4 functionality had already been deployed on 2026-07-14 (separate cycle, not captured here); the 2026-07-16 deploy closed the PR #2-#6 gap (by-alias endpoint + skill.md rewrite + admin-web R2.5).
+
+**Pre-deploy verification** (via SSH to `101.201.110.129`):
+- Pre-R1 DB backup: `hunter-pre-r1-2026-07-16.db` (618KB) — written before service stop, retained for rollback.
+- Service was healthy: `systemctl status hunter-platform` active, `/v1/health` 200.
+- `schema_migrations` had 25 rows (v001-v032 all applied, MAX(version)=25).
+
+**Deploy steps** (5 min total wall time):
+1. Clean: `rm -rf out tsconfig.node.tsbuildinfo`
+2. Build api: `pnpm install --frozen-lockfile && pnpm build` (450 main + 6 shared + 25 migrations SQL).
+3. Build admin-web: `cd admin-web && pnpm install --frozen-lockfile && pnpm build` (271KB JS + 9KB CSS + index.html → `out/admin/`).
+4. `systemctl stop hunter-platform` — clean SIGTERM shutdown.
+5. tar+ssh push: `cd out && tar czf - . | ssh ... 'cd /opt/hunter-platform/out && find . -mindepth 1 -delete && tar xzf -'` (456 files, 2.9MB).
+6. tar+ssh push for admin-web (separately, because vite output is to `out/admin/` not `out/main/`): `cd out/admin && tar czf - . | ssh ...` (296KB, 3 files).
+7. `systemctl start hunter-platform` — service back up, PID 604228.
+8. `nginx -s reload`.
+
+**Bug found and fixed during deploy** — nginx `^~` priority for `/admin/`:
+- Original config: `location /admin/ { alias /opt/hunter-platform/out/admin/; try_files ...; }`
+- After first reload, `https://qing3.top/admin/` returned 200 (HTML) but `https://qing3.top/admin/assets/*.js` returned 404 (size=146, nginx default 404 page).
+- Root cause: nginx `location ~ .*\\.(js|css)?$` regex was matching `/admin/assets/*.js` first, falling back to default root `/www/wwwroot/qing3.top/` where the files don't exist. Prefix `/admin/` (without `^~`) loses to any matching regex.
+- Fix: added `^~` to make prefix `/admin/` priority-over-regex (matches how `/view/` is already configured).
+- Backup of original config: `/www/server/panel/vhost/nginx/html_qing3.top.conf.bak.20260716`.
+- Same fix captured in `docs/OPERATIONS.md §3.6` (commit `4917b8f`).
+
+**E2E verification (all 200)**:
+```
+GET /admin/                              200 (507B HTML)
+GET /admin/assets/index-CsCf4Wjl.js      200 (273KB JS)
+GET /admin/assets/index-BXhnLSQB.css     200 (9KB CSS)
+GET /admin/favicon.ico                   200
+GET /admin/rate-limit (SPA fallback)     200
+GET /v1/health                           200
+GET /v1/capabilities                     200
+GET /v1/capabilities/by-alias/ow_recruit.advance_candidate  200
+GET /v1/admin/ping                       401 (auth required, correct)
+```
+
+**Operational notes**:
+- DB backup `hunter-pre-r1-2026-07-16.db` left in place; previous backups (`hunter-post-rename.db`, `hunter-pre-r1c2-20260714-160156.db`) untouched.
+- nginx config backup `html_qing3.top.conf.bak.20260716` left on prod.
+- Total downtime: ~6 seconds (stop → scp api → start) + ~3 seconds for admin-web + nginx reload.
+- No DB migration ran (all 25 versions already applied).
+
 ---
 
 ## [v1.4.1] — 2026-06-20
