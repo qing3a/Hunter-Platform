@@ -2,11 +2,19 @@ import { Router } from 'express';
 import { authMiddleware } from '../modules/auth/middleware.js';
 import { createUsersRepo } from '../db/repositories/users.js';
 import type { DB } from '../db/connection.js';
-import { getAllCapabilitySets, getCapabilitiesForRole } from '../capabilities/index.js';
+import {
+  getAllCapabilitySets,
+  getCapabilitiesForRole,
+  findCapabilityByAlias,
+} from '../capabilities/index.js';
 import { canInvoke, type Capability } from '../capabilities/types.js';
 import { Errors } from '../errors.js';
 import { respond } from '../responses.js';
-import { CapabilitiesResponseSchema, MeCapabilitiesResponseSchema } from '../schemas/capabilities.js';
+import {
+  AliasResponseSchema,
+  CapabilitiesResponseSchema,
+  MeCapabilitiesResponseSchema,
+} from '../schemas/capabilities.js';
 
 function describeCapability(c: Capability) {
   return {
@@ -32,6 +40,26 @@ export function createCapabilitiesRouter(db: DB): Router {
         capabilities: s.capabilities.map(describeCapability),
       }));
       respond(res, CapabilitiesResponseSchema, { ok: true, data: { sets } });
+    } catch (e) { next(e); }
+  });
+
+  // GET /v1/capabilities/by-alias/:name — public, R1.C4.
+  // Resolves an external skill alias (e.g. `ow_recruit.advance_candidate`)
+  // to the internal canonical capability's HTTP binding. Mirrors the
+  // server-side `findCapabilityByAlias` helper but exposed for external
+  // clients (ow-recruit et al.) that want to look up the canonical
+  // `{ method, path }` before issuing a request, so they can address it
+  // by canonical name in `x-capability-name` headers and quota lookups.
+  router.get('/v1/capabilities/by-alias/:name', (req, res, next) => {
+    try {
+      const cap = findCapabilityByAlias(req.params.name);
+      if (!cap) {
+        throw Errors.notFound(`No capability alias '${req.params.name}'`);
+      }
+      respond(res, AliasResponseSchema, {
+        ok: true,
+        data: { canonical: cap.name, method: cap.method, path: cap.path },
+      });
     } catch (e) { next(e); }
   });
 

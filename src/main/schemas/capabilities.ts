@@ -59,3 +59,14 @@ export const MeCapabilitiesResponseSchema = EnvelopeSchema(
     capabilities: z.array(MeCapabilityItemSchema),
   })
 );
+
+// R1.C4 — response shape for `GET /v1/capabilities/by-alias/:name`.
+// Resolves an external skill alias (e.g. `ow_recruit.advance_candidate`)
+// to the internal canonical capability's HTTP binding.
+export const AliasResponseSchema = EnvelopeSchema(
+  z.object({
+    canonical: z.string(),
+    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+    path: z.string(),
+  })
+);
