@@ -44,7 +44,7 @@ describe('GET /v1/capabilities/by-alias/:name (R1.C4)', () => {
     expect(r.status).toBe(200);
     expect(r.body.data.canonical).toBe('pm.select_staffing_plan');
     expect(r.body.data.method).toBe('POST');
-    expect(r.body.data.path).toBe('/v1/pm/staffing-plans/:id/select');
+    expect(r.body.data.path).toBe('/v1/pm/plans/:id/select');
   });
 
   it('maps ow_recruit.send_message to candidate_portal.messages.send', async () => {

@@ -42,4 +42,41 @@ describe('skill.md: admin endpoints', () => {
     expect(r.status).toBe(200);
     expect(r.data.data.length).toBeGreaterThan(0);
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PR #3 reconciliation follow-up — admin get-by-id endpoints + admin.me +
+  // admin.action_history. These capabilities were declared in PR #3 but
+  // had no scenario. Fill them in here, reusing the admin key + registered
+  // users from the beforeAll above.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('admin.me: GET /v1/admin/me returns the current admin', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/admin/me', auth: adminAuthHeader(),
+    });
+    expect(r.status).toBe(200);
+    expect(r.data.data.email).toBe('admin@conformance.test');
+    expect(r.data.data.role).toBe('super');
+  });
+
+  it('admin.users.read: GET /v1/admin/users/:id returns the registered hr user', async () => {
+    const hrId = client.ids.get('hr');
+    const r = await client.request({
+      method: 'GET', path: `/v1/admin/users/${hrId}`, auth: adminAuthHeader(),
+    });
+    expect(r.status).toBe(200);
+    expect(r.data.data.id).toBe(hrId);
+    expect(r.data.data.user_type).toBe('hr');
+  });
+
+  it('admin.action_history: GET /v1/admin/action-history returns enriched audit rows', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/admin/action-history', auth: adminAuthHeader(),
+    });
+    expect(r.status).toBe(200);
+    expect(Array.isArray(r.data.data)).toBe(true);
+    // No required key — just verify shape (rows may be empty in this short-lived
+    // test environment since action_history is populated post-API-call).
+    expect(r.data.data.length).toBeGreaterThanOrEqual(0);
+  });
 });

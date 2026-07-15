@@ -38,6 +38,12 @@ export async function freshApp(name: string): Promise<{ app: Express; dbPath: st
   process.env.ADMIN_PASSWORD_HASH = 'DEPRECATED'; // legacy env var — code no longer reads it
   process.env.DATABASE_PATH = dbPath;
   process.env.NODE_ENV = 'test';
+  // Skill.md §5.6: kill switch — `RATE_LIMIT_ENABLED=false` disables BOTH the
+  // per-user sliding window + the IP rate-limit on /v1/auth/register
+  // (5/h). Conformance test files register multiple users in beforeAll
+  // without honoring the 5/h limit; turning it off keeps the suite green.
+  // Production impact: none (test-only env var).
+  process.env.RATE_LIMIT_ENABLED = 'false';
 
   // Use the createAppFromDb pattern (matches tests/integration/admin-endpoints.test.ts).
   // Going through createApp() also works, but using the lower-level path lets us
@@ -51,9 +57,11 @@ export async function freshApp(name: string): Promise<{ app: Express; dbPath: st
   const app = createAppFromDb(db, loadEnv());
 
   // Seed a known admin and log in to obtain the real api_key (Sub-A auth).
+  // Use INSERT OR IGNORE so re-running this file (or running it after a
+  // previous run left a DB handle behind) doesn't blow up on UNIQUE(email).
   const pwdHash = bcrypt.hashSync(ADMIN_PLAINTEXT, 4);
   const keyHash = bcrypt.hashSync('hp_admin_conformancekey', 4);
-  db.prepare(`INSERT INTO admin_users (id, name, email, password_hash, api_key_hash, api_key_prefix, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+  db.prepare(`INSERT OR IGNORE INTO admin_users (id, name, email, password_hash, api_key_hash, api_key_prefix, role, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
     'adm_conformance', 'Conformance Admin', ADMIN_EMAIL, pwdHash, keyHash, 'hp_admin_confor', 'super', 'active',
     '2026-06-23T00:00:00Z', '2026-06-23T00:00:00Z'
   );
