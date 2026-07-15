@@ -3,10 +3,35 @@ name: hunter-platform
 description: Use this skill when the user asks about job search, hiring, headhunters, candidates, recruitment, or talent matching. Connects to the Hunter Platform API for three personas (candidates, headhunters, employers) plus an ops/admin persona. Deployed at qing3.top. Provides 141 REST endpoints with dual-track authentication (Bearer hp_live_xxx API key for machine-to-machine; Bearer sess_xxx session with 168h sliding TTL + X-Active-Role header for interactive agents). 86 declared capabilities, self-discovery via /v1/capabilities and OpenAPI 3 spec at /v1/openapi.json. Inbound webhooks (POST /v1/webhooks/qing3) with body-hash dedup. RBAC: roleGate middleware on /v1/pm, /v1/employer, /v1/headhunter, /v1/candidate. Recommendation state machine: pending -> employer_interested -> candidate_approved -> unlocked -> placed (with pm-side variant: pending -> pending_pickup -> considering_offer). Full feature inventory: docs/FEATURES.md.
 ---
 
-# 🎯 Hunter Platform — Agent Skill (v1)
+# 🎯 Hunter Platform — Agent Skill (v1.8 / R1 era)
 
 > 任何外部 AI Agent 通过本文档即可对接 Hunter Platform。  
 > 三角色（**候选人 / 猎头 / 雇主**）共享同一套 HTTP API，纯 API-only 模式，无桌面客户端。
+
+---
+
+## 📑 目录
+
+> GitHub / VS Code / ZCode 渲染下，点击下面任一链接会跳转。**Anchor slug** 是 GitHub 自动生成的（一般把中文转拼音 + 段落序号，本节按文档顺序列）。
+
+1. [📝 最近升级](#-最近升级按时间倒序)
+2. [🔗 分布式追踪](#-分布式追踪-phase-2--给-agent-客户端的契约)
+3. [🔄 状态机](#-状态机-phase-3--给-agent-客户端的契约)
+4. [🧭 Capability Discovery](#-capability-discovery-phase-4)
+5. [📖 0. 业务模型](#-0-业务模型先读这一节)
+6. [🔐 1. 认证](#-1-认证)  ·  [§1.2 Active Role 约束](#12-active-role-约束t10--rolegater1-起强制)  ·  [§1.3 字段命名约定](#13-字段命名约定)
+7. [🌐 2. 完整 API 端点](#-2-完整-api-端点)  ·  [§2.2a PM Panel](#22a-pm-panel----v1employer-panel-r1--phase-3c)  ·  [§2.3a HR Workbench](#23a-hr-workbench----v1headhunter-workspace-r1--phase-3a)  ·  [§2.4a PM Workbench](#24a-pm-workbench----v1pm-r1--phase-3b)  ·  [§2.4b 候选人浏览器门户](#24b-候选人浏览器门户----v1candidate-portal-r1--phase-1)
+8. [📨 6. Webhook 回调规范](#-6-webhook-回调规范)
+9. [🛠 X. Admin API](#-x-admin-api运维--服务器-ai-管理接口)
+10. [🚀 11. Day 1：端到端接入指南](#-11-day-1端到端接入指南)
+11. [🧠 12. 决策启发](#-12-决策启发agent-best-practices)
+12. [💡 13. SDK / 客户端示例](#-13-sdk--客户端示例)  · *（已弃用 — 见提示框）*
+13. [🧭 14. Agent 决策手册](#-14-agent-决策手册策略层)
+14. [🤝 17. Hunter × ow-recruit Collab Mode](#-17-hunter--ow-recruit-collab-moder1-起正式接入)
+15. [🧭 18. 系统通知](#-18-系统通知-notifications原-27-提升v190-起)
+16. [📚 附录 A–G](#-附录-a-v1-范围)
+
+> 💡 **找具体端点**：`Ctrl+F` 输入 HTTP path 如 `/v1/pm/plans/{id}/select`，会一次性定位到 §2.4a 的行 + §3.2 的状态机说明。
 
 ---
 
@@ -369,6 +394,45 @@ ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-p
 { "job_id": "job_xxx", "anonymized_candidate_id": "ca_xxx", "annual_salary": 600000 }
 ```
 > ⚠️ 用 `anonymized_candidate_id`（脱敏候选人 ID），**不是** `candidate_user_id`。
+
+#### 2.2.1 query 参数边界（v1.2 起）/ `GET /v1/employer/talent` 细节
+
+##### 响应字段
+
+`AnonymizedCandidate[]`（6 个字段）：
+
+| 字段 | 类型 | 来源 | 备注 |
+|------|------|------|------|
+| `anonymized_id` | string | `candidates_anonymized.id` | 形如 `ca_xxxxxxxx` |
+| `industry` | string \| null | `lookupIndustry(current_company)` | 例：`互联网` / `金融` / `其他` |
+| `title_level` | string \| null | `matchTitleLevel(current_title)` | 例：`P6` / `P7+` / `M1` |
+| `years_experience` | number \| null | 直传 | 整数 |
+| `salary_range` | string \| null | `matchSalaryBand(expected_salary)` | 见下方 7 个 band |
+| `education_tier` | string \| null | `SCHOOL_TIERS[education_school]` | `985` / `211` / `普通` |
+| `skills` | string[] | 解析 `skills_json` | |
+
+> ⚠️ **不返回** name / phone / email 等 PII — 这些必须通过 unlock 流程异步推送（详见 §6 的 `deliver_contact` webhook）。
+>
+> 💡 **每个元素自动带 `view_url`**：数组中每个 `AnonymizedCandidate` 元素都会注入一个单次有效的 `view_url`，agent 可直接访问预览脱敏画像，无需再调 `POST /v1/views/candidate/{id}`（见 §7）。
+
+##### salary filter 边界表（**v1.2 起**含 `min_salary` / `max_salary`）
+
+数字与 `SALARY_BANDS` 求**交集**。例如 `min=400000, max=800000` 命中 `40-60万` 和 `60-80万`。边界：`band.max=NULL`（即 `200万+`）视为 Infinity。
+
+| 输入 | 命中 band |
+|------|-----------|
+| `min_salary=400000, max_salary=600000` | `40-60万` |
+| `min_salary=400000`（无 max） | `40-60万`, `60-80万`, `80-120万`, `120-200万`, `200万+` |
+| `min_salary=0` | 所有 band |
+| `min_salary=-1` 或 `max_salary=-1` | 忽略该参数 |
+| `min_salary > max_salary` | 空数组 |
+| `min_salary=2000000, max_salary=null` | `200万+` |
+
+> 配额：每次调用消耗 `browse_talent` = 1 quota。employer 默认 100/天。
+>
+> ⚠️ `min_salary=invalid`（NaN）被忽略，返回所有；`min > max` 返回空数组（不报错）。
+>
+> 💡 本节合并自原 §15（v1.2 时的 "Employer browseTalent 详解"），R1 重构时折叠入 §2.2.1 — 不再保留独立章节。
 
 ### 2.3 猎头
 
@@ -1120,6 +1184,8 @@ def call_with_retry(url, headers, body, max_retries=3):
 
 ## 💡 13. SDK / 客户端示例
 
+> ⚠️ **已弃用 — 行内 demo only**：`examples/reference-agent/` CLI 已在 v1.8 标记 `@deprecated`，**v1.9 删除**（见 CHANGELOG.md v1.8 项）。本页 §13 示例仅作 in-doc 调用形式参考，不构成 SDK 承诺。生产 agent 直接用 `examples/agent-quickstart.ts` 作为起点（**R1+ 引入**，含三角色注册 + 4 步解锁 + placement 全链路）。**§13 的代码片段到 2026-Q4 将被移除**，期间请勿基于此节构建 SDK。
+
 ### 13.1 Node.js / TypeScript
 
 ```typescript
@@ -1349,7 +1415,8 @@ def decide_unlock(rec):
         return 'reject'        # 履约率过低
 ```
 
-**action_type 名以 `route-action-map.ts` 为准**（不是 `unlock_delivery`）：
+**action_type 名以 [`src/main/modules/auth/route-action-map.ts`](../../src/main/modules/auth/route-action-map.ts) 为准**（路径相对仓库根；不是 `unlock_delivery`）：
+
 - `unlock_contact`：雇主申请解锁
 - `placement_created`：入职创建
 
@@ -1458,71 +1525,6 @@ rec = post('/v1/headhunter/recommendations', {
 - ❌ 同时跑 3 个角色 agent 测同一 IP——register 走 IP 限流 5/h
 - ❌ 在 placement body 传 commission_split_json——schema 不接受（详见 §2.3）
 - ❌ 跨猎头协作时"猎头 push JD"——平台无 push，用 `/v1/market/jobs` 看市场
-
----
-
-## 🧭 15. Employer browseTalent 详解（v1.2 起）
-
-### 15.1 接口
-
-`GET /v1/employer/talent` — 浏览脱敏人才池（候选人必须已 `publish-to-pool`）。
-
-### 15.2 响应字段
-
-返回 `AnonymizedCandidate[]`（6 个字段）：
-
-| 字段 | 类型 | 来源 | 备注 |
-|------|------|------|------|
-| `anonymized_id` | string | `candidates_anonymized.id` | 形如 `ca_xxxxxxxx` |
-| `industry` | string \| null | `lookupIndustry(current_company)` | 例：`互联网` / `金融` / `其他` |
-| `title_level` | string \| null | `matchTitleLevel(current_title)` | 例：`P6` / `P7+` / `M1` |
-| `years_experience` | number \| null | 直传 | 整数 |
-| `salary_range` | string \| null | `matchSalaryBand(expected_salary)` | 见 §15.3 7 个 band |
-| `education_tier` | string \| null | `SCHOOL_TIERS[education_school]` | `985` / `211` / `普通` |
-| `skills` | string[] | 解析 `skills_json` | |
-
-> ⚠️ **不返回** name / phone / email 等 PII——这些必须通过 unlock 流程异步推送。
-
-> 💡 **每个元素自动带 `view_url`**：数组中每个 `AnonymizedCandidate` 元素都会注入一个单次有效的 `view_url`，agent 可直接访问预览脱敏画像，无需再调 `POST /v1/views/candidate/{id}`。
-
-### 15.3 query 参数（v1.2 起共 7 个）
-
-✅ **query 参数共 7 个**（v1.2 新增 `min_salary` / `max_salary`）：
-
-```python
-# 全部可选，可任意组合
-params = {
-    'industry': '互联网',          # 完全匹配 candidates_anonymized.industry
-    'title_level': 'P6',           # 完全匹配 title_level（如 'P6'、'P7+'、'M1'）
-    'min_years': 5,                # years_experience ≥ N
-    'max_years': 10,               # years_experience ≤ N
-    'skills': 'React,TypeScript',  # 逗号分隔，任一命中即可（OR）
-    'min_salary': 500000,          # 年薪下限（含），与 SALARY_BANDS 求交集
-    'max_salary': 800000,          # 年薪上限（含），与 SALARY_BANDS 求交集
-}
-candidates = get('/v1/employer/talent', params=params)['data']
-```
-
-**salary 过滤语义**：数字与 `SALARY_BANDS` 求**交集**。例如 `min=400000, max=800000` 命中 `40-60万` 和 `60-80万`。边界：band.max=NULL（即 `200万+`）视为 Infinity。
-
-**组合关系**：salary filter 与其他 filter 是 AND。
-
-**异常处理**：`min > max` 返回空数组（不报错）；`min_salary=invalid`（NaN）被忽略，返回所有。
-
-#### 15.3.1 边界示例表
-
-| 输入 | 命中 band |
-|------|-----------|
-| `min_salary=400000, max_salary=600000` | `40-60万` |
-| `min_salary=400000`（无 max） | `40-60万`, `60-80万`, `80-120万`, `120-200万`, `200万+` |
-| `min_salary=0` | 所有 band |
-| `min_salary=-1` 或 `max_salary=-1` | 忽略该参数 |
-| `min_salary > max_salary` | 空数组 |
-| `min_salary=2000000, max_salary=null` | `200万+` |
-
-### 15.4 配额
-
-每次调用消耗 `browse_talent` = 1 quota。employer 默认 100/天。
 
 ---
 
@@ -1871,6 +1873,7 @@ Agent 应维护 `latest_seen_at`（`created_at` 的最大值），下次用 `sin
 | v1.0 | 2026-06 | 初始发布；API-only 模式（移除 Electron 桌面客户端） |
 | v1.0 | 2026-06 | `utf8-only` 中间件增强：实际检测字节编码（之前仅看 Content-Type） |
 | v1.0 | 2026-06 | 修复 `access_log` 旧下划线版 → `access-log` 连字符 |
+| **v1.8 / R1 era** | 2026-07-15 | **Doc hardening**（本次重大整理）：4 个新路由子段（§2.4a/§2.3a/§2.2a/§2.4b 共 55 endpoints）+ §1.2 Active Role + §3.2 PM-side variant + §17 Hunter × ow-recruit Collab Mode + §18 系统通知（从 §2.7 提升）+ R1.C2/C3/C4/T10 摘要 + `GET /v1/capabilities/by-alias/:name` 新端点 + §F/§X admin auth refresh + TOC + §15 折叠入 §2.2.1 + §13 deprecated notice。本 PR 后 doc version = **1.8 / R1 era**；下一次 breaking 改动时同步升 1.9 / R2。 |
 
 ---
 
