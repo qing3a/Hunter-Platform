@@ -213,7 +213,20 @@ ssh -i /d/Downloads/cc.pem root@101.201.110.129 'systemctl start hunter-platform
 
 ### 3.6 admin-web 部署
 
-admin-web 是独立 SPA（React 18 + Vite），不是 node 服务：
+admin-web 是独立 SPA（React 18 + Vite），不是 node 服务。Vite 输出 `out/admin/`（**不是** `admin-web/dist/`）。
+
+**实际 nginx 路径**（`/www/server/panel/vhost/nginx/html_qing3.top.conf`）：
+```nginx
+location ^~ /admin/ {
+    alias /opt/hunter-platform/out/admin/;
+    try_files $uri $uri/ /admin/index.html;
+}
+```
+
+**注意 `^~`**：缺了它，nginx 的 `location ~ .*\\.(js|css)?$` regex 会抢先匹配
+`/admin/assets/*.js` / `*.css`，回退到默认 root `/www/wwwroot/qing3.top/`，返回 404。
+`^~` 让 prefix `/admin/` 优先于 regex location（与 `/view/` 的写法一致）。
+历史上 admin-web 部署后 HTML 200 但 JS 404 就是这个原因。修一次后保留 `^~`。
 
 ```bash
 # 1. local build
@@ -221,14 +234,23 @@ cd /d/dev/hunter-platform/admin-web
 pnpm install --frozen-lockfile
 pnpm build
 
-# 2. scp dist/ 到 nginx 服务的静态文件目录
-scp -r dist/* root@101.201.110.129:/var/www/html_qing3.top/
+# 2. scp out/admin/ 到生产（与 out/main/ 同一个 out/ 下）
+#    api tar 已覆盖 out/main + out/shared；admin-web 输出在 out/admin/，需单独传
+cd /d/dev/hunter-platform/out/admin
+tar czf - . | ssh -i /d/Downloads/cc.pem root@101.201.110.129 \
+  'cd /opt/hunter-platform/out/admin && find . -mindepth 1 -delete && tar xzf -'
 
-# 3. nginx reload（如果改了 nginx 配置）
-ssh -i /d/Downloads/cc.pem root@101.201.110.129 'nginx -s reload'
+# 3. nginx reload
+ssh -i /d/Downloads/cc.pem root@101.201.110.129 'nginx -t && nginx -s reload'
 ```
 
-注：R1.C2 时 admin-web 还没有完全集成到 nginx 反代（admin-web v1.5+ 在做）。具体路径以 nginx 配置为准。
+**E2E 验证**：
+```bash
+for u in /admin/ /admin/assets/index-*.js /admin/favicon.ico /admin/rate-limit; do
+  curl -sS -o /dev/null -w "$u -> %{http_code}\n" https://qing3.top$u
+done
+# 期望全 200；/admin/rate-limit 走 SPA fallback 应返 index.html
+```
 
 ---
 
