@@ -41,7 +41,12 @@ pnpm dev:watch    # 同上 + 改 .ts 自动重启
 
 - `PLATFORM_ENCRYPTION_KEY`（base64 编码 32 字节）
 - `WEBHOOK_HMAC_SECRET`（≥16 字符）
-- `ADMIN_PASSWORD_HASH`（bcrypt 哈希，≥20 字符）
+
+首次部署（v1.5+）还需设置：
+
+- `SEED_ADMIN_PASSWORD`（仅首次启动 seed super admin 所需，登录后用 `POST /v1/admin/auth/login` 走 per-admin bcrypt api_key）
+
+> 注：旧的 `ADMIN_PASSWORD_HASH` 环境变量已废弃，新代码完全不读。
 
 ## Demo 数据（dev 用）
 

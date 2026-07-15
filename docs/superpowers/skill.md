@@ -363,6 +363,99 @@ ow-recruit 等外部客户端可能使用自己的 skill 命名约定。hunter-p
 
 > ⚠️ **路径用连字符** `access-log` 和 `delete-my-data`（不是 `_`）。这是历史命名约定，404 不存在 `_` 版本。
 
+### 2.4a PM Workbench — `/v1/pm/*` (R1 / Phase 3b)
+
+pm role 的新主路由。`/v1/employer/*` 与 `/v1/employer-panel/*` 仍是兼容旧客户端的别名，新代码优先用 `/v1/pm/*`。所有端点由 `roleGate('pm')` 中间件守门，非 pm 角色一律 403。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| POST | `/v1/pm/projects` | 创建招聘项目 | 5 |
+| GET | `/v1/pm/projects` | 列出我的招聘项目（`?status=&limit=&offset=`） | 0 |
+| GET | `/v1/pm/projects/{id}` | 项目详情 | 0 |
+| PATCH | `/v1/pm/projects/{id}` | 更新项目 | 1 |
+| DELETE | `/v1/pm/projects/{id}` | 删除项目 | 1 |
+| POST | `/v1/pm/projects/{projectId}/positions` | 在项目下创建岗位（position） | 5 |
+| GET | `/v1/pm/projects/{projectId}/positions` | 列项目下岗位（`?status=&limit=&offset=`） | 0 |
+| GET | `/v1/pm/projects/{projectId}/positions/stats` | 项目下岗位状态统计 | 0 |
+| POST | `/v1/pm/projects/{projectId}/positions/bulk` | 批量创建岗位 | 5 |
+| GET | `/v1/pm/positions/{id}` | 岗位详情 | 0 |
+| PATCH | `/v1/pm/positions/{id}` | 更新岗位 | 1 |
+| DELETE | `/v1/pm/positions/{id}` | 删除岗位 | 1 |
+| POST | `/v1/pm/projects/{projectId}/decompose` | 把项目拆成候选 requirements（R1 起 AI 拆解，详见 §3.2） | 5 |
+| POST | `/v1/pm/projects/{projectId}/decompose/{decompositionId}/commit` | 提交拆解结果 | 1 |
+| GET | `/v1/pm/projects/{projectId}/decompositions` | 列出项目的拆解历史（`?limit=&offset=`） | 0 |
+| POST | `/v1/pm/projects/{projectId}/plans` | 创建 staffing plan | 5 |
+| GET | `/v1/pm/projects/{projectId}/plans` | 列项目下的 plans（`?limit=&offset=`） | 0 |
+| GET | `/v1/pm/plans/{id}` | plan 详情 | 0 |
+| PATCH | `/v1/pm/plans/{id}` | 更新 plan | 1 |
+| DELETE | `/v1/pm/plans/{id}` | 删除 plan | 1 |
+| POST | `/v1/pm/plans/{id}/select` | **选中** plan（key endpoint — R1.C4 别名 `ow_recruit.advance_candidate` 绑定到这里） | 3 |
+| GET | `/v1/pm/positions/{id}/sandbox` | position 的 sandbox 预览（脱敏候选人快照） | 0 |
+| GET | `/v1/pm/positions/{id}/matches` | position 的匹配候选人列表（`?min_score=&limit=&offset=`） | 1 |
+| POST | `/v1/pm/positions/{id}/matches/recompute` | 重算匹配 | 5 |
+| GET | `/v1/pm/snapshot` | 当前 pm 的全局快照（projects/positions/plans 总览） | 0 |
+| GET | `/v1/pm/notes` | 列我的所有 pm-private notes | 0 |
+| GET | `/v1/pm/notes/{candidate_user_id}` | 读取某候选人对应的 pm-private note | 0 |
+| PUT | `/v1/pm/notes/{candidate_user_id}` | upsert pm-private note（**不落 action_history**） | 0 |
+
+> 💡 **status 枚举**：`projects.status ∈ {planning, active, paused, completed, cancelled}`；`positions.status ∈ {open, paused, filled}`。
+>
+> 💡 **`/v1/pm/projects/{projectId}/decompose` 是异步长任务** — 响应返回 `decomposition_id`，客户端通过 `GET /v1/pm/projects/{projectId}/decompositions` 轮询，或订阅内部阶段 webhook（详见 §17 Collab Mode）。
+
+### 2.3a HR Workbench — `/v1/headhunter-workspace/*` (R1 / Phase 3a)
+
+猎头的"工作台"视图（dashboard / tasks / kanban / stats）。原 `assertHeadhunter()` 在 handler 级别检查 `user_type === 'hr'`，非 hr 角色一律 403。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| GET | `/v1/headhunter-workspace/dashboard` | 工作台首页聚合数据 | 0 |
+| GET | `/v1/headhunter-workspace/tasks` | 列我的任务（`?status=pending|completed|all&limit=&offset=`） | 0 |
+| POST | `/v1/headhunter-workspace/tasks` | 创建任务（字段：`title`, `description?`, `due_at?`, `priority?`, `related_recommendation_id?`, `related_candidate_user_id?`） | 1 |
+| PUT | `/v1/headhunter-workspace/tasks/{id}` | 更新任务 | 1 |
+| DELETE | `/v1/headhunter-workspace/tasks/{id}` | 删除任务 | 1 |
+| POST | `/v1/headhunter-workspace/tasks/{id}/complete` | 标记任务完成 | 1 |
+| POST | `/v1/headhunter-workspace/tasks/{id}/reopen` | 重新打开已完成任务 | 1 |
+| GET | `/v1/headhunter-workspace/kanban` | 读 kanban 板（columns + cards） | 0 |
+| POST | `/v1/headhunter-workspace/kanban/move` | 移动 card（body: `recommendation_id`, `to_column_id`, `to_position?`） | 1 |
+| POST | `/v1/headhunter-workspace/kanban/add` | 添加 card（body: `recommendation_id`, `to_column_id`） | 1 |
+| POST | `/v1/headhunter-workspace/kanban/remove` | 移除 card（body: `recommendation_id`） | 1 |
+| GET | `/v1/headhunter-workspace/stats` | 业绩 + 漏斗统计（`?from=&to=`） | 0 |
+
+> 💡 该路由与 `/v1/headhunter/*`（§2.3）并行——后者是事务性 API（upload/recommend 等），前者是为浏览器工作台场景优化的视图聚合。可独立使用，但推荐组合：先通过 `/v1/headhunter/*` 上传 + 推荐，再通过 workspace 跟踪状态。
+
+### 2.2a PM Panel — `/v1/employer-panel/*` (R1 / Phase 3c)
+
+雇主浏览器面板的首页聚合端点（dashboard 一发到位）。`assertEmployer()` 守门。
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| GET | `/v1/employer-panel/dashboard` | 雇主首页 7 项聚合（active_jobs / open_positions / candidates_viewed_this_month / interested_count / unlocked_count / placements_count / spend_this_month） | 0 |
+
+### 2.4b 候选人浏览器门户 — `/v1/candidate-portal/*` (R1 / Phase 1)
+
+候选人**面向浏览器**的低 quota 路由。OTP 登录（无密码）+ 普通会话。**2 个公开端点 + 12 个鉴权端点**：
+
+| Method | Path | 描述 | 配额 |
+|--------|------|------|------|
+| POST | `/v1/candidate-portal/auth/otp/request` | 请求 OTP（**公开**，按 IP 限流） | 0 |
+| POST | `/v1/candidate-portal/auth/otp/verify` | 校验 OTP，返回 session（**公开**） | 0 |
+| GET | `/v1/candidate-portal/jobs/browse` | 浏览公开 JD（`?industry=&keyword=&cursor=&limit=`） | 0 |
+| GET | `/v1/candidate-portal/jobs/recommended` | 推荐给我的 JD（`?limit=`） | 0 |
+| GET | `/v1/candidate-portal/jobs/{id}` | JD 详情 | 0 |
+| POST | `/v1/candidate-portal/jobs/{id}/apply` | 投递（body 含可选 `note`） | 1 |
+| GET | `/v1/candidate-portal/applications` | 列出我的投递（`?limit=&offset=`） | 0 |
+| GET | `/v1/candidate-portal/applications/{id}` | 投递详情 | 0 |
+| POST | `/v1/candidate-portal/applications/{id}/respond` | 响应投递（accept/decline/withdraw） | 1 |
+| GET | `/v1/candidate-portal/profile` | 读取我的候选人门户 profile | 0 |
+| PUT | `/v1/candidate-portal/profile` | 更新（fields: `skills?`, `visibility?`, `expectations?`） | 1 |
+| GET | `/v1/candidate-portal/profile/audit-log` | 谁看过我的门户 profile（`?limit=&offset=`） | 0 |
+| GET | `/v1/candidate-portal/messages` | 站内信列表（`?box=inbox|sent&unread_only=true&limit=&offset=`） | 0 |
+| POST | `/v1/candidate-portal/messages` | **发送站内信**（body: `to_user_id`, `content`, `application_id?`） — R1.C4 别名 `ow_recruit.send_message` 绑定到这里 | 1 |
+
+> 💡 鉴权模式：**OTP-only**（无密码）。`session_id` 必须有效；session 形如 `sess_*`，与 §1.1 鉴权一致。
+>
+> 💡 与 `/v1/candidate/*`（§2.4）的区别：后者是事务性 API（approve/reject/delete）；前者是为浏览器 portal 专门优化的低 quota 表面。两个角色集不可互调（不同 router），共享底层 user 表。
+
 ### 2.5 市场与配置
 
 | Method | Path | 描述 | 配额 |
@@ -678,16 +771,14 @@ header `Retry-After: <秒数>`（三窗口 reset 的最大值，最保守）。
 
 ### 6.2 签名验证
 
-平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256。
+平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256（`.env` 配置）。**当前 secret 是平台全局共享**，无 per-user 派生机制。v2 计划的 per-user secret 已取消（见 `CHANGELOG.md` R1 段）—— 多租户隔离由 `webhook_inbox_deliveries.body_hash` UNIQUE 去重 + RLS 租户级 audit 实现，不靠派生 secret。
 
-> ⚠️ **v1 设计缺口**：当前 secret 通过环境变量（`.env`）配置，**没有**注册时自动交付的机制。Agent 接入时需：
-> 1. 部署方在 `.env` 中配置 `WEBHOOK_HMAC_SECRET=<strong-random-string>`
-> 2. 在接收端用相同 secret 验证签名
-> 3. 接收端从 `X-Hunter-Timestamp` + `X-Hunter-Signature` 头验证（公式见下）
->
-> v2 计划：在 `POST /v1/auth/register` 时返回 per-user secret，或新增 `GET /v1/webhook/secret` 端点。
+**Headers:**
+- `X-Hunter-Signature: sha256=<hmac-hex>` — 完整小写 hex；可携带也可省略 `sha256=` 前缀，接收方需先剥离再比较
+- `X-Hunter-Timestamp: <unix-seconds>` — 出站时的秒级时间戳（W3C + RFC 3339 不一致时遵守出站方约定）
+- `X-Hunter-Event: <event_type>` — 事件名（`notify_unlock_request` / `deliver_contact` / …），信息性，接收方用它做 switch
 
-平台用 `WEBHOOK_HMAC_SECRET` 做 HMAC-SHA256：
+**签名数据**：`${timestamp}.${raw_body}`（注意 `.` 是字面量，不是字符串模板）
 
 ```
 Headers:
@@ -699,8 +790,13 @@ Headers:
 ```
 
 **接收方必须**：
-1. 验证时间戳（`|now - ts| < 300s`）—— 防重放
-2. 接收方应做**常量时间比较**（任何语言 SDK 都有相应 API）—— 防时序攻击
+1. 验证时间戳（`|now - ts| < 300s` = ±5min）—— 防重放
+2. 用**常量时间比较** hex 字符串（任何语言 SDK 都有相应 API）—— 防时序攻击
+
+> ⚠️ **v1 设计缺口**：当前 secret 只通过 `.env` 配置，**没有**注册时自动交付。Agent 接入流程：
+> 1. 部署方在 `.env` 中配置 `WEBHOOK_HMAC_SECRET=<strong-random-string>`
+> 2. 在接收端用相同 secret 验证签名
+> 3. 接收端从 `X-Hunter-Timestamp` + `X-Hunter-Signature` 头验证（公式同上）
 
 ### 6.3 重试
 
@@ -1636,8 +1732,11 @@ Agent 集成时，先看 §2 endpoint 表 + query 参数，再核对 OpenAPI 是
 |------|------|------|------|
 | `PLATFORM_ENCRYPTION_KEY` | ✅ | — | AES-256-GCM 密钥，base64 of 32 bytes。单 key 模式。 |
 | `PLATFORM_ENCRYPTION_KEYS` | ❌ | — | 多 key 轮换模式：`v1:<b64>,v2:<b64>`，最新 key 用于加密 |
-| `WEBHOOK_HMAC_SECRET` | ✅ | — | webhook 签名密钥，≥ 16 字符 |
-| `ADMIN_PASSWORD_HASH` | ✅ | — | bcrypt 哈希 |
+| `WEBHOOK_HMAC_SECRET` | ✅ | — | webhook 签名密钥，≥ 16 字符（出站 + 入站都用同一 secret） |
+| `ADMIN_PASSWORD_HASH` | ❌ 已废弃（v1.5+） | — | **不再使用**。Per-admin api_key 取代（见下）。 |
+| `SEED_ADMIN_PASSWORD` | ⚠️ 仅首次部署 | — | 第一次启动时若 `admin_users` 表为空，按此 seed 一个 super admin（默认 email `admin@qing3.top`）。login 后用 `POST /v1/admin/auth/login` 改密码并拿新 api_key |
+| `SEED_ADMIN_EMAIL` | ❌ | `admin@qing3.top` | 首次 seed admin 的 email，可在 .env 覆盖 |
+| `ADMIN_PASSWORD_FILE` | ❌ | — | 备用：以文件方式投递首次 seed 密码，避免进 .env（生产推荐） |
 | `DATABASE_PATH` | ❌ | `./data/hunter.db` | SQLite 文件路径 |
 | `PORT` | ❌ | `3000` | HTTP 监听端口 |
 | `NODE_ENV` | ❌ | `development` | `development` / `test` / `production` |
