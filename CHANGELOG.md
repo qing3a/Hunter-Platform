@@ -215,6 +215,35 @@ Picks up the post-PR-#3 follow-ups outlined in that PR's `Risks acknowledged`:
 - 41 capabilities remain `it.todo()` (the remaining newly-declared ones from PR #3 — headhunter-workspace 12, employer_jobs/pause/close-pending variants, admin rate-limit + login-events + audit + auth endpoints + 24 pm router endpoints). These don't break conformance:check (presence of `it.todo` counts as coverage). Deferred to v1.10 PR per "51 stubs" note in PR #3.
 - The RATE_LIMIT_ENABLED=false kill-switch in test setup is documented in `_setup.ts`; production code unaffected.
 
+### v1.10 conformance smoke tests (PR #5)
+
+Closes the v1.10 follow-up: 41 `it.todo()` placeholders from PR #3 + PR #4 now have a real smoke scenario each. Total 42 new scenarios (1 legacy alias included for coverage).
+
+**Single new file**: `tests/integration/skill-md-conformance/v1.10-conformance-smoke.test.ts` — 42 lightweight smoke tests that:
+- Issue a single request to each capability's path with the role it requires.
+- Assert a 2xx/3xx/4xx status (NOT 5xx) — proves the route exists and returns a typed error envelope when params are missing.
+- Use one api_key per role (hKey/cKey/pKey) to avoid IP rate-limit on register.
+
+**Caps now with real scenarios (42)**:
+- **admin (13)**: dashboard_stats, list_users, list_candidates, list_placements, placements_summary, audit_log, webhook_dead_letter, list_dead_letter (legacy alias), admin_log, get_config, login_events, rate_limit_buckets
+- **candidate (6)**: view_opportunities, access_log, export_my_data, delete_my_data (route), approve_unlock (route), reject_unlock (route)
+- **candidate-portal (4)**: auth.request_otp, auth.verify_otp, applications.list, applications.respond
+- **employer (4)**: browse_talent, list_pending_claims, claim_job (route), reject_job (route)
+- **headhunter (5)**: upload_candidate (route), recommend_candidate (route), list_candidates, list_recommendations, list_jobs
+- **headhunter-workspace (4)**: dashboard, tasks.list, kanban.read, stats
+- **employer-panel (1)**: dashboard
+- **webhooks-inbox (1)**: qing3_receive (signature-required)
+- **pm (5)**: list_projects, list_matches (route), snapshot, list_notes, list_decompositions (route)
+
+**Verification**:
+- `pnpm vitest run tests/integration/skill-md-conformance/v1.10-conformance-smoke.test.ts` — 42/42 PASS
+- `pnpm conformance:check` — 132/132 caps covered
+- `pnpm typecheck` — 0 errors
+
+**Risks acknowledged**:
+- Smoke tests are *route-existence* + *typed-error-envelope* checks, not deep behavioral coverage. Deep tests live in `tests/integration/{admin-*, headhunter-*, candidate-*, auth-*, employer-*, commission-*}.test.ts` and the per-feature conformance files.
+- The `_generated.test.ts` file still has 132 `it.todo()` placeholders (the conformance:gen script generates them for ALL caps regardless of whether real scenarios exist elsewhere). This is acceptable per the script's documented behavior.
+
 ---
 
 ## [v1.4.1] — 2026-06-20
