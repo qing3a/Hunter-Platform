@@ -44,7 +44,7 @@ hunter-platform 当前是一个猎头中介市场 API + 着陆页 + React 后台
 - 候选人简历能力雷达图
 
 **非目标 (Phase 1)**:
-- 真实邮件发送 (开发模式 console only)
+- 真实邮件发送 —— 永久放弃 SMTP/第三方邮件服务，OTP 仅开发模式 console 输出；生产通知走站内信（见 `2026-06-24-in-site-notifications-design.md`）
 - 第三方 OAuth (微信/钉钉)
 - 候选人推荐给其他候选人 (社交裂变)
 - 候选人发布的"自我介绍视频"
@@ -60,7 +60,7 @@ hunter-platform 当前是一个猎头中介市场 API + 着陆页 + React 后台
 | 借鉴方式 | 重写 / iframe / 静态化 | **React + TypeScript 重写** | 生产级,类型安全,与 hunter 现有 admin-web 一致。 |
 | 路由架构 | 新增前缀 / 扩展 / 独立 SPA | **新增 `/v1/candidate-portal/*` 前缀** | 语义隔离,与现有 `/v1/candidate/*` 并行。 |
 | 认证方式 | 邮箱+密码 / OTP / OAuth | **OTP 邮箱验证码** | C 端体验好,无需密码记忆。 |
-| 邮件服务 | SMTP / 第三方 / console | **console 输出 (开发模式)** | MVP 阶段简化,后期接 SMTP/第三方。 |
+| 邮件服务 | SMTP / 第三方 / console / 站内信 | **方案 A: console 输出 (开发) + 方案 B: 站内信 (生产通知)** | 放弃 SMTP/第三方（评估后放弃，详见 in-site-notifications-design.md §1.2）；OTP 仅 console 输出，业务通知走站内信。 |
 | 申请流程 | 自荐→雇主 / 仅查看 / 猎头确认 | **候选人直接向猎头 (PM) 申请** | 猎头作为 PM 是中间角色,候选人的申请经猎头认领后才进入主流程。 |
 | 数据所有权 | 候选人编辑全部 / 仅公开 / 仅查看 | **候选人只编辑公开部分** | 最小改变 hunter 数据模型,PII 仍由猎头控制。 |
 | Phase 1 范围 | 8 屏 / 6 屏 / 4 屏 | **8 屏一次实现** | 用户决定,获取完整 C 端体验。 |
@@ -388,10 +388,10 @@ POST /v1/candidate-portal/auth/otp/request
   ├─ 限流检查 (IP 60s, 邮箱 60s)
   ├─ 生成 6 位随机数字 (crypto.randomInt)
   ├─ bcrypt.hash(code, cost=4) → 存 candidate_otp_codes
-  ├─ console.log(`[DEV ONLY] OTP for ${email}: ${code}`) (开发模式)
+  ├─ console.log(`[DEV ONLY] OTP for ${email}: ${code}`) (开发模式，唯一传递通道)
   └─ respond { ok: true, expires_in: 300 }
 
-[候选人收到验证码 (开发: 控制台)]
+[候选人收到验证码 (开发: 控制台；生产环境 OTP 同样仅 console 输出，需运维侧提取)]
         ↓ 输入 6 位 OTP
 POST /v1/candidate-portal/auth/otp/verify
   ├─ 查 candidate_otp_codes WHERE email=? AND consumed_at IS NULL AND expires_at > now
@@ -519,7 +519,7 @@ POST /v1/headhunter/recommendations/:id/pickup
 
 | 风险 | 缓解 |
 |------|------|
-| OTP 邮件发送延迟/失败 | 开发模式 console + 后期接 SMTP |
+| OTP 传递延迟/失败 | 方案 A: console 输出（开发）；方案 B: 业务通知走站内信（生产，见 in-site-notifications-design.md）。平台侧永不接 SMTP |
 | 候选人滥用注册 (垃圾账号) | 限流 + 邮箱验证 + 后续接入 reCAPTCHA |
 | 大量候选人申请导致 SQLite 性能问题 | 申请量 < 1000/天无影响, 后续评估 |
 | 与现有 4 步流程冲突 | 状态机扩展, 严格状态转换测试 |

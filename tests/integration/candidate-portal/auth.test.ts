@@ -20,12 +20,12 @@ describe('POST /v1/candidate-portal/auth/otp/request', () => {
     expect(res.body.data.dev_code).toMatch(/^\d{6}$/);
   });
 
-  it('returns 200 without dev_code when consoleOnly is false (real email mode)', async () => {
-    // In non-console mode the email service throws "Real email sending not yet
-    // implemented" — we can't fully exercise that branch here, but we can
-    // assert the request path is wired by checking the dev_code is absent
-    // when consoleOnly is false. Easier: skip this branch and rely on the
-    // unit-level test of EmailService.
+  it('returns 200 without dev_code when consoleOnly is false (non-console mode)', async () => {
+    // In non-console mode the email service throws "Email sending is not
+    // supported; use in-site notifications instead" — we can't fully exercise
+    // that branch here, but we can assert the request path is wired by
+    // checking the dev_code is absent when consoleOnly is false. Easier:
+    // skip this branch and rely on the unit-level test of EmailService.
     // Instead, just confirm the happy path is non-flaky with default options.
     const app = createTestApp();
     const res = await request(app)

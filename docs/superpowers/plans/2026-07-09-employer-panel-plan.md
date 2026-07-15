@@ -262,7 +262,7 @@ UI:
 
 UI:
 - 公司信息: 名称 / 行业 / 规模 / 联系人
-- 通知偏好: 邮件 / 站内信
+- 通知偏好: 站内信（已放弃邮件通道，详见 in-site-notifications-design.md §1.2）
 - API Key 显示 (供外部 Agent 集成)
 
 ## Task 11: 集成 + 路由挂载
