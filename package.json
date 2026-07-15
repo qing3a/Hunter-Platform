@@ -23,6 +23,7 @@
     "capabilities:doc": "tsx scripts/generate-skill-capabilities.ts",
     "conformance:check": "tsx scripts/check-conformance-coverage.ts",
     "conformance:gen": "tsx scripts/generate-skill-md-scenarios.ts",
+    "skill:changelog": "tsx scripts/sync-skill-md-changelog.ts",
     "lint:css": "stylelint \"src/**/*.css.ts\"",
     "lint:css:fix": "stylelint \"src/**/*.css.ts\" --fix",
     "build:web": "pnpm --filter @hunter-platform/admin-web run build",
