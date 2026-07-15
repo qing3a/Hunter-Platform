@@ -13,20 +13,42 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   headhunterCapabilities, employerCapabilities, candidateCapabilities,
   adminCapabilities, authCapabilities,
+  notificationsCapabilities,
+  candidatePortalCapabilities,
+  pmCapabilities,
+  headhunterWorkspaceCapabilities,
+  employerPanelCapabilities,
+  webhooksInboxCapabilities,
 } from '../src/main/capabilities/index.js';
 import type { CapabilitySet } from '../src/main/capabilities/types.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
 const SKILL_PATH = path.join(__dirname, '../docs/superpowers/skill.md');
-const START_MARKER = '<!-- CAPABILITIES_START -->';
-const END_MARKER = '<!-- CAPABILITIES_END -->';
 
 // Render order: auth first, then roles in user-facing order.
+// After R1 era + the capability-route reconciliation (PR #3), include all
+// 11 capability sets so /v1/capabilities surfaces are accurately reflected.
 const SETS: CapabilitySet[] = [
-  authCapabilities, headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities,
+  authCapabilities,
+  headhunterCapabilities,
+  employerCapabilities,
+  candidateCapabilities,
+  candidatePortalCapabilities,
+  pmCapabilities,
+  headhunterWorkspaceCapabilities,
+  employerPanelCapabilities,
+  webhooksInboxCapabilities,
+  notificationsCapabilities,
+  adminCapabilities,
 ];
+const START_MARKER = '<!-- CAPABILITIES_START -->';
+const END_MARKER = '<!-- CAPABILITIES_END -->';
 
 const ROLE_LABELS: Record<string, string> = {
   auth:       '认证 (auth)',

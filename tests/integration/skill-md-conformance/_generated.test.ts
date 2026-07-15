@@ -16,8 +16,6 @@ describe('admin', () => {
   it.todo('admin.audit_log: GET /v1/admin/audit');
   it.todo('admin.webhook_dead_letter: GET /v1/admin/webhooks/dead-letter');
   it.todo('admin.retry_webhook: POST /v1/admin/webhooks/:id/retry');
-  it.todo('admin.rate_limit_buckets: GET /v1/admin/rate-limit/buckets');
-  it.todo('admin.clear_user_rate_limit: POST /v1/admin/rate-limit/users/:id/clear');
   it.todo('admin.get_config: GET /v1/admin/config');
   it.todo('admin.put_config: PUT /v1/admin/config/:key');
   it.todo('admin.list_placements: GET /v1/admin/placements');
@@ -25,11 +23,41 @@ describe('admin', () => {
   it.todo('admin.cancel_placement: POST /v1/admin/placements/:id/cancel');
   it.todo('admin.placements_summary: GET /v1/admin/placements/summary');
   it.todo('admin.admin_log: GET /v1/admin/admin-log');
+  it.todo('admin.list_jobs: GET /v1/admin/jobs');
+  it.todo('admin.list_recommendations: GET /v1/admin/recommendations');
+  it.todo('admin.get_timeline: GET /v1/admin/timeline/:type/:id');
+  it.todo('admin.list_dead_letter: GET /v1/admin/webhooks/dead-letter');
+  it.todo('admin.auth.login: POST /v1/admin/auth/login');
+  it.todo('admin.auth.rotate_key: POST /v1/admin/auth/rotate-key');
+  it.todo('admin.me: GET /v1/admin/me');
+  it.todo('admin.action_history: GET /v1/admin/action-history');
+  it.todo('admin.users.read: GET /v1/admin/users/:id');
+  it.todo('admin.jobs.read: GET /v1/admin/jobs/:id');
+  it.todo('admin.candidates.read: GET /v1/admin/candidates/:id');
+  it.todo('admin.recommendations.read: GET /v1/admin/recommendations/:id');
+  it.todo('admin.rate_limit_buckets: GET /v1/admin/rate-limit/buckets');
+  it.todo('admin.clear_user_rate_limit: POST /v1/admin/rate-limit/users/:id/clear');
+  it.todo('admin.login_events: GET /v1/admin/login-events');
+});
+
+describe('admin', () => {
+  it.todo('webhooks.qing3_receive: POST /v1/webhooks/qing3');
 });
 
 describe('auth', () => {
   it.todo('auth.register: POST /v1/auth/register');
   it.todo('auth.rotate_key: POST /v1/auth/rotate-key');
+  it.todo('auth.login: POST /v1/auth/login');
+  it.todo('auth.refresh: POST /v1/auth/refresh');
+  it.todo('auth.logout: POST /v1/auth/logout');
+});
+
+describe('auth', () => {
+  it.todo('notifications.list: GET /v1/notifications');
+  it.todo('notifications.get: GET /v1/notifications/:id');
+  it.todo('notifications.mark_read: POST /v1/notifications/:id/read');
+  it.todo('notifications.mark_all_read: POST /v1/notifications/read-all');
+  it.todo('notifications.delete: DELETE /v1/notifications/:id');
 });
 
 describe('candidate', () => {
@@ -39,6 +67,50 @@ describe('candidate', () => {
   it.todo('candidate.approve_unlock: POST /v1/candidate/recommendations/:id/approve-unlock');
   it.todo('candidate.reject_unlock: POST /v1/candidate/recommendations/:id/reject-unlock');
   it.todo('candidate.delete_my_data: POST /v1/candidate/delete-my-data');
+});
+
+describe('candidate', () => {
+  it.todo('candidate_portal.auth.request_otp: POST /v1/candidate-portal/auth/otp/request');
+  it.todo('candidate_portal.auth.verify_otp: POST /v1/candidate-portal/auth/otp/verify');
+  it.todo('candidate_portal.jobs.browse: GET /v1/candidate-portal/jobs/browse');
+  it.todo('candidate_portal.jobs.view: GET /v1/candidate-portal/jobs/:id');
+  it.todo('candidate_portal.jobs.apply: POST /v1/candidate-portal/jobs/:id/apply');
+  it.todo('candidate_portal.applications.list: GET /v1/candidate-portal/applications');
+  it.todo('candidate_portal.applications.detail: GET /v1/candidate-portal/applications/:id');
+  it.todo('candidate_portal.applications.respond: POST /v1/candidate-portal/applications/:id/respond');
+  it.todo('candidate_portal.messages.send: POST /v1/candidate-portal/messages');
+  it.todo('candidate_portal.messages.list: GET /v1/candidate-portal/messages');
+  it.todo('candidate_portal.profile.view: GET /v1/candidate-portal/profile');
+  it.todo('candidate_portal.profile.edit_public: PUT /v1/candidate-portal/profile');
+  it.todo('candidate_portal.profile.view_audit: GET /v1/candidate-portal/profile/audit-log');
+});
+
+describe('hr', () => {
+  it.todo('headhunter.upload_candidate: POST /v1/headhunter/candidates');
+  it.todo('headhunter.recommend_candidate: POST /v1/headhunter/recommendations');
+  it.todo('headhunter.recommendations.list_pending_pickup: GET /v1/headhunter/recommendations/pending-pickup');
+  it.todo('headhunter.recommendations.pickup: POST /v1/headhunter/recommendations/:id/pickup');
+  it.todo('headhunter.withdraw_recommendation: POST /v1/headhunter/recommendations/:id/withdraw');
+  it.todo('headhunter.publish_to_pool: POST /v1/headhunter/candidates/:id/publish-to-pool');
+  it.todo('headhunter.list_recommendations: GET /v1/headhunter/recommendations');
+  it.todo('headhunter.list_candidates: GET /v1/headhunter/candidates');
+  it.todo('headhunter.create_job: POST /v1/headhunter/jobs');
+  it.todo('headhunter.list_jobs: GET /v1/headhunter/jobs');
+});
+
+describe('hr', () => {
+  it.todo('headhunter_workspace.dashboard: GET /v1/headhunter-workspace/dashboard');
+  it.todo('headhunter_workspace.tasks.list: GET /v1/headhunter-workspace/tasks');
+  it.todo('headhunter_workspace.tasks.create: POST /v1/headhunter-workspace/tasks');
+  it.todo('headhunter_workspace.tasks.update: PUT /v1/headhunter-workspace/tasks/:id');
+  it.todo('headhunter_workspace.tasks.delete: DELETE /v1/headhunter-workspace/tasks/:id');
+  it.todo('headhunter_workspace.tasks.complete: POST /v1/headhunter-workspace/tasks/:id/complete');
+  it.todo('headhunter_workspace.tasks.reopen: POST /v1/headhunter-workspace/tasks/:id/reopen');
+  it.todo('headhunter_workspace.kanban.read: GET /v1/headhunter-workspace/kanban');
+  it.todo('headhunter_workspace.kanban.move: POST /v1/headhunter-workspace/kanban/move');
+  it.todo('headhunter_workspace.kanban.add: POST /v1/headhunter-workspace/kanban/add');
+  it.todo('headhunter_workspace.kanban.remove: POST /v1/headhunter-workspace/kanban/remove');
+  it.todo('headhunter_workspace.stats: GET /v1/headhunter-workspace/stats');
 });
 
 describe('pm', () => {
@@ -52,15 +124,47 @@ describe('pm', () => {
   it.todo('employer.list_pending_claims: GET /v1/employer/pending-claims');
   it.todo('employer.claim_job: POST /v1/employer/claim-jobs/:id');
   it.todo('employer.reject_job: POST /v1/employer/reject-jobs/:id');
+  it.todo('employer.claim_job_via_pending: POST /v1/employer/pending-claims/:id/claim');
+  it.todo('employer.reject_job_via_pending: POST /v1/employer/pending-claims/:id/reject');
+  it.todo('employer.read_job: GET /v1/employer/jobs/:id');
+  it.todo('employer.update_job: PATCH /v1/employer/jobs/:id');
+  it.todo('employer.pause_job: POST /v1/employer/jobs/:id/pause');
+  it.todo('employer.resume_job: POST /v1/employer/jobs/:id/resume');
+  it.todo('employer.close_job: POST /v1/employer/jobs/:id/close');
 });
 
-describe('hr', () => {
-  it.todo('headhunter.upload_candidate: POST /v1/headhunter/candidates');
-  it.todo('headhunter.recommend_candidate: POST /v1/headhunter/recommendations');
-  it.todo('headhunter.withdraw_recommendation: POST /v1/headhunter/recommendations/:id/withdraw');
-  it.todo('headhunter.publish_to_pool: POST /v1/headhunter/candidates/:id/publish-to-pool');
-  it.todo('headhunter.list_recommendations: GET /v1/headhunter/recommendations');
-  it.todo('headhunter.list_candidates: GET /v1/headhunter/candidates');
-  it.todo('headhunter.create_job: POST /v1/headhunter/jobs');
-  it.todo('headhunter.list_jobs: GET /v1/headhunter/jobs');
+describe('pm', () => {
+  it.todo('pm.create_project: POST /v1/pm/projects');
+  it.todo('pm.list_projects: GET /v1/pm/projects');
+  it.todo('pm.read_project: GET /v1/pm/projects/:id');
+  it.todo('pm.update_project: PATCH /v1/pm/projects/:id');
+  it.todo('pm.delete_project: DELETE /v1/pm/projects/:id');
+  it.todo('pm.create_position: POST /v1/pm/projects/:projectId/positions');
+  it.todo('pm.read_position: GET /v1/pm/positions/:id');
+  it.todo('pm.list_positions: GET /v1/pm/projects/:projectId/positions');
+  it.todo('pm.update_position: PATCH /v1/pm/positions/:id');
+  it.todo('pm.delete_position: DELETE /v1/pm/positions/:id');
+  it.todo('pm.position_stats: GET /v1/pm/projects/:projectId/positions/stats');
+  it.todo('pm.bulk_create_positions: POST /v1/pm/projects/:projectId/positions/bulk');
+  it.todo('pm.create_staffing_plan: POST /v1/pm/projects/:projectId/plans');
+  it.todo('pm.list_staffing_plans: GET /v1/pm/projects/:projectId/plans');
+  it.todo('pm.read_plan: GET /v1/pm/plans/:id');
+  it.todo('pm.update_plan: PATCH /v1/pm/plans/:id');
+  it.todo('pm.delete_plan: DELETE /v1/pm/plans/:id');
+  it.todo('pm.select_staffing_plan: POST /v1/pm/plans/:id/select');
+  it.todo('pm.decompose_position: POST /v1/pm/projects/:projectId/decompose');
+  it.todo('pm.commit_decomposition: POST /v1/pm/projects/:projectId/decompose/:decompositionId/commit');
+  it.todo('pm.list_decompositions: GET /v1/pm/projects/:projectId/decompositions');
+  it.todo('pm.match_candidates: POST /v1/pm/positions/:id/matches/recompute');
+  it.todo('pm.list_matches: GET /v1/pm/positions/:id/matches');
+  it.todo('pm.position_sandbox: GET /v1/pm/positions/:id/sandbox');
+  it.todo('pm.snapshot: GET /v1/pm/snapshot');
+  it.todo('pm.write_note: PUT /v1/pm/notes/:candidate_user_id');
+  it.todo('pm.read_note: GET /v1/pm/notes/:candidate_user_id');
+  it.todo('pm.list_notes: GET /v1/pm/notes');
+  it.todo('pm.star_candidate: PUT /v1/pm/notes/:candidate_user_id');
+});
+
+describe('pm', () => {
+  it.todo('employer_panel.dashboard: GET /v1/employer-panel/dashboard');
 });

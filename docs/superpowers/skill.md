@@ -1412,22 +1412,30 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > 这一节由 `pnpm capabilities:doc` 从 `src/main/capabilities/*.ts` 自动生成。
 > 修改流程: 编辑 capability 文件 → 跑 `pnpm capabilities:doc` → commit。
 
-### 认证 (auth) — 2 个能力
+### 认证 (auth) — 5 个能力
 
 | Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
 |--------|------|--------|------|----------|--------|
 | POST | `/v1/auth/register` | `auth.register` | 0 | — | db.users.insert; issue_api_key |
 | POST | `/v1/auth/rotate-key` | `auth.rotate_key` | 0 | user.status === "active" | db.users.update(api_key_hash) |
+| POST | `/v1/auth/login` | `auth.login` | 0 | — | db.sessions.insert; session.bind_active_role |
+| POST | `/v1/auth/refresh` | `auth.refresh` | 0 | — | db.sessions.update(expires_at) |
+| POST | `/v1/auth/logout` | `auth.logout` | 0 | — | db.sessions.delete |
 
 > - `auth.register`: 注册新账号(返回 api_key,只此一次)。
 > - `auth.rotate_key`: 轮换 api_key(旧 key 立即失效,无 grace period)。
+> - `auth.login`: 用 api_key 换 168h session token (R1.C2 长会话)。
+> - `auth.refresh`: 刷新 session 过期时间 (滑动 TTL)。
+> - `auth.logout`: 撤销 session (idempotent — 缺失/无效 session 也返回 ok)。
 
-### 猎头 (headhunter) — 8 个能力
+### hr — 10 个能力
 
 | Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
 |--------|------|--------|------|----------|--------|
 | POST | `/v1/headhunter/candidates` | `headhunter.upload_candidate` | 5 | user.status === "active" | consume_quota(5); db.candidates_private.insert… |
 | POST | `/v1/headhunter/recommendations` | `headhunter.recommend_candidate` | 5 | user.status === "active" | consume_quota(5); db.recommendations.insert |
+| GET | `/v1/headhunter/recommendations/pending-pickup` | `headhunter.recommendations.list_pending_pickup` | 0 | user.status === "active" | db.candidate_applications.listPendingPickup |
+| POST | `/v1/headhunter/recommendations/:id/pickup` | `headhunter.recommendations.pickup` | 0 | user.status === "active" | db.recommendations.update(pickup_headhunter_id); db.candidate_applications.update(pickup_headhunter_id)… |
 | POST | `/v1/headhunter/recommendations/:id/withdraw` | `headhunter.withdraw_recommendation` | 1 | user.status === "active"; flow.recommendation.withdraw | consume_quota(1); db.recommendations.updateStatus(withdrawn) |
 | POST | `/v1/headhunter/candidates/:id/publish-to-pool` | `headhunter.publish_to_pool` | 2 | user.status === "active" | consume_quota(2); db.candidates_anonymized.update(is_public_pool=1) |
 | GET | `/v1/headhunter/recommendations` | `headhunter.list_recommendations` | 0 | user.status === "active" | db.recommendations.listByUser |
@@ -1435,8 +1443,10 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | POST | `/v1/headhunter/jobs` | `headhunter.create_job` | 5 | user.status === "active" | consume_quota(5); db.jobs.insert |
 | GET | `/v1/headhunter/jobs` | `headhunter.list_jobs` | 0 | user.status === "active" | db.jobs.listBySource |
 
-> - `headhunter.upload_candidate`: 上传候选人简历(加密入库,生成脱敏版本)。
+> - `headhunter.upload_candidate`: 上传候选人简历(加密入库,生成脱敏版本)。REQUIRED: current_company must be a non-empty string (1-200 chars); API returns 400 INVALID_PARAMS if missing/empty.
 > - `headhunter.recommend_candidate`: 把已上传的候选人推荐给指定 job(状态: pending)。
+> - `headhunter.recommendations.list_pending_pickup`: 猎头看待认领候选人列表 (候选人主动申请进入 pending_pickup 状态)。
+> - `headhunter.recommendations.pickup`: 猎头认领候选人申请 (pending_pickup → pending, 写入 pickup_headhunter_id)。
 > - `headhunter.withdraw_recommendation`: 撤回已提交的推荐(只在 pending / employer_interested 状态可撤回)。
 > - `headhunter.publish_to_pool`: 把候选人公开到公共池(让其他猎头/雇主可见)。
 > - `headhunter.list_recommendations`: 列出我提交过的所有推荐。
@@ -1444,7 +1454,7 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `headhunter.create_job`: 猎头代雇主建岗(用 create_for_employer_id)。
 > - `headhunter.list_jobs`: 列出我建过的所有 job。
 
-### 雇主 (employer) — 10 个能力
+### pm — 17 个能力
 
 | Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
 |--------|------|--------|------|----------|--------|
@@ -1458,6 +1468,13 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | GET | `/v1/employer/pending-claims` | `employer.list_pending_claims` | 0 | user.status === "active" | db.jobs.listPendingClaims |
 | POST | `/v1/employer/claim-jobs/:id` | `employer.claim_job` | 0 | user.status === "active"; flow.job.claim | db.jobs.updateStatus(claimed) |
 | POST | `/v1/employer/reject-jobs/:id` | `employer.reject_job` | 0 | user.status === "active"; flow.job.reject | db.jobs.updateStatus(closed) |
+| POST | `/v1/employer/pending-claims/:id/claim` | `employer.claim_job_via_pending` | 0 | user.status === "active"; flow.job.claim | db.jobs.updateStatus(claimed) |
+| POST | `/v1/employer/pending-claims/:id/reject` | `employer.reject_job_via_pending` | 0 | user.status === "active"; flow.job.reject | db.jobs.updateStatus(closed) |
+| GET | `/v1/employer/jobs/:id` | `employer.read_job` | 0 | user.status === "active" | db.jobs.findById |
+| PATCH | `/v1/employer/jobs/:id` | `employer.update_job` | 0 | user.status === "active" | db.jobs.update |
+| POST | `/v1/employer/jobs/:id/pause` | `employer.pause_job` | 0 | user.status === "active" | db.jobs.updateStatus(paused) |
+| POST | `/v1/employer/jobs/:id/resume` | `employer.resume_job` | 0 | user.status === "active" | db.jobs.updateStatus(open) |
+| POST | `/v1/employer/jobs/:id/close` | `employer.close_job` | 0 | user.status === "active" | db.jobs.updateStatus(closed) |
 
 > - `employer.create_placement`: 创建 placement 记录(标记候选人入职成功,平台费按 commission_split 计算)。
 > - `employer.list_placements`: 列出我创建的 placement 记录。
@@ -1469,6 +1486,13 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `employer.list_pending_claims`: 列出我发布的、等待我 claim 或 reject 的 job(从猎头代建过来的)。
 > - `employer.claim_job`: 认领一个由猎头代建的 job(把 job 状态从 open 变为 claimed)。
 > - `employer.reject_job`: 拒绝一个由猎头代建的 job(关闭该 job)。
+> - `employer.claim_job_via_pending`: 雇主通过 pending-claims 列表认领一个猎头代建的 job。
+> - `employer.reject_job_via_pending`: 雇主通过 pending-claims 列表拒绝一个猎头代建的 job。
+> - `employer.read_job`: 雇主读单个 job 详情
+> - `employer.update_job`: 雇主更新 job 字段 (status 走 pause/resume/close, 不在此处)。
+> - `employer.pause_job`: 雇主把 job 暂停 (状态 open → paused)。
+> - `employer.resume_job`: 雇主恢复暂停的 job (paused → open)。
+> - `employer.close_job`: 雇主关闭 job (终态: closed)。
 
 ### 候选人 (candidate) — 6 个能力
 
@@ -1488,7 +1512,165 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `candidate.reject_unlock`: 拒绝雇主解锁我的联系方式。
 > - `candidate.delete_my_data`: GDPR right-to-be-forgotten(清空 PII,保留脱敏数据)。
 
-### 管理员 (admin) — 20 个能力
+### 候选人 (candidate) — 13 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/candidate-portal/auth/otp/request` | `candidate_portal.auth.request_otp` | 0 | — | db.candidate_otp_codes.insert; email.send(otp) |
+| POST | `/v1/candidate-portal/auth/otp/verify` | `candidate_portal.auth.verify_otp` | 0 | — | db.candidate_otp_codes.markConsumed; db.users.upsert(candidate)… |
+| GET | `/v1/candidate-portal/jobs/browse` | `candidate_portal.jobs.browse` | 0 | user.status === "active" | db.jobs.listOpen |
+| GET | `/v1/candidate-portal/jobs/:id` | `candidate_portal.jobs.view` | 0 | user.status === "active" | db.jobs.findById |
+| POST | `/v1/candidate-portal/jobs/:id/apply` | `candidate_portal.jobs.apply` | 0 | user.status === "active" | db.recommendations.insert(source_type=candidate_self_apply, status=pending_pickup); db.candidate_applications.insert… |
+| GET | `/v1/candidate-portal/applications` | `candidate_portal.applications.list` | 0 | user.status === "active" | db.candidate_applications.listByCandidate |
+| GET | `/v1/candidate-portal/applications/:id` | `candidate_portal.applications.detail` | 0 | user.status === "active" | db.candidate_applications.findById |
+| POST | `/v1/candidate-portal/applications/:id/respond` | `candidate_portal.applications.respond` | 0 | user.status === "active" | db.candidate_applications.update(withdrawn_at) |
+| POST | `/v1/candidate-portal/messages` | `candidate_portal.messages.send` | 0 | user.status === "active" | db.candidate_messages.insert; webhook: notify_message |
+| GET | `/v1/candidate-portal/messages` | `candidate_portal.messages.list` | 0 | user.status === "active" | db.candidate_messages.listByUser |
+| GET | `/v1/candidate-portal/profile` | `candidate_portal.profile.view` | 0 | user.status === "active" | db.candidates_anonymized.getByUser; db.candidates_private.getPiiReadonly |
+| PUT | `/v1/candidate-portal/profile` | `candidate_portal.profile.edit_public` | 0 | user.status === "active" | db.candidates_anonymized.update(public_fields) |
+| GET | `/v1/candidate-portal/profile/audit-log` | `candidate_portal.profile.view_audit` | 0 | user.status === "active" | db.unlock_audit_log.listByCandidate |
+
+> - `candidate_portal.auth.request_otp`: 候选人请求 OTP 验证码
+> - `candidate_portal.auth.verify_otp`: 候选人验证 OTP 并签发 bearer token
+> - `candidate_portal.jobs.browse`: 候选人浏览全部开放工作
+> - `candidate_portal.jobs.view`: 候选人查看工作详情
+> - `candidate_portal.jobs.apply`: 候选人申请工作 (创建 pending_pickup 推荐)
+> - `candidate_portal.applications.list`: 候选人查看我的申请列表
+> - `candidate_portal.applications.detail`: 候选人查看单个投递详情
+> - `candidate_portal.applications.respond`: 候选人撤回/接受/拒绝
+> - `candidate_portal.messages.send`: 候选人发送消息
+> - `candidate_portal.messages.list`: 候选人读取消息
+> - `candidate_portal.profile.view`: 候选人查看简历 (公开 + PII 只读)
+> - `candidate_portal.profile.edit_public`: 候选人编辑公开字段 (技能/期望/可见性)
+> - `candidate_portal.profile.view_audit`: 候选人查看简历审计日志
+
+### pm — 29 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/pm/projects` | `pm.create_project` | 0 | user.status === "active" | db.projects.insert |
+| GET | `/v1/pm/projects` | `pm.list_projects` | 0 | user.status === "active" | db.projects.listByPm |
+| GET | `/v1/pm/projects/:id` | `pm.read_project` | 0 | user.status === "active" | db.projects.findById |
+| PATCH | `/v1/pm/projects/:id` | `pm.update_project` | 0 | user.status === "active" | db.projects.update |
+| DELETE | `/v1/pm/projects/:id` | `pm.delete_project` | 0 | user.status === "active" | db.projects.delete(cascade) |
+| POST | `/v1/pm/projects/:projectId/positions` | `pm.create_position` | 0 | user.status === "active" | db.project_positions.insert |
+| GET | `/v1/pm/positions/:id` | `pm.read_position` | 0 | user.status === "active" | db.project_positions.findById |
+| GET | `/v1/pm/projects/:projectId/positions` | `pm.list_positions` | 0 | user.status === "active" | db.project_positions.listByProject |
+| PATCH | `/v1/pm/positions/:id` | `pm.update_position` | 0 | user.status === "active" | db.project_positions.update |
+| DELETE | `/v1/pm/positions/:id` | `pm.delete_position` | 0 | user.status === "active" | db.project_positions.delete |
+| GET | `/v1/pm/projects/:projectId/positions/stats` | `pm.position_stats` | 0 | user.status === "active" | db.project_positions.aggregateStats |
+| POST | `/v1/pm/projects/:projectId/positions/bulk` | `pm.bulk_create_positions` | 0 | user.status === "active" | db.project_positions.insertBatch |
+| POST | `/v1/pm/projects/:projectId/plans` | `pm.create_staffing_plan` | 0 | user.status === "active" | db.staffing_plans.insert |
+| GET | `/v1/pm/projects/:projectId/plans` | `pm.list_staffing_plans` | 0 | user.status === "active" | db.staffing_plans.listByProject |
+| GET | `/v1/pm/plans/:id` | `pm.read_plan` | 0 | user.status === "active" | db.staffing_plans.findById |
+| PATCH | `/v1/pm/plans/:id` | `pm.update_plan` | 0 | user.status === "active" | db.staffing_plans.update |
+| DELETE | `/v1/pm/plans/:id` | `pm.delete_plan` | 0 | user.status === "active" | db.staffing_plans.delete |
+| POST | `/v1/pm/plans/:id/select` | `pm.select_staffing_plan` | 0 | user.status === "active" | db.staffing_plans.update(is_selected); db.staffing_plans.unselectOthers |
+| POST | `/v1/pm/projects/:projectId/decompose` | `pm.decompose_position` | 0 | user.status === "active" | db.position_decompositions.insert; ai.heuristic.decompose |
+| POST | `/v1/pm/projects/:projectId/decompose/:decompositionId/commit` | `pm.commit_decomposition` | 0 | user.status === "active" | db.project_positions.bulkInsertFromDecomposition |
+| GET | `/v1/pm/projects/:projectId/decompositions` | `pm.list_decompositions` | 0 | user.status === "active" | db.position_decompositions.listByProject |
+| POST | `/v1/pm/positions/:id/matches/recompute` | `pm.match_candidates` | 0 | user.status === "active" | db.matches.upsertBatch; db.matches.score |
+| GET | `/v1/pm/positions/:id/matches` | `pm.list_matches` | 0 | user.status === "active" | db.matches.listByPosition |
+| GET | `/v1/pm/positions/:id/sandbox` | `pm.position_sandbox` | 0 | user.status === "active" | db.matches.listByPositionForSandbox |
+| GET | `/v1/pm/snapshot` | `pm.snapshot` | 0 | user.status === "active" | db.pm.snapshotCounters |
+| PUT | `/v1/pm/notes/:candidate_user_id` | `pm.write_note` | 0 | user.status === "active" | db.pm_notes.upsert(starred, note_text) |
+| GET | `/v1/pm/notes/:candidate_user_id` | `pm.read_note` | 0 | user.status === "active" | db.pm_notes.findByPmAndCandidate |
+| GET | `/v1/pm/notes` | `pm.list_notes` | 0 | user.status === "active" | db.pm_notes.listByPm |
+| PUT | `/v1/pm/notes/:candidate_user_id` | `pm.star_candidate` | 0 | user.status === "active" | db.pm_notes.update(starred) |
+
+> - `pm.create_project`: PM 创建新项目 (目标 / 预算 / 起止日期 / 当前团队).
+> - `pm.list_projects`: PM 列出自己管理的所有项目 (按 status 过滤).
+> - `pm.read_project`: PM 查看单个项目详情.
+> - `pm.update_project`: PM 更新项目字段 (目标 / 预算 / 状态).
+> - `pm.delete_project`: PM 删除项目 (级联删除 positions / plans / decompositions / matches).
+> - `pm.create_position`: PM 在项目下创建岗位 (headcount / salary / required_skills).
+> - `pm.read_position`: PM 查看单个岗位详情.
+> - `pm.list_positions`: PM 列出项目下的所有岗位.
+> - `pm.update_position`: PM 更新岗位字段 (status / headcount_filled / 描述).
+> - `pm.delete_position`: PM 删除岗位.
+> - `pm.position_stats`: PM 查项目下岗位状态统计 (open/paused/filled 各多少).
+> - `pm.bulk_create_positions`: PM 在项目下批量创建岗位 (单次事务).
+> - `pm.create_staffing_plan`: PM 为项目创建 staffing 方案 (草稿).
+> - `pm.list_staffing_plans`: PM 列出项目下的所有 staffing 方案.
+> - `pm.read_plan`: PM 读取单个 staffing plan 详情.
+> - `pm.update_plan`: PM 更新 staffing plan.
+> - `pm.delete_plan`: PM 删除 staffing plan.
+> - `pm.select_staffing_plan`: PM 把某个 staffing plan 标记为 selected (取消其他方案的 selected 状态).
+> - `pm.decompose_position`: PM 把一段自然语言需求文本拆解为岗位列表 (AI heuristic 驱动).
+> - `pm.commit_decomposition`: PM 把一次 decompose 结果正式提交 (固化为 positions).
+> - `pm.list_decompositions`: PM 列出项目的所有历史拆解.
+> - `pm.match_candidates`: PM 触发候选人与岗位的匹配打分 (后台 async 计算).
+> - `pm.list_matches`: PM 列出岗位的候选匹配 (按 score DESC).
+> - `pm.position_sandbox`: PM 查 position 的脱敏 sandbox 数据预览.
+> - `pm.snapshot`: PM 全局快照 (projects/positions/plans/matches 计数).
+> - `pm.write_note`: PM 在候选人上写 / 更新私人备注.同时支持切换 starred (PUT body 含 { starred: true|false }).
+> - `pm.read_note`: PM 读取某候选人的私人备注.
+> - `pm.list_notes`: PM 列出自己写过的所有备注 (按 updated_at DESC).
+> - `pm.star_candidate`: PM 收藏 / 取消收藏候选人 (通过 PUT /v1/pm/notes/:candidate_user_id body { starred: bool }).
+
+### hr — 12 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| GET | `/v1/headhunter-workspace/dashboard` | `headhunter_workspace.dashboard` | 0 | user.status === "active" | db.hunter_dashboard.aggregate |
+| GET | `/v1/headhunter-workspace/tasks` | `headhunter_workspace.tasks.list` | 0 | user.status === "active" | db.hunter_tasks.listByHunter |
+| POST | `/v1/headhunter-workspace/tasks` | `headhunter_workspace.tasks.create` | 0 | user.status === "active" | db.hunter_tasks.insert |
+| PUT | `/v1/headhunter-workspace/tasks/:id` | `headhunter_workspace.tasks.update` | 0 | user.status === "active" | db.hunter_tasks.update |
+| DELETE | `/v1/headhunter-workspace/tasks/:id` | `headhunter_workspace.tasks.delete` | 0 | user.status === "active" | db.hunter_tasks.delete |
+| POST | `/v1/headhunter-workspace/tasks/:id/complete` | `headhunter_workspace.tasks.complete` | 0 | user.status === "active" | db.hunter_tasks.updateStatus(completed) |
+| POST | `/v1/headhunter-workspace/tasks/:id/reopen` | `headhunter_workspace.tasks.reopen` | 0 | user.status === "active" | db.hunter_tasks.updateStatus(pending) |
+| GET | `/v1/headhunter-workspace/kanban` | `headhunter_workspace.kanban.read` | 0 | user.status === "active" | db.kanban_columns.listByHunter; db.kanban_cards.listByHunter |
+| POST | `/v1/headhunter-workspace/kanban/move` | `headhunter_workspace.kanban.move` | 0 | user.status === "active" | db.kanban_cards.updatePosition |
+| POST | `/v1/headhunter-workspace/kanban/add` | `headhunter_workspace.kanban.add` | 0 | user.status === "active" | db.kanban_cards.insert |
+| POST | `/v1/headhunter-workspace/kanban/remove` | `headhunter_workspace.kanban.remove` | 0 | user.status === "active" | db.kanban_cards.delete |
+| GET | `/v1/headhunter-workspace/stats` | `headhunter_workspace.stats` | 0 | user.status === "active" | db.hunter_stats.aggregate |
+
+> - `headhunter_workspace.dashboard`: 猎头工作台首页聚合数据 (按 candidate / rec / placement 计数)。
+> - `headhunter_workspace.tasks.list`: 猎头列自己的任务 (按 status 过滤: pending|completed|all)。
+> - `headhunter_workspace.tasks.create`: 猎头创建任务 (字段: title, description?, due_at?, priority?, related_recommendation_id?, related_candidate_user_id?)。
+> - `headhunter_workspace.tasks.update`: 猎头更新任务 (title / description / due_at / priority)。
+> - `headhunter_workspace.tasks.delete`: 猎头删除任务。
+> - `headhunter_workspace.tasks.complete`: 猎头标记任务完成 (state: pending → completed)。
+> - `headhunter_workspace.tasks.reopen`: 重新打开已完成任务 (state: completed → pending)。
+> - `headhunter_workspace.kanban.read`: 读取 kanban 板 (columns + cards, 按 hunter_id scope)。
+> - `headhunter_workspace.kanban.move`: 移动 card (列间; body: recommendation_id, to_column_id, to_position?)。
+> - `headhunter_workspace.kanban.add`: 添加 card (body: recommendation_id, to_column_id)。
+> - `headhunter_workspace.kanban.remove`: 移除 card (body: recommendation_id)。
+> - `headhunter_workspace.stats`: 业绩 + 漏斗统计 (overview + funnel by date range ?from=&to=)。
+
+### pm — 1 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| GET | `/v1/employer-panel/dashboard` | `employer_panel.dashboard` | 0 | user.status === "active" | db.employer_dashboard.aggregate |
+
+> - `employer_panel.dashboard`: 雇主浏览器面板首页 7 项聚合 (active_jobs / open_positions / candidates_viewed_this_month / interested_count / unlocked_count / placements_count / spend_this_month)。
+
+### 管理员 (admin) — 1 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| POST | `/v1/webhooks/qing3` | `webhooks.qing3_receive` | 0 | — | db.webhook_inbox_deliveries.insertOrIgnore |
+
+> - `webhooks.qing3_receive`: ow-recruit relay 入站 webhook 接收 (HMAC + body-hash 去重, ±5min 重放窗)。
+
+### 认证 (auth) — 5 个能力
+
+| Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
+|--------|------|--------|------|----------|--------|
+| GET | `/v1/notifications` | `notifications.list` | 0 | user.status === "active" | db.notifications.listByUser |
+| GET | `/v1/notifications/:id` | `notifications.get` | 0 | user.status === "active" | db.notifications.findById |
+| POST | `/v1/notifications/:id/read` | `notifications.mark_read` | 0 | user.status === "active" | db.notifications.update(read_at) |
+| POST | `/v1/notifications/read-all` | `notifications.mark_all_read` | 0 | user.status === "active" | db.notifications.update(read_at) WHERE unread |
+| DELETE | `/v1/notifications/:id` | `notifications.delete` | 0 | user.status === "active" | db.notifications.delete |
+
+> - `notifications.list`: 拉取系统通知列表(支持 unread/category/since 过滤,30 天过期)
+> - `notifications.get`: 拉取单条通知详情
+> - `notifications.mark_read`: 标记单条通知为已读(幂等)
+> - `notifications.mark_all_read`: 标记当前用户所有未读为已读
+> - `notifications.delete`: 删除单条通知
+
+### 管理员 (admin) — 33 个能力
 
 | Method | Path | 能力名 | 配额 | 前置条件 | 副作用 |
 |--------|------|--------|------|----------|--------|
@@ -1503,22 +1685,28 @@ candidates = get('/v1/employer/talent', params=params)['data']
 | GET | `/v1/admin/audit` | `admin.audit_log` | 0 | — | db.unlock_audit.list |
 | GET | `/v1/admin/webhooks/dead-letter` | `admin.webhook_dead_letter` | 0 | — | db.webhook_deliveries.listDeadLetter |
 | POST | `/v1/admin/webhooks/:id/retry` | `admin.retry_webhook` | 0 | — | db.webhook_deliveries.update(status=pending) |
-| GET | `/v1/admin/rate-limit/buckets` | `admin.rate_limit_buckets` | 0 | — | db.rate_limit.listBuckets |
-| POST | `/v1/admin/rate-limit/users/:id/clear` | `admin.clear_user_rate_limit` | 0 | — | db.rate_limit.clearUser |
-| GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.listAll |
+| GET | `/v1/admin/config` | `admin.get_config` | 0 | — | db.config.getAll |
 | PUT | `/v1/admin/config/:key` | `admin.put_config` | 0 | — | db.config.set; admin_action_log: config_change |
 | GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
-
 | POST | `/v1/admin/placements/:id/mark-paid` | `admin.mark_placement_paid` | 0 | — | db.placements.updateStatus(paid) |
 | POST | `/v1/admin/placements/:id/cancel` | `admin.cancel_placement` | 0 | — | db.placements.updateStatus(cancelled) |
 | GET | `/v1/admin/placements/summary` | `admin.placements_summary` | 0 | — | db.placements.aggregate |
 | GET | `/v1/admin/admin-log` | `admin.admin_log` | 0 | — | db.admin_action_log.list |
-| GET | `/v1/admin/login-events` | `admin.login_events` | 0 | — | db.admin_login_events.list |
 | GET | `/v1/admin/jobs` | `admin.list_jobs` | 0 | — | db.jobs.listAll |
 | GET | `/v1/admin/recommendations` | `admin.list_recommendations` | 0 | — | db.recommendations.listAll |
 | GET | `/v1/admin/timeline/:type/:id` | `admin.get_timeline` | 0 | — | db.audit.unionAll |
 | GET | `/v1/admin/webhooks/dead-letter` | `admin.list_dead_letter` | 0 | — | db.webhooks.deadLetter.listAll |
-| GET | `/v1/admin/placements` | `admin.list_placements` | 0 | — | db.placements.listAll |
+| POST | `/v1/admin/auth/login` | `admin.auth.login` | 0 | — | db.admin_users.upsertApiKey |
+| POST | `/v1/admin/auth/rotate-key` | `admin.auth.rotate_key` | 0 | admin.status === "active" | db.admin_users.update(api_key_hash) |
+| GET | `/v1/admin/me` | `admin.me` | 0 | — | db.admin_users.findSelf |
+| GET | `/v1/admin/action-history` | `admin.action_history` | 0 | — | db.action_history.list |
+| GET | `/v1/admin/users/:id` | `admin.users.read` | 0 | — | db.users.findById |
+| GET | `/v1/admin/jobs/:id` | `admin.jobs.read` | 0 | — | db.jobs.findById |
+| GET | `/v1/admin/candidates/:id` | `admin.candidates.read` | 0 | — | db.candidates_anonymized.findById |
+| GET | `/v1/admin/recommendations/:id` | `admin.recommendations.read` | 0 | — | db.recommendations.findById |
+| GET | `/v1/admin/rate-limit/buckets` | `admin.rate_limit_buckets` | 0 | — | db.rate_limit.listBuckets |
+| POST | `/v1/admin/rate-limit/users/:id/clear` | `admin.clear_user_rate_limit` | 0 | — | db.rate_limit.clearUser |
+| GET | `/v1/admin/login-events` | `admin.login_events` | 0 | — | db.admin_login_events.list |
 
 > - `admin.ping`: Admin 健康检查 ping。
 > - `admin.dashboard_stats`: 平台总览统计(用户/候选人/job/placement 数)。
@@ -1531,9 +1719,9 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.audit_log`: 查看平台 audit_log(谁在什么时间调用了什么 endpoint)。
 > - `admin.webhook_dead_letter`: 列出 webhook dead-letter 队列(投递失败待重试的事件)。
 > - `admin.retry_webhook`: 手动重试 dead-letter 中的某个 webhook 投递。
-> - `admin.get_config`: 读取平台动态配置。
-> - `admin.put_config`: 写入/覆盖平台动态配置项。
-> - `admin.list_placements`: 列出所有 placement 记录(管理员视图)。
+> - `admin.get_config`: 列出所有 config key-value（DB-backed）。
+> - `admin.put_config`: 写入/覆盖平台动态配置项（upsert, 必传 reason）。
+> - `admin.list_placements`: 列出 placements（含 status/日期 filter）
 > - `admin.mark_placement_paid`: 把 placement 标记为已支付(财务确认)。
 > - `admin.cancel_placement`: 取消一个 placement(候选人未入职等异常情况)。
 > - `admin.placements_summary`: placement 总览统计(count / pending / paid / cancelled / total revenue)。
@@ -1541,8 +1729,18 @@ candidates = get('/v1/employer/talent', params=params)['data']
 > - `admin.list_jobs`: 列出所有 jobs(含 employer_name),支持 status 筛选 + 关键词搜索。
 > - `admin.list_recommendations`: 列出所有 recommendations(含 job_title + headhunter_name),支持 status 筛选 + 关键词 + 时间范围。
 > - `admin.get_timeline`: 获取 user/candidate/job/recommendation 的合并审计时间轴(UNION 3 表)。
-> - `admin.list_dead_letter`: 列出 webhook 死信队列（含 event_type/min_attempt_count/日期 filter）。
-> - `admin.list_placements`: 列出 placements（含 status/日期 filter）。
+> - `admin.list_dead_letter`: 列出 webhook 死信队列（含 event_type/min_attempt_count/日期 filter）
+> - `admin.auth.login`: Admin 邮箱 + 密码登录 (返回 hp_adm_* api_key)。
+> - `admin.auth.rotate_key`: Admin 轮换自己的 api_key (旧 key 立即失效)。
+> - `admin.me`: 返回当前 admin 的身份 + quota。
+> - `admin.action_history`: Admin 查业务操作审计 (按 user_id/capability_name/status/since/until 过滤)。
+> - `admin.users.read`: 管理员读取单个用户详情。
+> - `admin.jobs.read`: 管理员读取单个 job 详情。
+> - `admin.candidates.read`: 管理员读取单个候选人详情 (PII 关联可访问)。
+> - `admin.recommendations.read`: 管理员读取单个 recommendation 详情。
+> - `admin.rate_limit_buckets`: 管理员查 rate-limit buckets (per-tier: 1s/1m/1h)。
+> - `admin.clear_user_rate_limit`: 管理员清空某用户的 rate-limit 桶 (提权)。
+> - `admin.login_events`: Admin login 日志 (admin_id / success / from / until 过滤, page/pageSize 分页)。
 
 <!-- CAPABILITIES_END -->
 

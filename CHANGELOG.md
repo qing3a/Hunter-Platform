@@ -100,6 +100,34 @@ Changed, Fixed, Removed, Deprecated, Security. Versions follow
   directly; now takes optional `opts.uptimeSec` so tests can assert
   cold-start deterministically.
 
+### Capability ↔ route reconciliation (PR #3)
+
+Closed the **58-entry route⇄capability drift** that `pnpm capabilities:check` had been failing on since R1-era completion. The drift was concentrated in:
+
+- **`src/main/capabilities/pm.ts`** — 5 wrong-path declarations fixed (paths were declared under `:id` / `:staffing-plans/` / `:decompositions` / `:match` but real routes use `:projectId` / `plans/` / `decompose` / `matches/recompute`); the orphan `pm.star_candidate` re-pointed to `PUT /v1/pm/notes/:candidate_user_id` (the actual route handler accepts `{ starred: bool }` in body — verifying in `src/main/modules/pm/notes.ts`); 16 new capabilities added for the previously-undeclared pm router endpoints (positions CRUD/stats/bulk + plans CRUD + decompose + sandbox + snapshot).
+- **`src/main/capabilities/auth.ts`** — 3 new declarations for the R1.C2 session token endpoints (`auth.login` / `auth.refresh` / `auth.logout`).
+- **`src/main/capabilities/admin.ts`** — 11 new declarations (auth/login + auth/rotate-key + me + action-history + 4× get-by-id + rate-limit/buckets + rate-limit/users/:id/clear + login-events).
+- **`src/main/capabilities/candidate-portal.ts`** — 1 wrong-path fixed (`jobs.browse` was declared `/jobs` but real route is `/jobs/browse`) + 1 new (`applications.detail`).
+- **`src/main/capabilities/employer.ts`** — 7 new declarations for jobs CRUD + pause/resume/close + pending-claims actions.
+- **Three new capability files**: `headhunter-workspace.ts` (12 caps), `employer-panel.ts` (1 cap), `webhooks-inbox.ts` (1 cap — system-facing inbound webhook).
+- **`src/main/capabilities/index.ts`** — barrel extended with the 3 new sets + ALL_SETS.
+
+**Drive-by fix (pre-existing)**:
+- `scripts/check-capabilities.ts` MOUNT_PREFIXES was missing entries for R1-era routers (`candidate-portal` / `headhunter-workspace` / `pm` / `employer-panel` / `webhooks-inbox`). Mirrors `scripts/generate-openapi.ts` MOUNT_PREFIXES.
+- `scripts/generate-skill-capabilities.ts` had `__dirname` reference under ESM (broken since Node ≥ 14 with `"type": "module"`) and a duplicate `const SETS` declaration.
+
+**Verification**:
+- `pnpm capabilities:check` → **`OK: 131 routes, 132 capabilities`** (was 58 issues / 86 capabilities).
+- `pnpm conformance:check` → all **132** capabilities have a scenario test (`tests/integration/skill-md-conformance/_generated.test.ts` generated via `pnpm conformance:gen`; stubs are `it.todo()` placeholders, real scenarios for the 51 newly-declared capabilities to be filled in a follow-up PR).
+- `pnpm openapi:check` → `OK: 0 forward gaps` (was 0 on main; PR #2's 1 forward gap closes once that PR merges + this branch is rebased).
+- `pnpm capabilities:doc` idempotent — passes.
+- `tests/integration/capabilities-endpoint.test.ts` extended (8 role presence assertions instead of 5); 7/7 PASS.
+
+**Risks acknowledged**:
+- The 51 newly-declared capabilities carry `it.todo()` placeholders, not real scenarios. `conformance:gen` produced the stubs; filling them in is a separate workstream.
+- `webhooks-inbox.ts` capability set's `role: 'admin'` is a workaround — there's no `'system'` in the type union. Documented inline.
+- Existing `tests/integration/capabilities-by-alias.test.ts` (introduced by PR #2) asserts the path is `/v1/pm/staffing-plans/:id/select` because the capability declaration was wrong. PR #2's test will need a follow-up assertion update to `/v1/pm/plans/:id/select`. Not in this PR's scope (which branched off main before PR #2 merged).
+
 ---
 
 ## [v1.4.1] — 2026-06-20

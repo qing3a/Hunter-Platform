@@ -14,6 +14,9 @@ export { authCapabilities } from './auth.js';
 export { notificationsCapabilities } from './notifications.js';
 export { candidatePortalCapabilities, CANDIDATE_PORTAL_CAPABILITIES } from './candidate-portal.js';
 export { pmCapabilities } from './pm.js';
+export { headhunterWorkspaceCapabilities } from './headhunter-workspace.js';
+export { employerPanelCapabilities } from './employer-panel.js';
+export { webhooksInboxCapabilities } from './webhooks-inbox.js';
 
 import { headhunterCapabilities } from './headhunter.js';
 import { employerCapabilities } from './employer.js';
@@ -23,10 +26,23 @@ import { authCapabilities } from './auth.js';
 import { notificationsCapabilities } from './notifications.js';
 import { candidatePortalCapabilities } from './candidate-portal.js';
 import { pmCapabilities } from './pm.js';
+import { headhunterWorkspaceCapabilities } from './headhunter-workspace.js';
+import { employerPanelCapabilities } from './employer-panel.js';
+import { webhooksInboxCapabilities } from './webhooks-inbox.js';
 import type { Capability, CapabilitySet } from './types.js';
 
 const ALL_SETS: CapabilitySet[] = [
-  headhunterCapabilities, employerCapabilities, candidateCapabilities, adminCapabilities, authCapabilities, notificationsCapabilities, candidatePortalCapabilities, pmCapabilities,
+  headhunterCapabilities,
+  employerCapabilities,
+  candidateCapabilities,
+  adminCapabilities,
+  authCapabilities,
+  notificationsCapabilities,
+  candidatePortalCapabilities,
+  pmCapabilities,
+  headhunterWorkspaceCapabilities,
+  employerPanelCapabilities,
+  webhooksInboxCapabilities,
 ];
 
 /** Look up a capability by HTTP method + path. Returns undefined if not

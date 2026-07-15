@@ -73,15 +73,23 @@ export const pmCapabilities = defineCapabilitySet({
     {
       name: 'pm.create_position',
       description: 'PM 在项目下创建岗位 (headcount / salary / required_skills).',
-      method: 'POST', path: '/v1/pm/projects/:id/positions',
+      method: 'POST', path: '/v1/pm/projects/:projectId/positions',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.project_positions.insert'],
     },
     {
+      name: 'pm.read_position',
+      description: 'PM 查看单个岗位详情.',
+      method: 'GET', path: '/v1/pm/positions/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.project_positions.findById'],
+    },
+    {
       name: 'pm.list_positions',
       description: 'PM 列出项目下的所有岗位.',
-      method: 'GET', path: '/v1/pm/projects/:id/positions',
+      method: 'GET', path: '/v1/pm/projects/:projectId/positions',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.project_positions.listByProject'],
@@ -94,12 +102,36 @@ export const pmCapabilities = defineCapabilitySet({
       preconditions: ['user.status === "active"'],
       effects: ['db.project_positions.update'],
     },
+    {
+      name: 'pm.delete_position',
+      description: 'PM 删除岗位.',
+      method: 'DELETE', path: '/v1/pm/positions/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.project_positions.delete'],
+    },
+    {
+      name: 'pm.position_stats',
+      description: 'PM 查项目下岗位状态统计 (open/paused/filled 各多少).',
+      method: 'GET', path: '/v1/pm/projects/:projectId/positions/stats',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.project_positions.aggregateStats'],
+    },
+    {
+      name: 'pm.bulk_create_positions',
+      description: 'PM 在项目下批量创建岗位 (单次事务).',
+      method: 'POST', path: '/v1/pm/projects/:projectId/positions/bulk',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.project_positions.insertBatch'],
+    },
 
     // ----- Staffing Plans -----
     {
       name: 'pm.create_staffing_plan',
       description: 'PM 为项目创建 staffing 方案 (草稿).',
-      method: 'POST', path: '/v1/pm/projects/:id/staffing-plans',
+      method: 'POST', path: '/v1/pm/projects/:projectId/plans',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.staffing_plans.insert'],
@@ -107,20 +139,47 @@ export const pmCapabilities = defineCapabilitySet({
     {
       name: 'pm.list_staffing_plans',
       description: 'PM 列出项目下的所有 staffing 方案.',
-      method: 'GET', path: '/v1/pm/projects/:id/staffing-plans',
+      method: 'GET', path: '/v1/pm/projects/:projectId/plans',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.staffing_plans.listByProject'],
     },
     {
+      name: 'pm.read_plan',
+      description: 'PM 读取单个 staffing plan 详情.',
+      method: 'GET', path: '/v1/pm/plans/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.staffing_plans.findById'],
+    },
+    {
+      name: 'pm.update_plan',
+      description: 'PM 更新 staffing plan.',
+      method: 'PATCH', path: '/v1/pm/plans/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.staffing_plans.update'],
+    },
+    {
+      name: 'pm.delete_plan',
+      description: 'PM 删除 staffing plan.',
+      method: 'DELETE', path: '/v1/pm/plans/:id',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.staffing_plans.delete'],
+    },
+    {
       name: 'pm.select_staffing_plan',
-      description: 'PM 把某个 staffing 方案标记为 selected (取消其他方案的 selected 状态).',
-      method: 'POST', path: '/v1/pm/staffing-plans/:id/select',
+      description: 'PM 把某个 staffing plan 标记为 selected (取消其他方案的 selected 状态).',
+      method: 'POST', path: '/v1/pm/plans/:id/select',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.staffing_plans.update(is_selected)', 'db.staffing_plans.unselectOthers'],
       // R1.C4: ow-recruit's "advance-candidate" skill — selecting a
       // staffing plan advances the candidate through the PM pipeline.
+      // Path bound to the REAL /v1/pm/plans/:id/select route (the
+      // earlier /staffing-plans/ declaration was wrong — the route
+      // never existed).
       aliases: ['ow_recruit.advance_candidate'],
     },
 
@@ -128,15 +187,23 @@ export const pmCapabilities = defineCapabilitySet({
     {
       name: 'pm.decompose_position',
       description: 'PM 把一段自然语言需求文本拆解为岗位列表 (AI heuristic 驱动).',
-      method: 'POST', path: '/v1/pm/projects/:id/decompositions',
+      method: 'POST', path: '/v1/pm/projects/:projectId/decompose',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.position_decompositions.insert', 'ai.heuristic.decompose'],
     },
     {
+      name: 'pm.commit_decomposition',
+      description: 'PM 把一次 decompose 结果正式提交 (固化为 positions).',
+      method: 'POST', path: '/v1/pm/projects/:projectId/decompose/:decompositionId/commit',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.project_positions.bulkInsertFromDecomposition'],
+    },
+    {
       name: 'pm.list_decompositions',
       description: 'PM 列出项目的所有历史拆解.',
-      method: 'GET', path: '/v1/pm/projects/:id/decompositions',
+      method: 'GET', path: '/v1/pm/projects/:projectId/decompositions',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.position_decompositions.listByProject'],
@@ -146,7 +213,7 @@ export const pmCapabilities = defineCapabilitySet({
     {
       name: 'pm.match_candidates',
       description: 'PM 触发候选人与岗位的匹配打分 (后台 async 计算).',
-      method: 'POST', path: '/v1/pm/positions/:id/match',
+      method: 'POST', path: '/v1/pm/positions/:id/matches/recompute',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.matches.upsertBatch', 'db.matches.score'],
@@ -159,15 +226,33 @@ export const pmCapabilities = defineCapabilitySet({
       preconditions: ['user.status === "active"'],
       effects: ['db.matches.listByPosition'],
     },
+    {
+      name: 'pm.position_sandbox',
+      description: 'PM 查 position 的脱敏 sandbox 数据预览.',
+      method: 'GET', path: '/v1/pm/positions/:id/sandbox',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.matches.listByPositionForSandbox'],
+    },
+
+    // ----- Snapshot -----
+    {
+      name: 'pm.snapshot',
+      description: 'PM 全局快照 (projects/positions/plans/matches 计数).',
+      method: 'GET', path: '/v1/pm/snapshot',
+      quota_cost: 0,
+      preconditions: ['user.status === "active"'],
+      effects: ['db.pm.snapshotCounters'],
+    },
 
     // ----- PM Notes (per-PM private notes on candidates) -----
     {
       name: 'pm.write_note',
-      description: 'PM 在候选人上写 / 更新私人备注.',
+      description: 'PM 在候选人上写 / 更新私人备注.同时支持切换 starred (PUT body 含 { starred: true|false }).',
       method: 'PUT', path: '/v1/pm/notes/:candidate_user_id',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
-      effects: ['db.pm_notes.upsert'],
+      effects: ['db.pm_notes.upsert(starred, note_text)'],
     },
     {
       name: 'pm.read_note',
@@ -186,9 +271,13 @@ export const pmCapabilities = defineCapabilitySet({
       effects: ['db.pm_notes.listByPm'],
     },
     {
+      // The /star subendpoint never existed as a separate route — starring
+      // is folded into PUT /v1/pm/notes/:candidate_user_id (the
+      // { starred: bool } body field). Restated here as a discoverable
+      // capability name so /v1/capabilities surfaces it.
       name: 'pm.star_candidate',
-      description: 'PM 收藏候选人 (starred=1 in pm_notes).',
-      method: 'POST', path: '/v1/pm/notes/:candidate_user_id/star',
+      description: 'PM 收藏 / 取消收藏候选人 (通过 PUT /v1/pm/notes/:candidate_user_id body { starred: bool }).',
+      method: 'PUT', path: '/v1/pm/notes/:candidate_user_id',
       quota_cost: 0,
       preconditions: ['user.status === "active"'],
       effects: ['db.pm_notes.update(starred)'],

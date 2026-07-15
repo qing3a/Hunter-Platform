@@ -46,7 +46,11 @@ describe('GET /v1/capabilities', () => {
   it('public, lists all capability sets', async () => {
     const r = await request(app).get('/v1/capabilities');
     expect(r.status).toBe(200);
-    expect(r.body.data.sets.length).toBeGreaterThanOrEqual(5);  // auth, headhunter, employer, candidate, admin
+    expect(r.body.data.sets.length).toBeGreaterThanOrEqual(8);
+    // 8 roles as of R1 era + capability-route reconciliation:
+    //   auth, hr (headhunter + headhunter-workspace), pm (employer +
+    //   employer-panel + pm), candidate, candidatePortal, admin,
+    //   notifications, webhooks-inbox (folded into admin role for now)
     const roles = r.body.data.sets.map((s: any) => s.role);
     expect(roles).toContain('hr');
     expect(roles).toContain('pm');
