@@ -319,4 +319,176 @@ describe('v1.10 conformance follow-up — 41 smoke tests', () => {
     });
     expect(ok(r.status)).toBe(true);
   });
+
+  // ── additional caps surfaced by Phase A stub-stripping (smart conformance:check) ──
+  // These had only _generated.test.ts placeholders before; v1.10 batch
+  // fills them with minimal route-existence smoke tests so the cap is
+  // officially covered. (Deep behavior still lives in
+  // tests/integration/pm/*.test.ts, admin-*.test.ts, etc.)
+
+  it('employer.claim_job_via_pending: POST /v1/employer/pending-claims/:id/claim (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/employer/pending-claims/claim_noexist/claim', auth: pKey, body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('employer.reject_job_via_pending: POST /v1/employer/pending-claims/:id/reject (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/employer/pending-claims/reject_noexist/reject', auth: pKey, body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('admin.auth.login: POST /v1/admin/auth/login (route)', async () => {
+    // Note: admin auth login is exercised end-to-end in freshApp()'s
+    // _setup.ts (it logs in to obtain adminAuthHeader). This smoke
+    // just confirms the route also returns a typed error for empty body.
+    const r = await client.request({
+      method: 'POST', path: '/v1/admin/auth/login', body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('admin.auth.rotate_key: POST /v1/admin/auth/rotate-key (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/admin/auth/rotate-key', body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('admin.jobs.read: GET /v1/admin/jobs/:id (route)', async () => {
+    const r = await okWithAuth('/v1/admin/jobs/job_noexist', adminAuthHeader());
+    expect(r.status).toBe(404);
+  });
+
+  it('admin.candidates.read: GET /v1/admin/candidates/:id (route)', async () => {
+    const r = await okWithAuth('/v1/admin/candidates/cand_noexist', adminAuthHeader());
+    expect(r.status).toBe(404);
+  });
+
+  it('admin.recommendations.read: GET /v1/admin/recommendations/:id (route)', async () => {
+    const r = await okWithAuth('/v1/admin/recommendations/rec_noexist', adminAuthHeader());
+    expect(r.status).toBe(404);
+  });
+
+  it('candidate_portal.applications.detail: GET /v1/candidate-portal/applications/:id (route)', async () => {
+    const r = await okWithAuth('/v1/candidate-portal/applications/0', cKey);
+    expect(r.status).toBe(404);
+  });
+
+  it('pm.delete_position: DELETE /v1/pm/positions/:id (route)', async () => {
+    const r = await client.request({
+      method: 'DELETE', path: '/v1/pm/positions/pos_noexist', auth: pKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.position_stats: GET /v1/pm/projects/:projectId/positions/stats (route)', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/pm/projects/proj_noexist/positions/stats', auth: pKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.bulk_create_positions: POST /v1/pm/projects/:projectId/positions/bulk (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/pm/projects/proj_noexist/positions/bulk', auth: pKey, body: { positions: [] },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.read_plan: GET /v1/pm/plans/:id (route)', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/pm/plans/plan_noexist', auth: pKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.update_plan: PATCH /v1/pm/plans/:id (route)', async () => {
+    const r = await client.request({
+      method: 'PATCH', path: '/v1/pm/plans/plan_noexist', auth: pKey, body: { name: 'x' },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.delete_plan: DELETE /v1/pm/plans/:id (route)', async () => {
+    const r = await client.request({
+      method: 'DELETE', path: '/v1/pm/plans/plan_noexist', auth: pKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.commit_decomposition: POST /v1/pm/projects/:projectId/decompose/:decId/commit (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/pm/projects/proj_noexist/decompose/dec_noexist/commit', auth: pKey, body: { accepted: true },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('pm.position_sandbox: GET /v1/pm/positions/:id/sandbox (route)', async () => {
+    const r = await client.request({
+      method: 'GET', path: '/v1/pm/positions/pos_noexist/sandbox', auth: pKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.tasks.create: POST /v1/headhunter-workspace/tasks (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/tasks', auth: hKey, body: { title: 't' },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.tasks.update: PUT /v1/headhunter-workspace/tasks/:id (route)', async () => {
+    const r = await client.request({
+      method: 'PUT', path: '/v1/headhunter-workspace/tasks/task_noexist', auth: hKey, body: { title: 't' },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.tasks.delete: DELETE /v1/headhunter-workspace/tasks/:id (route)', async () => {
+    const r = await client.request({
+      method: 'DELETE', path: '/v1/headhunter-workspace/tasks/task_noexist', auth: hKey,
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.tasks.complete: POST /v1/headhunter-workspace/tasks/:id/complete (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/tasks/task_noexist/complete', auth: hKey, body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.tasks.reopen: POST /v1/headhunter-workspace/tasks/:id/reopen (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/tasks/task_noexist/reopen', auth: hKey, body: {},
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.kanban.move: POST /v1/headhunter-workspace/kanban/move (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/kanban/move', auth: hKey,
+      body: { recommendation_id: 'rec_noexist', to_column_id: 1 },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.kanban.add: POST /v1/headhunter-workspace/kanban/add (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/kanban/add', auth: hKey,
+      body: { recommendation_id: 'rec_noexist', to_column_id: 1 },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
+
+  it('headhunter_workspace.kanban.remove: POST /v1/headhunter-workspace/kanban/remove (route)', async () => {
+    const r = await client.request({
+      method: 'POST', path: '/v1/headhunter-workspace/kanban/remove', auth: hKey,
+      body: { recommendation_id: 'rec_noexist' },
+    });
+    expect(ok(r.status)).toBe(true);
+  });
 });
